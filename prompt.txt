@@ -1,0 +1,471 @@
+verifier est ce aue vraiment backent est bien liee avec frontend , est aussi lorsque je exucute application je voix sauf 4 icon statique ne fait rien ?  voila ce que demander 
+# 🚗 BOUSSELHA CARS — Car Rental Management System
+
+## Project Overview
+
+Desktop application (Windows + macOS) for **Bousselha Cars** car rental company based in Tanger, Morocco.
+Built with **Flutter (desktop)** + **Spring Boot (REST API)** + **MySQL (database)**.
+
+The app allows admins to:
+- Manage the car fleet
+- Register clients and rental contracts (with PDF printing matching the official contract format)
+- View a real-time dashboard (available / rented / maintenance vehicles)
+- Track full history per vehicle (rentals + maintenance)
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend (Desktop) | Flutter 3.x (Windows + macOS) |
+| Backend (API) | Spring Boot 3.x (Java 17) |
+| Database | MySQL 8.x |
+| ORM | Spring Data JPA / Hibernate |
+| PDF Generation | Apache PDFBox or iText 7 (server-side) |
+| Architecture | Clean Architecture + Repository Pattern + REST |
+| State Management (Flutter) | Riverpod or BLoC |
+| HTTP Client (Flutter) | Dio |
+| Dependency Injection (Spring) | Spring IoC |
+| Validation | Bean Validation (Jakarta) |
+| API Docs | Springdoc OpenAPI (Swagger UI) |
+
+---
+
+## Project Structure
+
+### Backend — Spring Boot
+
+```
+bousselha-backend/
+├── src/main/java/com/bousselha/
+│   ├── BousselhaApplication.java
+│   ├── config/
+│   │   ├── CorsConfig.java
+│   │   └── OpenApiConfig.java
+│   ├── domain/
+│   │   ├── model/
+│   │   │   ├── Car.java
+│   │   │   ├── Client.java
+│   │   │   ├── Contract.java
+│   │   │   ├── Payment.java
+│   │   │   └── Maintenance.java
+│   │   ├── enums/
+│   │   │   ├── FuelType.java          // ESSENCE, DIESEL
+│   │   │   ├── CarStatus.java         // AVAILABLE, RENTED, MAINTENANCE
+│   │   │   └── DamageType.java        // ERAFLURE, BOSSE, MANQUE
+│   │   └── repository/
+│   │       ├── CarRepository.java
+│   │       ├── ClientRepository.java
+│   │       ├── ContractRepository.java
+│   │       └── MaintenanceRepository.java
+│   ├── application/
+│   │   ├── service/
+│   │   │   ├── CarService.java
+│   │   │   ├── ClientService.java
+│   │   │   ├── ContractService.java
+│   │   │   ├── MaintenanceService.java
+│   │   │   └── PdfService.java
+│   │   └── dto/
+│   │       ├── request/
+│   │       │   ├── CarRequest.java
+│   │       │   ├── ClientRequest.java
+│   │       │   └── ContractRequest.java
+│   │       └── response/
+│   │           ├── CarResponse.java
+│   │           ├── DashboardResponse.java
+│   │           └── ContractResponse.java
+│   └── infrastructure/
+│       ├── controller/
+│       │   ├── CarController.java
+│       │   ├── ClientController.java
+│       │   ├── ContractController.java
+│       │   ├── MaintenanceController.java
+│       │   └── DashboardController.java
+│       └── exception/
+│           ├── GlobalExceptionHandler.java
+│           └── ResourceNotFoundException.java
+├── src/main/resources/
+│   ├── application.properties
+│   └── templates/contract_template.pdf   // PDF base template
+└── pom.xml
+```
+
+### Frontend — Flutter Desktop
+
+```
+bousselha-flutter/
+├── lib/
+│   ├── main.dart
+│   ├── core/
+│   │   ├── constants/app_colors.dart
+│   │   ├── constants/app_strings.dart
+│   │   ├── network/dio_client.dart
+│   │   └── utils/pdf_utils.dart
+│   ├── data/
+│   │   ├── models/
+│   │   │   ├── car_model.dart
+│   │   │   ├── client_model.dart
+│   │   │   ├── contract_model.dart
+│   │   │   └── maintenance_model.dart
+│   │   └── repositories/
+│   │       ├── car_repository.dart
+│   │       ├── client_repository.dart
+│   │       └── contract_repository.dart
+│   ├── presentation/
+│   │   ├── dashboard/
+│   │   │   ├── dashboard_screen.dart
+│   │   │   └── widgets/
+│   │   │       ├── stats_card.dart
+│   │   │       ├── reserved_calendar_widget.dart
+│   │   │       └── car_status_list.dart
+│   │   ├── cars/
+│   │   │   ├── car_list_screen.dart
+│   │   │   ├── car_form_screen.dart
+│   │   │   └── car_history_screen.dart
+│   │   ├── contracts/
+│   │   │   ├── contract_form_screen.dart
+│   │   │   └── contract_preview_screen.dart
+│   │   └── maintenance/
+│   │       ├── maintenance_list_screen.dart
+│   │       └── maintenance_form_screen.dart
+│   └── shared/
+│       ├── widgets/
+│       │   ├── sidebar_nav.dart
+│       │   └── custom_text_field.dart
+│       └── providers/         // Riverpod providers
+└── pubspec.yaml
+```
+
+---
+
+## Database Schema (MySQL)
+
+```sql
+-- Cars table
+CREATE TABLE cars (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    brand VARCHAR(100) NOT NULL,
+    fuel_type ENUM('ESSENCE', 'DIESEL') NOT NULL,
+    matricule VARCHAR(50) UNIQUE NOT NULL,
+    next_inspection_date DATE,
+    last_oil_change_date DATE,
+    insurance_expiry_date DATE,
+    status ENUM('AVAILABLE', 'RENTED', 'MAINTENANCE') DEFAULT 'AVAILABLE',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Clients table
+CREATE TABLE clients (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(200) NOT NULL,
+    birth_date DATE,
+    address_morocco VARCHAR(300),
+    address_abroad VARCHAR(300),
+    profession VARCHAR(100),
+    driving_license_number VARCHAR(100),
+    driving_license_issued_at VARCHAR(100),
+    cin_number VARCHAR(50),
+    passport_number VARCHAR(100),
+    passport_issued_at VARCHAR(100),
+    phone VARCHAR(20),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Contracts table
+CREATE TABLE contracts (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    car_id BIGINT NOT NULL,
+    client_id BIGINT NOT NULL,
+    additional_driver_name VARCHAR(200),
+    additional_driver_license VARCHAR(100),
+    additional_driver_passport VARCHAR(100),
+    departure_place VARCHAR(200),
+    return_place VARCHAR(200),
+    departure_datetime DATETIME NOT NULL,
+    expected_return_datetime DATETIME,
+    actual_return_datetime DATETIME,
+    duration_days INT,
+    price_per_day DECIMAL(10,2),
+    price_per_week DECIMAL(10,2),
+    price_per_month DECIMAL(10,2),
+    price_per_hour DECIMAL(10,2),
+    with_insurance BOOLEAN DEFAULT FALSE,
+    total_price DECIMAL(10,2),
+    supplement DECIMAL(10,2) DEFAULT 0,
+    total_general DECIMAL(10,2),
+    payment_cash DECIMAL(10,2),
+    payment_check DECIMAL(10,2),
+    payment_deposit DECIMAL(10,2),
+    vehicle_condition_departure VARCHAR(500),
+    vehicle_condition_return VARCHAR(500),
+    damages_identified VARCHAR(500),
+    status ENUM('ACTIVE', 'COMPLETED', 'CANCELLED') DEFAULT 'ACTIVE',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (car_id) REFERENCES cars(id),
+    FOREIGN KEY (client_id) REFERENCES clients(id)
+);
+
+-- Maintenance table
+CREATE TABLE maintenance (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    car_id BIGINT NOT NULL,
+    type VARCHAR(100) NOT NULL,
+    description TEXT,
+    start_date DATE NOT NULL,
+    end_date DATE,
+    cost DECIMAL(10,2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (car_id) REFERENCES cars(id)
+);
+```
+
+---
+
+## REST API Endpoints
+
+### Cars
+```
+GET    /api/cars                          → List all cars
+GET    /api/cars/{id}                     → Get car by ID
+GET    /api/cars/available                → List available cars
+GET    /api/cars/rented                   → List rented cars
+GET    /api/cars/maintenance              → List cars in maintenance
+POST   /api/cars                          → Create new car
+PUT    /api/cars/{id}                     → Update car
+DELETE /api/cars/{id}                     → Delete car
+GET    /api/cars/{id}/history             → Full history (contracts + maintenance)
+```
+
+### Clients
+```
+GET    /api/clients                       → List all clients
+GET    /api/clients/{id}                  → Get client by ID
+POST   /api/clients                       → Create new client
+PUT    /api/clients/{id}                  → Update client
+```
+
+### Contracts
+```
+GET    /api/contracts                     → List all contracts
+GET    /api/contracts/{id}               → Get contract by ID
+GET    /api/contracts/active             → Active rentals with calendar
+POST   /api/contracts                    → Create new contract
+PUT    /api/contracts/{id}/return        → Register return
+GET    /api/contracts/{id}/pdf           → Generate PDF (returns byte stream)
+```
+
+### Maintenance
+```
+GET    /api/maintenance                   → List all maintenance records
+GET    /api/maintenance/car/{carId}       → Maintenance for a specific car
+POST   /api/maintenance                   → Create maintenance record
+PUT    /api/maintenance/{id}              → Update maintenance record
+```
+
+### Dashboard
+```
+GET    /api/dashboard/stats               → {totalCars, available, rented, maintenance}
+GET    /api/dashboard/calendar            → Rentals with start/end dates for calendar view
+```
+
+---
+
+## Features to Implement (Detailed)
+
+### 1. Dashboard Screen
+- Stats cards: Total cars / Available / Rented / In Maintenance
+- **Calendar widget** showing all active rentals with car name + client name + date range
+- Quick-access buttons: Add Car, New Contract, Add Maintenance
+- Alerts: cars with expired insurance, overdue oil change, upcoming inspection
+
+### 2. Car Management
+- Form: brand, fuel type (dropdown: Essence/Diesel), matricule, next inspection date, last oil change date, insurance expiry date
+- Status badge: Available (green) / Rented (orange) / Maintenance (red)
+- Car History screen: timeline showing all past contracts + maintenance records for that car
+
+### 3. Contract Form (matching the physical Bousselha Cars contract)
+The contract form must include ALL fields visible in the reference image:
+- **Vehicle info**: Marque, N° Immatriculation, Type, Lieu de Livraison, Lieu de Reprise
+- **Dates section**: Départ (J/M/A/H/mn), Retour Prévu, Retour Définitif, Durée
+- **Locataire section**: Nom & Prénom, Date de naissance, Adresse au Maroc, Adresse à l'Étranger, Profession, N° Permis de conduire, Délivré à, C.I.N N°, Passeport N°, Délivré le, Tél
+- **Conducteur Supplémentaire**: Nom & Prénom, Permis de Conduire N°, Délivré le, Passeport N°
+- **Pricing grid**: Heures / Jours / Semaines / Mois (Q, Prix, Prix Total columns), Avec Assurance, TOTAL, Supplément, TOTAL Général (Au Retour)
+- **Paiement**: Espèces, Chèque, Caution
+- **Vehicle condition**: Departure state (Oui/Non + damage markers on car diagram), Damages Identifiés (Eraflure / Bosse / Manque + Nombre + Paraphe client), Return state
+
+### 4. PDF Generation (Server-Side)
+- Spring Boot generates the PDF using PDFBox or iText
+- PDF must visually match the physical contract (Bousselha Cars header, logo, bilingual French/Arabic labels, all fields filled in, vehicle diagram with damage markers, signature fields)
+- Flutter calls `/api/contracts/{id}/pdf` and opens the PDF locally for printing
+
+### 5. Vehicle History Screen
+- Timeline view per car
+- Each entry shows: type (Rental / Maintenance), dates, client name (for rentals), cost (for maintenance), status
+- Filterable by year or type
+
+---
+
+## Quality & Maintainability Requirements
+
+### Backend (Spring Boot)
+- **Clean Architecture**: Separate domain / application / infrastructure layers
+- **No business logic in controllers**: Controllers only delegate to services
+- **DTOs for all inputs/outputs**: Never expose domain entities directly
+- **Global exception handling** with meaningful HTTP status codes
+- **Input validation** with Jakarta Bean Validation annotations
+- **Soft deletes** where applicable (don't permanently delete contracts)
+- **Indexed foreign keys** in MySQL for performance
+- **Transactional services** with `@Transactional`
+- **Swagger/OpenAPI** documentation auto-generated
+
+### Flutter Desktop
+- **Riverpod** for state management (avoid setState for business logic)
+- **Repository pattern**: data layer completely separated from UI
+- **Dio** for HTTP with interceptors (error handling, base URL config)
+- **Responsive layout** adapted for desktop window (sidebar nav + main content)
+- **Form validation** client-side before sending to API
+- **Loading / error / empty states** on every screen
+
+---
+
+## Setup Instructions
+
+### Prerequisites
+- Java 17+
+- Flutter 3.x with desktop enabled (`flutter config --enable-windows-desktop` / `--enable-macos-desktop`)
+- MySQL 8.x running locally or on server
+- Maven 3.8+
+
+### Backend Setup
+```bash
+cd bousselha-backend
+# Configure DB in src/main/resources/application.properties
+spring.datasource.url=jdbc:mysql://localhost:3306/bousselha_db
+spring.datasource.username=root
+spring.datasource.password=yourpassword
+spring.jpa.hibernate.ddl-auto=update
+
+mvn spring-boot:run
+# API available at http://localhost:8080
+# Swagger UI at http://localhost:8080/swagger-ui.html
+```
+
+### Flutter Setup
+```bash
+cd bousselha-flutter
+# Configure base URL in lib/core/network/dio_client.dart
+# baseUrl: 'http://localhost:8080/api'
+
+flutter pub get
+flutter run -d windows   # or -d macos
+```
+
+---
+
+## PDF Contract Layout Requirements
+
+The generated PDF must reproduce the exact layout of the physical Bousselha Cars contract:
+1. Header: Logo "BOUSSELHA CARS" + address (Branes 1, Rue Ibn Chahid N°11, Tanger) + phone + email
+2. Title: "CONTRAT DE LOCATION" (French) + "عقد كراء السيارات" (Arabic)
+3. Vehicle block with date/time grid (J/M/A/H/mn columns)
+4. Locataire section (bilingual labels)
+5. Pricing table (Heures/Jours/Semaines/Mois with Q/Prix/Prix Total)
+6. Payment section
+7. Vehicle condition diagrams (front/rear/side outline with damage position numbering)
+8. Damage legend (Eraflure // / Bosse X / Manque □)
+9. Footer: Observation text + Signature Client + "Fait à Tanger, le ___"
+
+---
+
+## Cursor AI Prompt (copy-paste this into Cursor)
+
+> Build a full-stack desktop car rental management application called **BOUSSELHA CARS** using **Spring Boot 3 (Java 17) + MySQL 8 + Flutter 3 (Windows/macOS desktop)**. Follow this README exactly. Implement Clean Architecture on the backend (domain/application/infrastructure layers, DTOs, no logic in controllers, global exception handler, Bean Validation, Swagger). Use Riverpod + Repository pattern on Flutter. Implement all REST endpoints listed. Build all screens: Dashboard (stats cards + calendar), Car Management (CRUD + history timeline), Contract Form (matching the physical Bousselha Cars bilingual French/Arabic contract with all fields: locataire, conducteur supplémentaire, pricing grid, payment, vehicle condition with damage markers), PDF generation server-side with iText or PDFBox reproducing the exact contract layout, Maintenance management. Database schema with cars / clients / contracts / maintenance tables as specified. The app must be production-quality, maintainable, and ready for real use by a car rental business in Morocco.
+
+---
+
+## Company Info (for PDF header)
+
+```
+BOUSSELHA CARS
+Branes 1, Rue Ibn Chahid N°11 - Tanger
+Fix/Fax: 05 39 31 54 63
+Gsm: 06 89 12 48 89 / 06 61 54 99 92
+E-mail: bousselhaa@gmail.com
+```
+```
+etat de projet : 
+  Parfait, Flutter est installé et pub get passe. Le blocage restant est uniquement la configuration Windows du projet Flutter; je vais le corriger directement en générant les fichiers desktop manquants.
+
+Excellent progrès : ton erreur initiale est résolue ✅
+
+flutter pub get fonctionne
+le projet Windows Flutter est maintenant généré (windows/ créé via flutter create --platforms=windows .)
+Le nouveau blocage est différent :
+
+Unable to find suitable Visual Studio toolchain
+Ce qu’il faut installer
+Pour compiler Flutter Desktop sur Windows, installe Visual Studio 2022 Community avec :
+
+workload Desktop development with C++
+composant MSVC v143
+Windows 10/11 SDK
+CMake tools for C++
+Vérifier après installation
+Dans un nouveau terminal :
+
+flutter doctor -v
+Tu dois voir [√] Visual Studio - develop Windows apps.
+
+Puis relance :
+
+cd "C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-flutter"
+flutter run -d windows
+Si tu veux, je peux te donner exactement les cases à cocher dans l’installateur Visual Studio (écran par écran).
+
+
+C'est quoi Visual Studio et pourquoi Flutter en a besoin ?
+Le principe
+Flutter pour Windows ne compile pas tout seul. Il a besoin d'un compilateur C++ pour transformer ton code en .exe Windows natif.
+Ton code Dart
+      ↓
+Flutter SDK
+      ↓
+Compilateur C++ (Visual Studio)  ← manquant chez toi
+      ↓
+bousselha_cars.exe  ✅
+Pourquoi C++ ?
+Le "moteur" de Flutter (qui dessine les pixels, gère la fenêtre Windows, etc.) est écrit en C++. Quand tu compile pour Windows, Flutter doit recompiler ce moteur avec les outils Microsoft officiels (MSVC).
+
+Ce qu'il faut installer (écran par écran)
+1. Télécharge Visual Studio 2022 Community (gratuit) :
+https://visualstudio.microsoft.com/fr/downloads/
+2. Lance l'installateur → tu arrives sur cet écran :
+┌─────────────────────────────────────────┐
+│  Charges de travail                     │
+│                                         │
+│  ☑  Développement Desktop en C++   ←   │
+│  ☐  Développement ASP.NET               │
+│  ☐  Développement Python                │
+│     ...                                 │
+└─────────────────────────────────────────┘
+Coche uniquement → Développement Desktop en C++
+3. Sur la droite tu verras automatiquement coché :
+✅ MSVC v143 (compilateur Microsoft)
+✅ Windows 11 SDK
+✅ CMake tools for C++
+✅ C++ core features
+Ne change rien, clique Installer (~6-8 Go).
+
+Après installation
+bash# Redémarre le terminal, puis :
+flutter doctor -v
+Tu dois voir :
+[√] Visual Studio - develop Windows apps (Visual Studio 2022 17.x)
+Puis :
+bashflutter run -d windows
+
+⚠️ Ne confonds pas Visual Studio (IDE lourd, pour C++) avec VS Code (éditeur léger). Flutter utilise VS Code pour écrire le code Dart, mais a besoin de Visual Studio juste pour ses outils de compilation en arrière-plan.
+Sonnet 4.6
+---

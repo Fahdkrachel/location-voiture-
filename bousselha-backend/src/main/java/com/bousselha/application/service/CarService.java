@@ -1,0 +1,113 @@
+package com.bousselha.application.service;
+
+import com.bousselha.application.dto.request.CarRequest;
+import com.bousselha.application.dto.response.CarHistoryItemResponse;
+import com.bousselha.application.dto.response.CarResponse;
+import com.bousselha.domain.enums.CarStatus;
+import com.bousselha.domain.model.Car;
+import com.bousselha.domain.repository.CarRepository;
+import com.bousselha.domain.repository.ContractRepository;
+import com.bousselha.domain.repository.MaintenanceRepository;
+import com.bousselha.infrastructure.exception.ResourceNotFoundException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+@Transactional
+public class CarService {
+    private final CarRepository carRepository;
+    private final ContractRepository contractRepository;
+    private final MaintenanceRepository maintenanceRepository;
+
+    public CarService(CarRepository carRepository, ContractRepository contractRepository, MaintenanceRepository maintenanceRepository) {
+        this.carRepository = carRepository;
+        this.contractRepository = contractRepository;
+        this.maintenanceRepository = maintenanceRepository;
+    }
+
+    public List<CarResponse> findAll() {
+        return carRepository.findAll().stream().map(this::map).toList();
+    }
+
+    public CarResponse findById(Long id) {
+        return map(getCar(id));
+    }
+
+    public List<CarResponse> findByStatus(CarStatus status) {
+        return carRepository.findByStatus(status).stream().map(this::map).toList();
+    }
+
+    public CarResponse create(CarRequest request) {
+        Car car = new Car();
+        apply(car, request);
+        return map(carRepository.save(car));
+    }
+
+    public CarResponse update(Long id, CarRequest request) {
+        Car car = getCar(id);
+        apply(car, request);
+        return map(carRepository.save(car));
+    }
+
+    public void delete(Long id) {
+        carRepository.delete(getCar(id));
+    }
+
+    public List<CarHistoryItemResponse> history(Long carId) {
+        getCar(carId);
+        List<CarHistoryItemResponse> rentals = contractRepository.findByDeletedFalse().stream()
+                .filter(c -> c.getCar().getId().equals(carId))
+                .map(c -> new CarHistoryItemResponse(
+                        "RENTAL",
+                        c.getClient().getFullName(),
+                        c.getDepartureDatetime(),
+                        c.getActualReturnDatetime() != null ? c.getActualReturnDatetime() : c.getExpectedReturnDatetime(),
+                        c.getTotalGeneral(),
+                        c.getStatus().name()
+                ))
+                .toList();
+        List<CarHistoryItemResponse> maintenance = maintenanceRepository.findByCarId(carId).stream()
+                .map(m -> new CarHistoryItemResponse(
+                        "MAINTENANCE",
+                        m.getType(),
+                        m.getStartDate().atStartOfDay(),
+                        m.getEndDate() == null ? null : m.getEndDate().atStartOfDay(),
+                        m.getCost(),
+                        "DONE"
+                ))
+                .toList();
+        return java.util.stream.Stream.concat(rentals.stream(), maintenance.stream())
+                .sorted((a, b) -> b.startDate().compareTo(a.startDate()))
+                .toList();
+    }
+
+    private Car getCar(Long id) {
+        return carRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Car not found: " + id));
+    }
+
+    private void apply(Car car, CarRequest request) {
+        car.setBrand(request.brand());
+        car.setFuelType(request.fuelType());
+        car.setMatricule(request.matricule());
+        car.setNextInspectionDate(request.nextInspectionDate());
+        car.setLastOilChangeDate(request.lastOilChangeDate());
+        car.setInsuranceExpiryDate(request.insuranceExpiryDate());
+        car.setStatus(request.status() == null ? CarStatus.AVAILABLE : request.status());
+    }
+
+    private CarResponse map(Car car) {
+        return new CarResponse(
+                car.getId(),
+                car.getBrand(),
+                car.getFuelType(),
+                car.getMatricule(),
+                car.getNextInspectionDate(),
+                car.getLastOilChangeDate(),
+                car.getInsuranceExpiryDate(),
+                car.getStatus()
+        );
+    }
+}

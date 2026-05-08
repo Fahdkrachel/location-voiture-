@@ -1,0 +1,40 @@
+package com.bousselha.infrastructure.controller;
+
+import com.bousselha.application.dto.request.CarRequest;
+import com.bousselha.application.dto.response.CarHistoryItemResponse;
+import com.bousselha.application.dto.response.CarResponse;
+import com.bousselha.application.service.CarService;
+import com.bousselha.domain.enums.CarStatus;
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/cars")
+public class CarController {
+    private final CarService carService;
+
+    public CarController(CarService carService) {
+        this.carService = carService;
+    }
+
+    @GetMapping
+    public List<CarResponse> findAll() { return carService.findAll(); }
+    @GetMapping("/{id}")
+    public CarResponse findById(@PathVariable Long id) { return carService.findById(id); }
+    @GetMapping("/available")
+    public List<CarResponse> available() { return carService.findByStatus(CarStatus.AVAILABLE); }
+    @GetMapping("/rented")
+    public List<CarResponse> rented() { return carService.findByStatus(CarStatus.RENTED); }
+    @GetMapping("/maintenance")
+    public List<CarResponse> maintenance() { return carService.findByStatus(CarStatus.MAINTENANCE); }
+    @PostMapping
+    public CarResponse create(@Valid @RequestBody CarRequest request) { return carService.create(request); }
+    @PutMapping("/{id}")
+    public CarResponse update(@PathVariable Long id, @Valid @RequestBody CarRequest request) { return carService.update(id, request); }
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) { carService.delete(id); }
+    @GetMapping("/{id}/history")
+    public List<CarHistoryItemResponse> history(@PathVariable Long id) { return carService.history(id); }
+}

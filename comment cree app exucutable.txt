@@ -1,0 +1,41 @@
+très bonne question. Pour un usage “client” avec double-clic sur une icône, il faut transformer ton projet en application installable, pas en mvn/flutter run.
+
+Le plus simple en production
+1) Architecture recommandée
+Backend Spring Boot hébergé sur un serveur (VPS/cloud/local serveur entreprise), toujours allumé.
+Client Windows = ton app Flutter compilée en .exe.
+L’utilisateur final lance seulement l’icône Flutter sur le bureau.
+👉 C’est la meilleure expérience “comme un logiciel normal”.
+
+2) Générer l’exécutable Windows Flutter
+Dans bousselha-flutter :
+
+flutter build windows --release
+Exécutable généré ici :
+
+build\windows\x64\runner\Release\bousselha_flutter.exe
+Tu peux créer un raccourci bureau vers ce .exe.
+
+3) (Important) Pointer Flutter vers l’API réelle
+Dans dio_client.dart, remplace localhost par l’URL/IP du backend (exemple) :
+
+http://192.168.1.50:8080/api (serveur local réseau)
+ou un domaine public HTTPS
+Sinon, chez le client localhost = son PC, donc ça ne marchera pas.
+
+4) Faire un “vrai installateur” Windows (propre)
+Utilise Inno Setup ou NSIS pour créer BousselhaCarsSetup.exe qui :
+
+copie les fichiers Flutter release,
+crée raccourci Bureau + menu Démarrer,
+ajoute icône/logo.
+Si tu veux tout local sur le PC client (sans serveur externe)
+Possible, mais plus lourd :
+
+lancer backend Java + MySQL localement en service Windows,
+puis lancer Flutter. Dans ce cas je te prépare un launcher .bat/.ps1 + raccourci unique “BOUSSELHA CARS”.
+Si tu veux, je peux te guider maintenant pas à pas pour faire l’option pro :
+
+build release Flutter,
+config URL backend,
+génération d’un Setup.exe installable avec icône.

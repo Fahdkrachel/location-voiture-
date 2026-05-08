@@ -1,0 +1,20 @@
+le backend est fonctionne  avec database sauf : xcellent 👌 ça confirme que :
+
+MySQL + utilisateur bousselha sont OK
+le problème vient uniquement de la source de config par défaut (elle remet root)
+Le rendre permanent (sans retaper la grosse commande)
+Option recommandée : variables d’environnement utilisateur (persistantes)
+Dans PowerShell :
+
+setx SPRING_DATASOURCE_URL "jdbc:mysql://localhost:3306/bousselha_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+setx SPRING_DATASOURCE_USERNAME "bousselha"
+setx SPRING_DATASOURCE_PASSWORD "Bousselha@2026"
+Ferme/rouvre terminal/Cursor, puis lance simplement :
+
+cd "C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend"
+mvn spring-boot:run
+Vérification rapide
+echo $env:SPRING_DATASOURCE_USERNAME
+Doit afficher bousselha.
+
+Si tu veux, je peux aussi te proposer une config plus propre/sécurisée avec un profil application-local.properties + mot de passe hors dépôt.
