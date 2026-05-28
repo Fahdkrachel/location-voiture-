@@ -14,6 +14,7 @@ class SidebarNav extends StatelessWidget {
       destinations: const [
         NavigationRailDestination(icon: Icon(Icons.dashboard), label: Text('Dashboard')),
         NavigationRailDestination(icon: Icon(Icons.directions_car), label: Text('Voitures')),
+        NavigationRailDestination(icon: Icon(Icons.person_pin), label: Text('Clients')),
         NavigationRailDestination(icon: Icon(Icons.description), label: Text('Contrats')),
         NavigationRailDestination(icon: Icon(Icons.build), label: Text('Maintenance')),
       ],

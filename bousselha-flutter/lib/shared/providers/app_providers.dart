@@ -3,10 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/dio_client.dart';
 import '../../data/models/car_model.dart';
+import '../../data/models/client_model.dart';
 import '../../data/models/contract_model.dart';
+import '../../data/models/dashboard_alert_model.dart';
+import '../../data/models/dashboard_stats_model.dart';
 import '../../data/models/maintenance_model.dart';
 import '../../data/repositories/car_repository.dart';
+import '../../data/repositories/client_repository.dart';
 import '../../data/repositories/contract_repository.dart';
+import '../../data/repositories/dashboard_repository.dart';
 import '../../data/repositories/maintenance_repository.dart';
 
 final dioProvider = Provider<Dio>((ref) => DioClient.build());
@@ -26,10 +31,34 @@ final contractsProvider = FutureProvider<List<ContractModel>>((ref) async {
   return ref.watch(contractRepositoryProvider).getContracts();
 });
 
+final clientRepositoryProvider = Provider<ClientRepository>((ref) {
+  return ClientRepository(ref.watch(dioProvider));
+});
+
+final clientsProvider = FutureProvider<List<ClientModel>>((ref) async {
+  return ref.watch(clientRepositoryProvider).getClients();
+});
+
 final maintenanceRepositoryProvider = Provider<MaintenanceRepository>((ref) {
   return MaintenanceRepository(ref.watch(dioProvider));
 });
 
 final maintenanceProvider = FutureProvider<List<MaintenanceModel>>((ref) async {
   return ref.watch(maintenanceRepositoryProvider).getMaintenance();
+});
+
+final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
+  return DashboardRepository(ref.watch(dioProvider));
+});
+
+final dashboardStatsProvider = FutureProvider<DashboardStatsModel>((ref) async {
+  return ref.watch(dashboardRepositoryProvider).getStats();
+});
+
+final dashboardCalendarProvider = FutureProvider<List<ContractModel>>((ref) async {
+  return ref.watch(dashboardRepositoryProvider).getCalendar();
+});
+
+final dashboardAlertsProvider = FutureProvider<List<DashboardAlertModel>>((ref) async {
+  return ref.watch(dashboardRepositoryProvider).getAlerts();
 });

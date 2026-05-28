@@ -61,80 +61,111 @@ class MaintenanceListScreen extends ConsumerWidget {
   }
 
   Future<void> _showAddMaintenanceDialog(BuildContext context, WidgetRef ref) async {
-    final carIdCtrl = TextEditingController();
     final typeCtrl = TextEditingController();
+    final descriptionCtrl = TextEditingController();
     final startDateCtrl = TextEditingController();
+    final endDateCtrl = TextEditingController();
     final costCtrl = TextEditingController();
+    final cars = await ref.read(carRepositoryProvider).getCars();
+    if (!context.mounted) return;
+    if (cars.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ajoute d abord une voiture avant maintenance.')),
+      );
+      return;
+    }
+    int? selectedCarId = cars.isNotEmpty ? cars.first.id : null;
 
     await showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Ajouter maintenance'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: carIdCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Car ID'),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Ajouter maintenance'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<int>(
+                initialValue: selectedCarId,
+                items: cars
+                    .map(
+                      (car) => DropdownMenuItem<int>(
+                        value: car.id,
+                        child: Text('${car.brand} (${car.matricule})'),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) => setState(() => selectedCarId = value),
+                decoration: const InputDecoration(labelText: 'Voiture *'),
+              ),
+              TextField(
+                controller: typeCtrl,
+                decoration: const InputDecoration(labelText: 'Type'),
+              ),
+              TextField(
+                controller: startDateCtrl,
+                decoration: const InputDecoration(labelText: 'Date debut (YYYY-MM-DD)'),
+              ),
+              TextField(
+                controller: endDateCtrl,
+                decoration: const InputDecoration(labelText: 'Date fin (YYYY-MM-DD)'),
+              ),
+              TextField(
+                controller: descriptionCtrl,
+                decoration: const InputDecoration(labelText: 'Description'),
+              ),
+              TextField(
+                controller: costCtrl,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Cout (optionnel)'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annuler'),
             ),
-            TextField(
-              controller: typeCtrl,
-              decoration: const InputDecoration(labelText: 'Type'),
-            ),
-            TextField(
-              controller: startDateCtrl,
-              decoration: const InputDecoration(labelText: 'Date debut (YYYY-MM-DD)'),
-            ),
-            TextField(
-              controller: costCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Cout (optionnel)'),
+            FilledButton(
+              onPressed: () async {
+                final type = typeCtrl.text.trim();
+                final startDate = startDateCtrl.text.trim();
+                final endDate = endDateCtrl.text.trim();
+                final description = descriptionCtrl.text.trim();
+                final cost = double.tryParse(costCtrl.text.trim());
+                if (selectedCarId == null || type.isEmpty || startDate.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Voiture, type et date debut sont obligatoires.')),
+                  );
+                  return;
+                }
+                try {
+                  await ref.read(maintenanceRepositoryProvider).createMaintenance(
+                        carId: selectedCarId!,
+                        type: type,
+                        startDate: startDate,
+                        endDate: endDate.isEmpty ? null : endDate,
+                        description: description.isEmpty ? null : description,
+                        cost: cost,
+                      );
+                  ref.invalidate(maintenanceProvider);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Maintenance ajoutee avec succes.')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Erreur ajout maintenance: $e')),
+                    );
+                  }
+                }
+              },
+              child: const Text('Enregistrer'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final carId = int.tryParse(carIdCtrl.text.trim());
-              final type = typeCtrl.text.trim();
-              final startDate = startDateCtrl.text.trim();
-              final cost = double.tryParse(costCtrl.text.trim());
-              if (carId == null || type.isEmpty || startDate.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Car ID, type et date debut sont obligatoires.')),
-                );
-                return;
-              }
-              try {
-                await ref.read(maintenanceRepositoryProvider).createMaintenance(
-                      carId: carId,
-                      type: type,
-                      startDate: startDate,
-                      cost: cost,
-                    );
-                ref.invalidate(maintenanceProvider);
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Maintenance ajoutee avec succes.')),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Erreur ajout maintenance: $e')),
-                  );
-                }
-              }
-            },
-            child: const Text('Enregistrer'),
-          ),
-        ],
       ),
     );
   }
