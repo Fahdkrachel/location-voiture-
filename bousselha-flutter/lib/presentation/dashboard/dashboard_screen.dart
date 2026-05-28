@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/contract_model.dart';
 import '../../data/models/dashboard_alert_model.dart';
 import '../../shared/providers/app_providers.dart';
+import 'expense_detail_screen.dart';
+import 'income_detail_screen.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -21,11 +23,30 @@ class DashboardScreen extends ConsumerWidget {
           children: [
             Wrap(
               spacing: 12,
+              runSpacing: 12,
               children: [
-                _card('Total voitures', data.totalCars.toString(), Colors.blue),
-                _card('Disponibles', data.available.toString(), Colors.green),
-                _card('Louees', data.rented.toString(), Colors.orange),
-                _card('Maintenance', data.maintenance.toString(), Colors.red),
+                _card(context, 'Total voitures', data.totalCars.toString(), Colors.blue),
+                _card(context, 'Disponibles', data.available.toString(), Colors.green),
+                _card(context, 'Louees', data.rented.toString(), Colors.orange),
+                _card(context, 'Maintenance', data.maintenance.toString(), Colors.red),
+                _card(
+                  context,
+                  'Revenus (Income)',
+                  '${data.totalIncome.toStringAsFixed(2)} MAD',
+                  const Color(0xFF059669),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const IncomeDetailScreen()),
+                  ),
+                ),
+                _card(
+                  context,
+                  'Depenses (Expense)',
+                  '${data.totalExpense.toStringAsFixed(2)} MAD',
+                  const Color(0xFFDC2626),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ExpenseDetailScreen()),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 24),
@@ -110,19 +131,28 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _card(String title, String value, Color color) {
+  Widget _card(BuildContext context, String title, String value, Color color, {VoidCallback? onTap}) {
     return Card(
-      child: SizedBox(
-        width: 200,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontSize: 13)),
-              const SizedBox(height: 8),
-              Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-            ],
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: SizedBox(
+          width: 200,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: Text(title, style: const TextStyle(fontSize: 13))),
+                    if (onTap != null) Icon(Icons.open_in_new, size: 16, color: color.withValues(alpha: 0.7)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
+              ],
+            ),
           ),
         ),
       ),

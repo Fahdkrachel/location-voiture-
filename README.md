@@ -2,6 +2,12 @@
 
 Monorepo de demarrage pour un systeme de gestion de location de voitures.
 
+## Documentation fonctionnelle
+
+Pour la **liste détaillée de toutes les fonctionnalités** (API REST, règles métier, écrans Flutter, matrice backend/front), voir :
+
+**[FONCTIONNALITES.md](./FONCTIONNALITES.md)**
+
 ## Projets
 
 - `bousselha-backend`: Spring Boot 3 + MySQL + Swagger + PDFBox

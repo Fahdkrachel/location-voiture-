@@ -17,6 +17,7 @@ class SidebarNav extends StatelessWidget {
         NavigationRailDestination(icon: Icon(Icons.person_pin), label: Text('Clients')),
         NavigationRailDestination(icon: Icon(Icons.description), label: Text('Contrats')),
         NavigationRailDestination(icon: Icon(Icons.build), label: Text('Maintenance')),
+        NavigationRailDestination(icon: Icon(Icons.calendar_month), label: Text('Calendrier')),
       ],
     );
   }

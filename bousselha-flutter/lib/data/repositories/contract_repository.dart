@@ -72,6 +72,11 @@ class ContractRepository {
     return ContractModel.fromJson((res.data as Map).cast<String, dynamic>());
   }
 
+  Future<ContractModel> updateContractStatus(int id, String status) async {
+    final res = await dio.patch('/contracts/$id/status', data: {'status': status});
+    return ContractModel.fromJson((res.data as Map).cast<String, dynamic>());
+  }
+
   /// URL absolue du PDF pour `launchUrl` (baseUrl Dio + `/contracts/{id}/pdf`).
   String contractPdfAbsoluteUrl(int id) {
     final root = dio.options.baseUrl.trim();

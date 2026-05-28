@@ -15,19 +15,31 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @Transactional
 public class ContractService {
+    private static final Set<ContractStatus> OPEN_CONTRACT_STATUSES =
+            EnumSet.of(ContractStatus.IN_PROGRESS, ContractStatus.ACTIVE);
+
     private final ContractRepository contractRepository;
     private final CarRepository carRepository;
     private final ClientRepository clientRepository;
+    private final FinancialService financialService;
 
-    public ContractService(ContractRepository contractRepository, CarRepository carRepository, ClientRepository clientRepository) {
+    public ContractService(
+            ContractRepository contractRepository,
+            CarRepository carRepository,
+            ClientRepository clientRepository,
+            FinancialService financialService
+    ) {
         this.contractRepository = contractRepository;
         this.carRepository = carRepository;
         this.clientRepository = clientRepository;
+        this.financialService = financialService;
     }
 
     public List<ContractResponse> findAll() {
@@ -43,7 +55,9 @@ public class ContractService {
     }
 
     public List<ContractResponse> findActive() {
-        return contractRepository.findByDeletedFalseAndStatus(ContractStatus.ACTIVE).stream().map(this::map).toList();
+        return contractRepository.findByDeletedFalseAndStatusIn(
+                EnumSet.of(ContractStatus.IN_PROGRESS, ContractStatus.ACTIVE)
+        ).stream().map(this::map).toList();
     }
 
     public ContractResponse create(ContractRequest request) {
@@ -52,26 +66,50 @@ public class ContractService {
         if (car.getStatus() != CarStatus.AVAILABLE) {
             throw new IllegalArgumentException("Car is not available for rental: " + car.getMatricule());
         }
+        if (contractRepository.existsByCarIdAndDeletedFalseAndStatusIn(car.getId(), OPEN_CONTRACT_STATUSES)) {
+            throw new IllegalArgumentException("Car already has an open contract: " + car.getMatricule());
+        }
         Client client = clientRepository.findById(request.clientId())
                 .orElseThrow(() -> new ResourceNotFoundException("Client not found: " + request.clientId()));
         Contract contract = new Contract();
         contract.setCar(car);
         contract.setClient(client);
+        contract.setStatus(ContractStatus.IN_PROGRESS);
         apply(contract, request);
-        car.setStatus(CarStatus.RENTED);
+        return map(contractRepository.save(contract));
+    }
+
+    public ContractResponse updateStatus(Long id, ContractStatus newStatus) {
+        Contract contract = getContract(id);
+        ContractStatus current = contract.getStatus();
+
+        if (newStatus == ContractStatus.ACTIVE) {
+            if (current != ContractStatus.IN_PROGRESS) {
+                throw new IllegalArgumentException("Seul un contrat IN_PROGRESS peut passer en ACTIVE");
+            }
+            Car car = contract.getCar();
+            if (car.getStatus() != CarStatus.AVAILABLE) {
+                throw new IllegalArgumentException("La voiture n'est pas disponible: " + car.getMatricule());
+            }
+            car.setStatus(CarStatus.RENTED);
+            contract.setStatus(ContractStatus.ACTIVE);
+            financialService.recordIncomeFromContract(contract);
+        } else if (newStatus == ContractStatus.COMPLETED) {
+            if (current != ContractStatus.ACTIVE) {
+                throw new IllegalArgumentException("Seul un contrat ACTIVE peut être terminé");
+            }
+            contract.setActualReturnDatetime(LocalDateTime.now());
+            contract.setStatus(ContractStatus.COMPLETED);
+            contract.getCar().setStatus(CarStatus.AVAILABLE);
+        } else {
+            throw new IllegalArgumentException("Transition de statut non autorisée vers " + newStatus);
+        }
+
         return map(contractRepository.save(contract));
     }
 
     public ContractResponse registerReturn(Long id) {
-        Contract contract = getContract(id);
-        if (contract.getStatus() != ContractStatus.ACTIVE) {
-            throw new IllegalArgumentException("Only active contracts can be returned");
-        }
-        contract.setActualReturnDatetime(LocalDateTime.now());
-        contract.setStatus(ContractStatus.COMPLETED);
-        Car car = contract.getCar();
-        car.setStatus(CarStatus.AVAILABLE);
-        return map(contractRepository.save(contract));
+        return updateStatus(id, ContractStatus.COMPLETED);
     }
 
     public ContractResponse update(Long id, ContractRequest request) {
@@ -84,6 +122,12 @@ public class ContractService {
 
         if (contract.getStatus() == ContractStatus.ACTIVE && !contract.getCar().getId().equals(request.carId())) {
             throw new IllegalArgumentException("Cannot change assigned car while contract is active");
+        }
+        if (contract.getStatus() == ContractStatus.IN_PROGRESS && !contract.getCar().getId().equals(request.carId())) {
+            Car newCar = car;
+            if (newCar.getStatus() != CarStatus.AVAILABLE) {
+                throw new IllegalArgumentException("Car is not available: " + newCar.getMatricule());
+            }
         }
 
         contract.setCar(car);
@@ -99,11 +143,15 @@ public class ContractService {
 
     public void softDelete(Long id) {
         Contract contract = getContract(id);
-        if (contract.getStatus() == ContractStatus.ACTIVE) {
-            throw new IllegalArgumentException("Impossible : terminez d'abord le contrat");
+        if (OPEN_CONTRACT_STATUSES.contains(contract.getStatus())) {
+            throw new IllegalArgumentException("Impossible : terminez ou activez d'abord le contrat");
         }
+        Long clientId = contract.getClient().getId();
         contract.setDeleted(true);
         contractRepository.save(contract);
+        if (contractRepository.countByDeletedFalseAndClientId(clientId) == 0) {
+            clientRepository.deleteById(clientId);
+        }
     }
 
     private Contract getContract(Long id) {

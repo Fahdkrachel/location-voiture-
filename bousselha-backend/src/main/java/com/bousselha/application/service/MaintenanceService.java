@@ -3,6 +3,7 @@ package com.bousselha.application.service;
 import com.bousselha.application.dto.request.MaintenanceRequest;
 import com.bousselha.application.dto.response.MaintenanceResponse;
 import com.bousselha.domain.enums.CarStatus;
+import com.bousselha.domain.enums.MaintenanceStatus;
 import com.bousselha.domain.model.Car;
 import com.bousselha.domain.model.Maintenance;
 import com.bousselha.domain.repository.CarRepository;
@@ -11,6 +12,7 @@ import com.bousselha.infrastructure.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -18,10 +20,16 @@ import java.util.List;
 public class MaintenanceService {
     private final MaintenanceRepository maintenanceRepository;
     private final CarRepository carRepository;
+    private final FinancialService financialService;
 
-    public MaintenanceService(MaintenanceRepository maintenanceRepository, CarRepository carRepository) {
+    public MaintenanceService(
+            MaintenanceRepository maintenanceRepository,
+            CarRepository carRepository,
+            FinancialService financialService
+    ) {
         this.maintenanceRepository = maintenanceRepository;
         this.carRepository = carRepository;
+        this.financialService = financialService;
     }
 
     public List<MaintenanceResponse> findAll() {
@@ -37,8 +45,13 @@ public class MaintenanceService {
         Maintenance maintenance = new Maintenance();
         maintenance.setCar(car);
         apply(maintenance, request);
-        applyCarStatusByMaintenance(car, maintenance);
-        return map(maintenanceRepository.save(maintenance));
+        if (maintenance.getStatus() == null) {
+            maintenance.setStatus(MaintenanceStatus.IN_PROGRESS);
+        }
+        car.setStatus(CarStatus.MAINTENANCE);
+        Maintenance saved = maintenanceRepository.save(maintenance);
+        financialService.recordExpenseFromMaintenance(saved);
+        return map(saved);
     }
 
     public MaintenanceResponse update(Long id, MaintenanceRequest request) {
@@ -47,16 +60,32 @@ public class MaintenanceService {
         Car car = getCar(request.carId());
         maintenance.setCar(car);
         apply(maintenance, request);
-        applyCarStatusByMaintenance(car, maintenance);
-        return map(maintenanceRepository.save(maintenance));
+        applyCarStatusByMaintenance(car);
+        Maintenance saved = maintenanceRepository.save(maintenance);
+        financialService.recordExpenseFromMaintenance(saved);
+        return map(saved);
     }
 
-    private void applyCarStatusByMaintenance(Car car, Maintenance maintenance) {
-        if (maintenance.getEndDate() == null) {
-            car.setStatus(CarStatus.MAINTENANCE);
-            return;
+    public boolean hasOngoingMaintenance(Long carId) {
+        return maintenanceRepository.findByCarId(carId).stream()
+                .anyMatch(this::isOngoing);
+    }
+
+    private boolean isOngoing(Maintenance maintenance) {
+        if (maintenance.getStatus() == MaintenanceStatus.COMPLETED) {
+            return false;
         }
-        if (car.getStatus() == CarStatus.MAINTENANCE) {
+        LocalDate today = LocalDate.now();
+        LocalDate end = maintenance.getEndDate();
+        return end == null || !end.isBefore(today);
+    }
+
+    private void applyCarStatusByMaintenance(Car car) {
+        boolean hasOngoing = maintenanceRepository.findByCarId(car.getId()).stream()
+                .anyMatch(this::isOngoing);
+        if (hasOngoing) {
+            car.setStatus(CarStatus.MAINTENANCE);
+        } else if (car.getStatus() == CarStatus.MAINTENANCE) {
             car.setStatus(CarStatus.AVAILABLE);
         }
     }
@@ -72,6 +101,11 @@ public class MaintenanceService {
         maintenance.setStartDate(request.startDate());
         maintenance.setEndDate(request.endDate());
         maintenance.setCost(request.cost());
+        if (request.status() != null) {
+            maintenance.setStatus(request.status());
+        } else if (maintenance.getStatus() == null) {
+            maintenance.setStatus(MaintenanceStatus.IN_PROGRESS);
+        }
     }
 
     private MaintenanceResponse map(Maintenance m) {
@@ -83,7 +117,8 @@ public class MaintenanceService {
                 m.getDescription(),
                 m.getStartDate(),
                 m.getEndDate(),
-                m.getCost()
+                m.getCost(),
+                m.getStatus()
         );
     }
 }

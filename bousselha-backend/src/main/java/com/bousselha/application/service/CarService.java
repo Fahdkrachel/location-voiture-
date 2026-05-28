@@ -2,10 +2,13 @@ package com.bousselha.application.service;
 
 import com.bousselha.application.dto.request.CarRequest;
 import com.bousselha.application.dto.response.CarHistoryItemResponse;
+import com.bousselha.application.dto.response.CarAvailabilityResponse;
 import com.bousselha.application.dto.response.CarResponse;
 import com.bousselha.domain.enums.CarStatus;
 import com.bousselha.domain.enums.ContractStatus;
 import com.bousselha.domain.model.Car;
+import com.bousselha.domain.model.Contract;
+import com.bousselha.domain.model.Maintenance;
 import com.bousselha.domain.repository.CarRepository;
 import com.bousselha.domain.repository.ContractRepository;
 import com.bousselha.domain.repository.MaintenanceRepository;
@@ -19,6 +22,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.List;
 import java.util.UUID;
@@ -32,11 +37,18 @@ public class CarService {
     private final CarRepository carRepository;
     private final ContractRepository contractRepository;
     private final MaintenanceRepository maintenanceRepository;
+    private final MaintenanceService maintenanceService;
 
-    public CarService(CarRepository carRepository, ContractRepository contractRepository, MaintenanceRepository maintenanceRepository) {
+    public CarService(
+            CarRepository carRepository,
+            ContractRepository contractRepository,
+            MaintenanceRepository maintenanceRepository,
+            MaintenanceService maintenanceService
+    ) {
         this.carRepository = carRepository;
         this.contractRepository = contractRepository;
         this.maintenanceRepository = maintenanceRepository;
+        this.maintenanceService = maintenanceService;
     }
 
     public List<CarResponse> findAll() {
@@ -63,13 +75,83 @@ public class CarService {
         return map(carRepository.save(car));
     }
 
+    public CarResponse updateStatus(Long id, CarStatus newStatus, boolean forceMaintenanceOverride) {
+        Car car = getCar(id);
+        if (newStatus == CarStatus.AVAILABLE
+                && car.getStatus() == CarStatus.MAINTENANCE
+                && maintenanceService.hasOngoingMaintenance(id)
+                && !forceMaintenanceOverride) {
+            throw new IllegalArgumentException("MAINTENANCE_NOT_FINISHED");
+        }
+        car.setStatus(newStatus);
+        return map(carRepository.save(car));
+    }
+
     public void delete(Long id) {
         Car car = getCar(id);
-        boolean hasActiveContracts = contractRepository.existsByCarIdAndDeletedFalseAndStatus(car.getId(), ContractStatus.ACTIVE);
-        if (hasActiveContracts) {
-            throw new IllegalArgumentException("Impossible : voiture en location active");
+        boolean hasOpenContracts = contractRepository.existsByCarIdAndDeletedFalseAndStatusIn(
+                car.getId(), java.util.EnumSet.of(ContractStatus.IN_PROGRESS, ContractStatus.ACTIVE));
+        if (hasOpenContracts) {
+            throw new IllegalArgumentException("Impossible : voiture avec contrat en cours");
         }
         carRepository.delete(car);
+    }
+
+    public List<CarAvailabilityResponse> availabilityOnDate(LocalDate date) {
+        List<Car> cars = carRepository.findAll();
+        List<Contract> contracts = contractRepository.findByDeletedFalse();
+        List<Maintenance> maintenances = maintenanceRepository.findAll();
+
+        return cars.stream().map(car -> {
+            boolean inMaintenance = maintenances.stream()
+                    .filter(m -> m.getCar().getId().equals(car.getId()))
+                    .anyMatch(m -> maintenanceCoversDate(m, date));
+
+            if (inMaintenance) {
+                return new CarAvailabilityResponse(
+                        car.getId(), car.getBrand(), car.getMatricule(), car.getFuelType(),
+                        CarStatus.MAINTENANCE, "En maintenance"
+                );
+            }
+
+            boolean rented = contracts.stream()
+                    .filter(c -> c.getCar().getId().equals(car.getId()))
+                    .filter(c -> c.getStatus() == ContractStatus.IN_PROGRESS || c.getStatus() == ContractStatus.ACTIVE
+                            || c.getStatus() == ContractStatus.COMPLETED)
+                    .anyMatch(c -> contractCoversDate(c, date));
+
+            if (rented) {
+                return new CarAvailabilityResponse(
+                        car.getId(), car.getBrand(), car.getMatricule(), car.getFuelType(),
+                        CarStatus.RENTED, "Loué"
+                );
+            }
+
+            return new CarAvailabilityResponse(
+                    car.getId(), car.getBrand(), car.getMatricule(), car.getFuelType(),
+                    CarStatus.AVAILABLE, "Disponible"
+            );
+        }).toList();
+    }
+
+    private boolean maintenanceCoversDate(Maintenance m, LocalDate date) {
+        LocalDate start = m.getStartDate() != null ? m.getStartDate() : LocalDate.MIN;
+        LocalDate end = m.getEndDate() != null ? m.getEndDate() : LocalDate.MAX;
+        return !date.isBefore(start) && !date.isAfter(end);
+    }
+
+    private boolean contractCoversDate(Contract c, LocalDate date) {
+        if (c.getDepartureDatetime() == null) return false;
+        LocalDate start = c.getDepartureDatetime().toLocalDate();
+        LocalDateTime endDt = c.getActualReturnDatetime() != null
+                ? c.getActualReturnDatetime()
+                : c.getExpectedReturnDatetime();
+        if (endDt == null) return !date.isBefore(start);
+        LocalDate end = endDt.toLocalDate();
+        if (c.getStatus() == ContractStatus.COMPLETED && date.isAfter(end)) {
+            return false;
+        }
+        return !date.isBefore(start) && !date.isAfter(end);
     }
 
     public List<CarHistoryItemResponse> history(Long carId) {

@@ -50,7 +50,8 @@ public class Contract {
     private String damagesIdentified;
 
     @Enumerated(EnumType.STRING)
-    private ContractStatus status = ContractStatus.ACTIVE;
+    @Column(length = 30, nullable = false)
+    private ContractStatus status = ContractStatus.IN_PROGRESS;
 
     @Column(name = "deleted", nullable = false)
     private boolean deleted = false;

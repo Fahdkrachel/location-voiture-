@@ -8,6 +8,7 @@ import com.bousselha.domain.model.Car;
 import com.bousselha.domain.repository.CarRepository;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,18 +21,28 @@ public class DashboardService {
 
     private final CarRepository carRepository;
     private final ContractService contractService;
+    private final FinancialService financialService;
 
-    public DashboardService(CarRepository carRepository, ContractService contractService) {
+    public DashboardService(
+            CarRepository carRepository,
+            ContractService contractService,
+            FinancialService financialService
+    ) {
         this.carRepository = carRepository;
         this.contractService = contractService;
+        this.financialService = financialService;
     }
 
     public DashboardResponse stats() {
+        BigDecimal income = financialService.totalIncome();
+        BigDecimal expense = financialService.totalExpense();
         return new DashboardResponse(
                 carRepository.count(),
                 carRepository.findByStatus(CarStatus.AVAILABLE).size(),
                 carRepository.findByStatus(CarStatus.RENTED).size(),
-                carRepository.findByStatus(CarStatus.MAINTENANCE).size()
+                carRepository.findByStatus(CarStatus.MAINTENANCE).size(),
+                income,
+                expense
         );
     }
 

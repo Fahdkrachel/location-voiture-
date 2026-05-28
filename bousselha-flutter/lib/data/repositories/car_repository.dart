@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../models/car_availability_model.dart';
 import '../models/car_model.dart';
 
 class CarRepository {
@@ -77,5 +78,23 @@ class CarRepository {
 
   Future<void> deleteCar(int id) async {
     await dio.delete('/cars/$id');
+  }
+
+  Future<CarModel> updateCarStatus({
+    required int id,
+    required String status,
+    bool force = false,
+  }) async {
+    final res = await dio.patch(
+      '/cars/$id/status',
+      queryParameters: {'status': status, 'force': force},
+    );
+    return CarModel.fromJson((res.data as Map).cast<String, dynamic>());
+  }
+
+  Future<List<CarAvailabilityModel>> getAvailabilityOnDate(String dateIso) async {
+    final res = await dio.get('/cars/availability', queryParameters: {'date': dateIso});
+    final list = (res.data as List).cast<Map<String, dynamic>>();
+    return list.map(CarAvailabilityModel.fromJson).toList();
   }
 }

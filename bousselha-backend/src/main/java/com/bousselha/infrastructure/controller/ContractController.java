@@ -1,6 +1,7 @@
 package com.bousselha.infrastructure.controller;
 
 import com.bousselha.application.dto.request.ContractRequest;
+import com.bousselha.application.dto.request.ContractStatusRequest;
 import com.bousselha.application.dto.response.ContractResponse;
 import com.bousselha.application.service.ContractService;
 import com.bousselha.application.service.PdfService;
@@ -36,6 +37,11 @@ public class ContractController {
     public ContractResponse create(@Valid @RequestBody ContractRequest request) { return contractService.create(request); }
     @PutMapping("/{id}/return")
     public ContractResponse registerReturn(@PathVariable Long id) { return contractService.registerReturn(id); }
+
+    @PatchMapping("/{id}/status")
+    public ContractResponse updateStatus(@PathVariable Long id, @Valid @RequestBody ContractStatusRequest request) {
+        return contractService.updateStatus(id, request.status());
+    }
 
     @PutMapping("/{id}")
     public ContractResponse update(@PathVariable Long id, @Valid @RequestBody ContractRequest request) {

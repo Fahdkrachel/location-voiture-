@@ -12,6 +12,7 @@ import '../../data/repositories/car_repository.dart';
 import '../../data/repositories/client_repository.dart';
 import '../../data/repositories/contract_repository.dart';
 import '../../data/repositories/dashboard_repository.dart';
+import '../../data/repositories/financial_repository.dart';
 import '../../data/repositories/maintenance_repository.dart';
 
 final dioProvider = Provider<Dio>((ref) => DioClient.build());
@@ -49,6 +50,10 @@ final maintenanceProvider = FutureProvider<List<MaintenanceModel>>((ref) async {
 
 final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
   return DashboardRepository(ref.watch(dioProvider));
+});
+
+final financialRepositoryProvider = Provider<FinancialRepository>((ref) {
+  return FinancialRepository(ref.watch(dioProvider));
 });
 
 final dashboardStatsProvider = FutureProvider<DashboardStatsModel>((ref) async {

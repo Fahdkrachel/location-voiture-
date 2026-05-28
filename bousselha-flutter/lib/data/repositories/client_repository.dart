@@ -19,7 +19,7 @@ class ClientRepository {
 
   Future<ClientModel> createClient({
     required String fullName,
-    required String cinNumber,
+    String? cinNumber,
     required String phone,
 
     String? birthDate,
@@ -63,7 +63,7 @@ class ClientRepository {
   Future<ClientModel> updateClient({
     required int id,
     required String fullName,
-    required String cinNumber,
+    String? cinNumber,
     required String phone,
     String? birthDate,
     String? addressMorocco,
@@ -105,7 +105,7 @@ class ClientRepository {
 
   Map<String, dynamic> _payload({
     required String fullName,
-    required String cinNumber,
+    String? cinNumber,
     required String phone,
     String? birthDate,
     String? addressMorocco,
@@ -127,7 +127,7 @@ class ClientRepository {
 
     return {
       'fullName': fullName.trim(),
-      'cinNumber': cinNumber.trim(),
+      'cinNumber': trimOrNull(cinNumber) ?? '',
       'phone': phone.trim(),
       'birthDate': trimOrNull(birthDate),
       'addressMorocco': trimOrNull(addressMorocco),

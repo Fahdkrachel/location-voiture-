@@ -45,8 +45,9 @@ public class ClientService {
 
     public void delete(Long id) {
         Client client = getClient(id);
-        boolean hasActiveContracts = contractRepository.existsByClientIdAndDeletedFalseAndStatus(client.getId(), ContractStatus.ACTIVE);
-        if (hasActiveContracts) {
+        boolean hasOpenContracts = contractRepository.existsByClientIdAndDeletedFalseAndStatusIn(
+                client.getId(), java.util.EnumSet.of(ContractStatus.IN_PROGRESS, ContractStatus.ACTIVE));
+        if (hasOpenContracts) {
             throw new IllegalArgumentException("Impossible de supprimer : client a des contrats en cours");
         }
         clientRepository.delete(client);

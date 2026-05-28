@@ -23,14 +23,6 @@ class ClientListScreen extends ConsumerWidget {
     return HSLColor.fromAHSL(1, hue, 0.55, 0.50).toColor();
   }
 
-  String _initials(String fullName) {
-    final parts = fullName.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
-    if (parts.isEmpty) return '?';
-    final first = parts.first.substring(0, 1).toUpperCase();
-    final last = parts.length > 1 ? parts.last.substring(0, 1).toUpperCase() : '';
-    return '$first$last';
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final clients = ref.watch(clientsProvider);
@@ -40,17 +32,12 @@ class ClientListScreen extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           child: Row(
             children: [
-              ElevatedButton.icon(
-                onPressed: () async {
-                  final changed = await _showClientDialog(context, ref);
-                  if (changed == true) {
-                    ref.invalidate(clientsProvider);
-                  }
-                },
-                icon: const Icon(Icons.person_add),
-                label: const Text('Ajouter client'),
+              Expanded(
+                child: Text(
+                  'Les clients sont ajoutés automatiquement lors de la création d’un contrat.',
+                  style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w500),
+                ),
               ),
-              const SizedBox(width: 8),
               OutlinedButton.icon(
                 onPressed: () => ref.invalidate(clientsProvider),
                 icon: const Icon(Icons.refresh),
@@ -75,19 +62,18 @@ class ClientListScreen extends ConsumerWidget {
                   return Card(
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: avatarColor,
+                        backgroundColor: const Color(0xFF1A2B4A),
                         child: Text(
-                          _initials(client.fullName),
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                          '#${client.id}',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
                         ),
                       ),
-                      title: Text(client.fullName),
+                      title: Text(client.fullName, style: const TextStyle(fontWeight: FontWeight.w700)),
                       subtitle: Text(
-                        'Tel: ${client.phone.isEmpty ? "-" : client.phone} | CIN: ${client.cinNumber.isEmpty ? "-" : client.cinNumber}',
+                        client.phone.isEmpty ? '—' : client.phone,
+                        style: const TextStyle(fontSize: 14),
                       ),
-                      trailing: Text(
-                        client.drivingLicenseNumber.isEmpty ? '-' : client.drivingLicenseNumber,
-                      ),
+                      trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),
                       onTap: () async {
                         final changed = await Navigator.of(context).push<bool>(
                           MaterialPageRoute(
@@ -111,33 +97,125 @@ class ClientListScreen extends ConsumerWidget {
     );
   }
 
-  Future<bool?> _showClientDialog(BuildContext context, WidgetRef ref) async {
-    return _showClientFormDialog(
-      context: context,
-      title: 'Ajouter client',
-      submitLabel: 'Enregistrer',
-      successMessage: 'Client ajoute avec succes.',
-      onSubmit: (payload) async {
-        await ref.read(clientRepositoryProvider).createClient(
-              fullName: payload.fullName,
-              cinNumber: payload.cinNumber,
-              phone: payload.phone,
-              birthDate: payload.birthDate,
-              addressMorocco: payload.addressMorocco,
-              addressAbroad: payload.addressAbroad,
-              profession: payload.profession,
-              drivingLicenseNumber: payload.drivingLicenseNumber,
-              drivingLicenseIssuedAt: payload.drivingLicenseIssuedAt,
-              passportNumber: payload.passportNumber,
-              passportIssuedAt: payload.passportIssuedAt,
-              additionalDriverFullName: payload.additionalDriverFullName,
-              additionalDriverDrivingLicenseNumber: payload.additionalDriverDrivingLicenseNumber,
-              additionalDriverDrivingLicenseIssuedAt: payload.additionalDriverDrivingLicenseIssuedAt,
-              additionalDriverPassportNumber: payload.additionalDriverPassportNumber,
+}
+
+/// Étape 1 du wizard « Nouveau contrat » — collecte les infos client sans enregistrement API.
+Future<ClientFormPayload?> pickClientForNewContract(
+  BuildContext context, {
+  ClientFormPayload? initial,
+}) async {
+  final formKey = GlobalKey<FormState>();
+  final fullNameCtrl = TextEditingController(text: initial?.fullName ?? '');
+  final birthDateCtrl = TextEditingController(text: initial?.birthDate ?? '');
+  final addressMoroccoCtrl = TextEditingController(text: initial?.addressMorocco ?? '');
+  final addressAbroadCtrl = TextEditingController(text: initial?.addressAbroad ?? '');
+  final professionCtrl = TextEditingController(text: initial?.profession ?? '');
+  final drivingLicenseNumberCtrl = TextEditingController(text: initial?.drivingLicenseNumber ?? '');
+  final drivingLicenseIssuedAtCtrl = TextEditingController(text: initial?.drivingLicenseIssuedAt ?? '');
+  final cinCtrl = TextEditingController(text: initial?.cinNumber ?? '');
+  final passportNumberCtrl = TextEditingController(text: initial?.passportNumber ?? '');
+  final passportIssuedAtCtrl = TextEditingController(text: initial?.passportIssuedAt ?? '');
+  final phoneCtrl = TextEditingController(text: initial?.phone ?? '');
+  final addFullNameCtrl = TextEditingController(text: initial?.additionalDriverFullName ?? '');
+  final addLicenseNumberCtrl = TextEditingController(text: initial?.additionalDriverDrivingLicenseNumber ?? '');
+  final addLicenseIssuedAtCtrl = TextEditingController(text: initial?.additionalDriverDrivingLicenseIssuedAt ?? '');
+  final addPassportNumberCtrl = TextEditingController(text: initial?.additionalDriverPassportNumber ?? '');
+
+  ClientFormPayload? result;
+
+  await showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Nouveau contrat — Étape 1/2 : Client'),
+      content: SizedBox(
+        width: 720,
+        child: Form(
+          key: formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _SectionHeader(titleFr: 'LOCATAIRE', titleAr: 'المكتري'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: fullNameCtrl,
+                  decoration: const InputDecoration(labelText: 'Nom & Prénom *'),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Champ obligatoire' : null,
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: phoneCtrl,
+                  decoration: const InputDecoration(labelText: 'Téléphone *'),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Champ obligatoire' : null,
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: cinCtrl,
+                  decoration: const InputDecoration(labelText: 'CIN — optionnel'),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(controller: birthDateCtrl, decoration: const InputDecoration(labelText: 'Date naissance (YYYY-MM-DD)')),
+                const SizedBox(height: 8),
+                TextFormField(controller: addressMoroccoCtrl, decoration: const InputDecoration(labelText: 'Adresse Maroc'), maxLines: 2),
+                const SizedBox(height: 8),
+                TextFormField(controller: addressAbroadCtrl, decoration: const InputDecoration(labelText: 'Adresse Étranger'), maxLines: 2),
+                const SizedBox(height: 8),
+                TextFormField(controller: professionCtrl, decoration: const InputDecoration(labelText: 'Profession')),
+                const SizedBox(height: 8),
+                TextFormField(controller: drivingLicenseNumberCtrl, decoration: const InputDecoration(labelText: 'Permis N°')),
+                const SizedBox(height: 8),
+                TextFormField(controller: drivingLicenseIssuedAtCtrl, decoration: const InputDecoration(labelText: 'Permis délivré à')),
+                const SizedBox(height: 8),
+                TextFormField(controller: passportNumberCtrl, decoration: const InputDecoration(labelText: 'Passeport N°')),
+                const SizedBox(height: 8),
+                TextFormField(controller: passportIssuedAtCtrl, decoration: const InputDecoration(labelText: 'Passeport délivré (YYYY-MM-DD)')),
+                const SizedBox(height: 16),
+                const _SectionHeader(titleFr: 'CONDUCTEUR SUPPLÉMENTAIRE', titleAr: 'السائق المرخص'),
+                const SizedBox(height: 8),
+                TextFormField(controller: addFullNameCtrl, decoration: const InputDecoration(labelText: 'Nom & Prénom')),
+                const SizedBox(height: 8),
+                TextFormField(controller: addLicenseNumberCtrl, decoration: const InputDecoration(labelText: 'Permis N°')),
+                const SizedBox(height: 8),
+                TextFormField(controller: addLicenseIssuedAtCtrl, decoration: const InputDecoration(labelText: 'Délivré le (YYYY-MM-DD)')),
+                const SizedBox(height: 8),
+                TextFormField(controller: addPassportNumberCtrl, decoration: const InputDecoration(labelText: 'Passeport N°')),
+              ],
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
+        FilledButton(
+          onPressed: () {
+            if (!(formKey.currentState?.validate() ?? false)) return;
+            result = ClientFormPayload(
+              fullName: fullNameCtrl.text.trim(),
+              birthDate: birthDateCtrl.text.trim(),
+              addressMorocco: addressMoroccoCtrl.text.trim(),
+              addressAbroad: addressAbroadCtrl.text.trim(),
+              profession: professionCtrl.text.trim(),
+              drivingLicenseNumber: drivingLicenseNumberCtrl.text.trim(),
+              drivingLicenseIssuedAt: drivingLicenseIssuedAtCtrl.text.trim(),
+              cinNumber: cinCtrl.text.trim(),
+              passportNumber: passportNumberCtrl.text.trim(),
+              passportIssuedAt: passportIssuedAtCtrl.text.trim(),
+              phone: phoneCtrl.text.trim(),
+              additionalDriverFullName: addFullNameCtrl.text.trim(),
+              additionalDriverDrivingLicenseNumber: addLicenseNumberCtrl.text.trim(),
+              additionalDriverDrivingLicenseIssuedAt: addLicenseIssuedAtCtrl.text.trim(),
+              additionalDriverPassportNumber: addPassportNumberCtrl.text.trim(),
             );
-      },
-    );
-  }
+            Navigator.pop(context);
+          },
+          child: const Text('Suivant'),
+        ),
+      ],
+    ),
+  );
+
+  return result;
 }
 
 class ClientDetailScreen extends ConsumerStatefulWidget {
@@ -223,50 +301,6 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
     }
   }
 
-  Future<void> _onDelete() async {
-    final client = _client;
-    if (client == null) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmer la suppression'),
-        content: const Text(
-          "Êtes-vous sûr de vouloir supprimer ce client ?\nCette action est irréversible.",
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuler')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Supprimer'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    setState(() => _actionLoading = true);
-    try {
-      await ref.read(clientRepositoryProvider).deleteClient(client.id);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Client supprimé avec succès.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      Navigator.of(context).pop(true);
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur suppression client: $e')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _actionLoading = false);
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -347,25 +381,10 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
       ),
       bottomNavigationBar: SafeArea(
         minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        child: Row(
-          children: [
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: _actionLoading ? null : _onEdit,
-                icon: const Icon(Icons.edit),
-                label: const Text('Modifier'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: FilledButton.icon(
-                style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                onPressed: _actionLoading ? null : _onDelete,
-                icon: const Icon(Icons.delete),
-                label: const Text('Supprimer'),
-              ),
-            ),
-          ],
+        child: FilledButton.icon(
+          onPressed: _actionLoading ? null : _onEdit,
+          icon: const Icon(Icons.edit),
+          label: const Text('Modifier'),
         ),
       ),
     );
@@ -392,7 +411,7 @@ class _InfoTile extends StatelessWidget {
   }
 }
 
-class _ClientFormPayload {
+class ClientFormPayload {
   final String fullName;
   final String birthDate;
   final String addressMorocco;
@@ -409,7 +428,7 @@ class _ClientFormPayload {
   final String additionalDriverDrivingLicenseIssuedAt;
   final String additionalDriverPassportNumber;
 
-  const _ClientFormPayload({
+  const ClientFormPayload({
     required this.fullName,
     required this.birthDate,
     required this.addressMorocco,
@@ -433,7 +452,7 @@ Future<bool?> _showClientFormDialog({
   required String title,
   required String submitLabel,
   required String successMessage,
-  required Future<void> Function(_ClientFormPayload payload) onSubmit,
+  required Future<void> Function(ClientFormPayload payload) onSubmit,
   ClientModel? initial,
 }) async {
     final formKey = GlobalKey<FormState>();
@@ -512,8 +531,7 @@ Future<bool?> _showClientFormDialog({
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: cinCtrl,
-                    decoration: const InputDecoration(labelText: 'CIN N° (البطاقة الوطنية) *'),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Champ obligatoire' : null,
+                    decoration: const InputDecoration(labelText: 'CIN N° (البطاقة الوطنية) — optionnel'),
                   ),
                   const SizedBox(height: 8),
                   TextFormField(
@@ -566,7 +584,7 @@ Future<bool?> _showClientFormDialog({
 
               try {
                 await onSubmit(
-                  _ClientFormPayload(
+                  ClientFormPayload(
                     fullName: fullNameCtrl.text.trim(),
                     birthDate: birthDateCtrl.text.trim(),
                     addressMorocco: addressMoroccoCtrl.text.trim(),

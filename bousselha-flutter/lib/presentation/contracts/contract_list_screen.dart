@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../data/models/client_model.dart';
 import '../../data/models/contract_model.dart';
 import '../../shared/providers/app_providers.dart';
+import '../clients/client_list_screen.dart';
 
 /// Palette entreprise Contrats BOUSSELHA CARS
 abstract final class Cc {
@@ -28,6 +30,10 @@ Widget _contractStatusBadge(String status) {
   Color fg;
   Color br;
   switch (status) {
+    case 'IN_PROGRESS':
+      bg = const Color(0xFFFEF3C7);
+      fg = const Color(0xFF92400E);
+      br = const Color(0xFFF59E0B);
     case 'ACTIVE':
       bg = const Color(0xFFD1FAE5);
       fg = const Color(0xFF065F46);
@@ -102,11 +108,13 @@ class ContractListScreen extends ConsumerWidget {
         actions: [
           TextButton.icon(
             onPressed: () async {
-              final ok = await _showUnifiedContractSheet(context, ref, existing: null);
+              final ok = await _showUnifiedContractSheet(context, ref, existing: null) == true;
               if (!context.mounted) return;
               if (ok == true) {
                 ref.invalidate(contractsProvider);
                 ref.invalidate(carsProvider);
+                ref.invalidate(clientsProvider);
+                ref.invalidate(dashboardStatsProvider);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     backgroundColor: Cc.success,
@@ -253,14 +261,12 @@ class _ContractDetailScreenState extends ConsumerState<ContractDetailScreen> {
     }
   }
 
-  Future<void> _terminateContract(BuildContext scaffoldContext, ContractModel c) async {
+  Future<void> _updateContractStatus(BuildContext scaffoldContext, ContractModel c, String newStatus, {required String confirmTitle, required String confirmMessage, required String successMessage}) async {
     final ok = await showDialog<bool>(
       context: scaffoldContext,
       builder: (ctx) => AlertDialog(
-        title: const Text('Confirmer la fin du contrat'),
-        content: const Text(
-          'Confirmer la fin de ce contrat ?\nLa voiture repassera en AVAILABLE.',
-        ),
+        title: Text(confirmTitle),
+        content: Text(confirmMessage),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
           FilledButton(
@@ -274,15 +280,16 @@ class _ContractDetailScreenState extends ConsumerState<ContractDetailScreen> {
     if (!scaffoldContext.mounted || ok != true) return;
     final messenger = ScaffoldMessenger.of(scaffoldContext);
     try {
-      await ref.read(contractRepositoryProvider).registerReturn(c.id);
+      await ref.read(contractRepositoryProvider).updateContractStatus(c.id, newStatus);
       await _fetch();
       ref.invalidate(contractsProvider);
       ref.invalidate(carsProvider);
+      ref.invalidate(dashboardStatsProvider);
       if (scaffoldContext.mounted) {
         messenger.showSnackBar(
-          const SnackBar(
+          SnackBar(
             backgroundColor: Cc.success,
-            content: Text('Contrat terminé avec succès', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+            content: Text(successMessage, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
           ),
         );
       }
@@ -295,11 +302,11 @@ class _ContractDetailScreenState extends ConsumerState<ContractDetailScreen> {
 
   Future<void> _maybeDelete(BuildContext scaffoldContext, ContractModel c) async {
     final messenger = ScaffoldMessenger.of(scaffoldContext);
-    if (c.status == 'ACTIVE') {
+    if (c.status == 'ACTIVE' || c.status == 'IN_PROGRESS') {
       messenger.showSnackBar(
         const SnackBar(
           backgroundColor: Cc.danger,
-          content: Text('Impossible : terminez d’abord le contrat.', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+          content: Text('Impossible : terminez ou activez d’abord le contrat.', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
         ),
       );
       return;
@@ -504,9 +511,24 @@ class _ContractDetailScreenState extends ConsumerState<ContractDetailScreen> {
           ),
           _ContractFooterActions(
             contract: c,
-            onTerminate: () => _terminateContract(context, c),
+            onActivate: () => _updateContractStatus(
+              context,
+              c,
+              'ACTIVE',
+              confirmTitle: 'Activer le contrat',
+              confirmMessage: 'Confirmer la livraison du véhicule ?\nLe contrat passera en ACTIVE et la voiture en location.',
+              successMessage: 'Contrat activé — revenu enregistré',
+            ),
+            onComplete: () => _updateContractStatus(
+              context,
+              c,
+              'COMPLETED',
+              confirmTitle: 'Terminer le contrat',
+              confirmMessage: 'Confirmer la fin de ce contrat ?\nLa voiture repassera en AVAILABLE.',
+              successMessage: 'Contrat terminé avec succès',
+            ),
             onEdit: () async {
-              final changed = await _showUnifiedContractSheet(context, ref, existing: c);
+              final changed = await _showUnifiedContractSheet(context, ref, existing: c) == true;
               if (!context.mounted || changed != true) return;
               await _fetch();
               ref.invalidate(contractsProvider);
@@ -797,23 +819,23 @@ Widget _enterprisePriceTable(
 /// Boutons pied de page (sticky visuel avec `Material` dans `Column`).
 class _ContractFooterActions extends StatelessWidget {
   final ContractModel contract;
-  final VoidCallback onTerminate;
+  final VoidCallback onActivate;
+  final VoidCallback onComplete;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   const _ContractFooterActions({
     required this.contract,
-    required this.onTerminate,
+    required this.onActivate,
+    required this.onComplete,
     required this.onEdit,
     required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
-    final finishedOrClosed = contract.status == 'COMPLETED' || contract.status == 'CANCELLED';
-
-    Widget finishBtn() {
-      if (finishedOrClosed) {
+    Widget statusActionBtn() {
+      if (contract.status == 'COMPLETED' || contract.status == 'CANCELLED') {
         return SizedBox(
           height: Cc.actionButtonHeight,
           child: FilledButton.icon(
@@ -831,19 +853,37 @@ class _ContractFooterActions extends StatelessWidget {
           ),
         );
       }
-      return SizedBox(
-        height: Cc.actionButtonHeight,
-        child: FilledButton.icon(
-          onPressed: contract.status != 'ACTIVE' ? null : onTerminate,
-          icon: const Text('✅', style: TextStyle(fontSize: 16)),
-          label: const Text('Terminer le contrat', style: TextStyle(fontWeight: FontWeight.w700)),
-          style: FilledButton.styleFrom(
-            backgroundColor: Cc.success,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      if (contract.status == 'IN_PROGRESS') {
+        return SizedBox(
+          height: Cc.actionButtonHeight,
+          child: FilledButton.icon(
+            onPressed: onActivate,
+            icon: const Text('🚗', style: TextStyle(fontSize: 16)),
+            label: const Text('Activer (livraison)', style: TextStyle(fontWeight: FontWeight.w700)),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFF59E0B),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
           ),
-        ),
-      );
+        );
+      }
+      if (contract.status == 'ACTIVE') {
+        return SizedBox(
+          height: Cc.actionButtonHeight,
+          child: FilledButton.icon(
+            onPressed: onComplete,
+            icon: const Text('✅', style: TextStyle(fontSize: 16)),
+            label: const Text('Terminer', style: TextStyle(fontWeight: FontWeight.w700)),
+            style: FilledButton.styleFrom(
+              backgroundColor: Cc.success,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        );
+      }
+      return const SizedBox.shrink();
     }
 
     return Material(
@@ -857,7 +897,7 @@ class _ContractFooterActions extends StatelessWidget {
           padding: EdgeInsets.only(left: 16, right: 16, top: 14, bottom: 16 + MediaQuery.paddingOf(context).bottom),
           child: Row(
             children: [
-              Expanded(child: finishBtn()),
+              Expanded(child: statusActionBtn()),
               const SizedBox(width: 10),
               Expanded(
                 child: SizedBox(
@@ -903,37 +943,69 @@ class _ContractFooterActions extends StatelessWidget {
 // Formulaire nouveau / modifier contrat + helpers partagés
 // ═══════════════════════════════════════════════════════════════════════════
 
-Future<bool?> _showUnifiedContractSheet(BuildContext context, WidgetRef ref, {ContractModel? existing}) async {
+Future<Object?> _showUnifiedContractSheet(
+  BuildContext context,
+  WidgetRef ref, {
+  ContractModel? existing,
+  ClientFormPayload? pendingClient,
+}) async {
+  if (existing == null && pendingClient == null) {
+    final picked = await pickClientForNewContract(context);
+    if (!context.mounted || picked == null) return false;
+    final created = await _showUnifiedContractSheet(context, ref, pendingClient: picked);
+    if (created == '__PREV__') {
+      if (!context.mounted) return false;
+      final edited = await pickClientForNewContract(context, initial: picked);
+      if (!context.mounted || edited == null) return false;
+      final retry = await _showUnifiedContractSheet(context, ref, pendingClient: edited);
+      return retry == true;
+    }
+    return created == true;
+  }
+
   final carRepo = ref.read(carRepositoryProvider);
   final allCars = await carRepo.getCars();
   final selectableCars = existing == null
       ? await carRepo.getAvailableCars()
       : allCars.where((c) => c.id == existing.carId || c.status == 'AVAILABLE').toList();
 
-  final clients = await ref.read(clientRepositoryProvider).getClients();
   if (!context.mounted) return false;
 
-  if (selectableCars.isEmpty || clients.isEmpty) {
+  if (selectableCars.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: Cc.danger,
         content: Text(
           existing == null
-              ? 'Il faut au moins une voiture disponible et un client.'
-              : 'Liste voitures / clients indisponible pour l’édition.',
+              ? 'Il faut au moins une voiture disponible.'
+              : 'Liste voitures indisponible pour l’édition.',
         ),
       ),
     );
     return false;
   }
 
+  List<ClientModel> clients = [];
+  if (existing != null) {
+    clients = await ref.read(clientRepositoryProvider).getClients();
+    if (!context.mounted) return false;
+    if (clients.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(backgroundColor: Cc.danger, content: Text('Aucun client enregistré.')),
+      );
+      return false;
+    }
+  }
+
   final now = DateTime.now();
   final tomorrow = now.add(const Duration(days: 1));
 
   int selectedCarId = existing?.carId ?? selectableCars.first.id;
-  int selectedClientId = existing?.clientId ?? clients.first.id;
+  int? selectedClientId = existing?.clientId ?? (clients.isNotEmpty ? clients.first.id : null);
   if (!selectableCars.any((c) => c.id == selectedCarId)) selectedCarId = selectableCars.first.id;
-  if (!clients.any((c) => c.id == selectedClientId)) selectedClientId = clients.first.id;
+  if (selectedClientId != null && clients.isNotEmpty && !clients.any((c) => c.id == selectedClientId)) {
+    selectedClientId = clients.first.id;
+  }
 
   final dep =
       existing != null ? _isoPartsFive(existing.departureDatetime) : [now.day, now.month, now.year, now.hour, now.minute].map((e) => e.toString()).toList();
@@ -991,14 +1063,20 @@ Future<bool?> _showUnifiedContractSheet(BuildContext context, WidgetRef ref, {Co
   final departurePlaceCtrl = TextEditingController(text: existing?.departurePlace ?? '');
   final returnPlaceCtrl = TextEditingController(text: existing?.returnPlace ?? '');
 
-  final lockCarPick = existing != null && existing.status == 'ACTIVE';
+  final lockCarPick = existing != null && (existing.status == 'ACTIVE' || existing.status == 'IN_PROGRESS');
 
-  bool? outcome;
-  await showDialog<void>(
+  var isSaving = false;
+  final outcome = await showDialog<Object?>(
     context: context,
     builder: (context) => StatefulBuilder(
       builder: (context, setState) => AlertDialog(
-        title: Text(existing == null ? 'Nouveau contrat' : 'Modifier le contrat #${existing.id}'),
+        title: Text(
+          pendingClient != null
+              ? 'Nouveau contrat — Étape 2/2 : Contrat'
+              : existing == null
+                  ? 'Nouveau contrat'
+                  : 'Modifier le contrat #${existing.id}',
+        ),
         content: SizedBox(
           width: 980,
           child: SingleChildScrollView(
@@ -1013,18 +1091,41 @@ Future<bool?> _showUnifiedContractSheet(BuildContext context, WidgetRef ref, {Co
                   decoration: InputDecoration(labelText: lockCarPick ? 'Voiture (verrouillée — contrat actif)' : 'Voiture *'),
                 ),
                 const SizedBox(height: 8),
-                DropdownButtonFormField<int>(
-                  initialValue: selectedClientId,
-                  items: clients
-                      .map(
-                        (client) =>
-                            DropdownMenuItem<int>(value: client.id, child: Text('${client.fullName} — CIN: ${client.cinNumber}')),
-                      )
-                      .toList(),
-                  onChanged: (value) => setState(() => selectedClientId = value ?? selectedClientId),
-                  decoration: const InputDecoration(labelText: 'Client *'),
-                ),
-                const SizedBox(height: 14),
+                if (pendingClient != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Cc.stripeAlt,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Cc.border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Client : ${pendingClient.fullName}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                        Text('Tél. : ${pendingClient.phone}'),
+                        if (pendingClient.cinNumber.isNotEmpty) Text('CIN : ${pendingClient.cinNumber}'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                ] else ...[
+                  DropdownButtonFormField<int>(
+                    initialValue: selectedClientId,
+                    items: clients
+                        .map(
+                          (client) => DropdownMenuItem<int>(
+                            value: client.id,
+                            child: Text('${client.fullName} — ${client.phone}'),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) => setState(() => selectedClientId = value ?? selectedClientId),
+                    decoration: const InputDecoration(labelText: 'Client *'),
+                  ),
+                  const SizedBox(height: 14),
+                ],
                 _formSectionTitle(context, 'Dates (J | M | A | H | mn)'),
                 const SizedBox(height: 8),
                 Table(
@@ -1127,12 +1228,22 @@ Future<bool?> _showUnifiedContractSheet(BuildContext context, WidgetRef ref, {Co
           ),
         ),
         actions: [
+          if (pendingClient != null)
+            TextButton.icon(
+              onPressed: isSaving ? null : () => Navigator.pop(context, '__PREV__'),
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Précédent'),
+            ),
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
           FilledButton(
-            onPressed: () async {
+            onPressed: isSaving
+                ? null
+                : () async {
+              setState(() => isSaving = true);
               final departureDatetime = _formBuildIsoDateTime(depJ.text, depM.text, depA.text, depH.text, depMn.text);
               final expectedReturnDatetime = _formBuildIsoDateTime(prevJ.text, prevM.text, prevA.text, prevH.text, prevMn.text);
               if (departureDatetime == null || expectedReturnDatetime == null) {
+                setState(() => isSaving = false);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Dates depart/retour prevu invalides.')),
                 );
@@ -1150,10 +1261,59 @@ Future<bool?> _showUnifiedContractSheet(BuildContext context, WidgetRef ref, {Co
               final totalGeneral = total + supplement;
 
               try {
-                if (existing == null) {
+                if (pendingClient != null) {
+                  final createdClient = await ref.read(clientRepositoryProvider).createClient(
+                        fullName: pendingClient.fullName,
+                        cinNumber: pendingClient.cinNumber.isEmpty ? null : pendingClient.cinNumber,
+                        phone: pendingClient.phone,
+                        birthDate: pendingClient.birthDate.isEmpty ? null : pendingClient.birthDate,
+                        addressMorocco: pendingClient.addressMorocco.isEmpty ? null : pendingClient.addressMorocco,
+                        addressAbroad: pendingClient.addressAbroad.isEmpty ? null : pendingClient.addressAbroad,
+                        profession: pendingClient.profession.isEmpty ? null : pendingClient.profession,
+                        drivingLicenseNumber:
+                            pendingClient.drivingLicenseNumber.isEmpty ? null : pendingClient.drivingLicenseNumber,
+                        drivingLicenseIssuedAt:
+                            pendingClient.drivingLicenseIssuedAt.isEmpty ? null : pendingClient.drivingLicenseIssuedAt,
+                        passportNumber: pendingClient.passportNumber.isEmpty ? null : pendingClient.passportNumber,
+                        passportIssuedAt: pendingClient.passportIssuedAt.isEmpty ? null : pendingClient.passportIssuedAt,
+                        additionalDriverFullName:
+                            pendingClient.additionalDriverFullName.isEmpty ? null : pendingClient.additionalDriverFullName,
+                        additionalDriverDrivingLicenseNumber: pendingClient.additionalDriverDrivingLicenseNumber.isEmpty
+                            ? null
+                            : pendingClient.additionalDriverDrivingLicenseNumber,
+                        additionalDriverDrivingLicenseIssuedAt: pendingClient.additionalDriverDrivingLicenseIssuedAt.isEmpty
+                            ? null
+                            : pendingClient.additionalDriverDrivingLicenseIssuedAt,
+                        additionalDriverPassportNumber: pendingClient.additionalDriverPassportNumber.isEmpty
+                            ? null
+                            : pendingClient.additionalDriverPassportNumber,
+                      );
                   await ref.read(contractRepositoryProvider).createContract(
                         carId: selectedCarId,
-                        clientId: selectedClientId,
+                        clientId: createdClient.id,
+                        departureDatetime: departureDatetime,
+                        expectedReturnDatetime: expectedReturnDatetime,
+                        actualReturnDatetime: actualReturnDatetime,
+                        durationDays: _formParseInt(durJ.text),
+                        pricePerHour: _formParseDouble(pHour.text),
+                        pricePerDay: _formParseDouble(pDay.text),
+                        pricePerWeek: _formParseDouble(pWeek.text),
+                        pricePerMonth: _formParseDouble(pMonth.text),
+                        withInsurance: _formParseDouble(qInsurance.text) > 0,
+                        totalPrice: total,
+                        supplement: supplement,
+                        totalGeneral: totalGeneral,
+                        paymentCash: _formParseDouble(paymentCashCtrl.text),
+                        paymentCheck: _formParseDouble(paymentCheckCtrl.text),
+                        paymentDeposit: _formParseDouble(paymentDepositCtrl.text),
+                        departurePlace: departurePlaceCtrl.text.trim(),
+                        returnPlace: returnPlaceCtrl.text.trim(),
+                      );
+                  ref.invalidate(clientsProvider);
+                } else if (existing == null) {
+                  await ref.read(contractRepositoryProvider).createContract(
+                        carId: selectedCarId,
+                        clientId: selectedClientId!,
                         departureDatetime: departureDatetime,
                         expectedReturnDatetime: expectedReturnDatetime,
                         actualReturnDatetime: actualReturnDatetime,
@@ -1176,7 +1336,7 @@ Future<bool?> _showUnifiedContractSheet(BuildContext context, WidgetRef ref, {Co
                   await ref.read(contractRepositoryProvider).updateContract(
                         id: existing.id,
                         carId: selectedCarId,
-                        clientId: selectedClientId,
+                        clientId: selectedClientId!,
                         departureDatetime: departureDatetime,
                         expectedReturnDatetime: expectedReturnDatetime,
                         actualReturnDatetime: actualReturnDatetime,
@@ -1202,18 +1362,20 @@ Future<bool?> _showUnifiedContractSheet(BuildContext context, WidgetRef ref, {Co
                         damagesIdentified: existing.damagesIdentified,
                       );
                 }
-                outcome = true;
                 if (!context.mounted) return;
-                Navigator.pop(context);
+                Navigator.pop(context, true);
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Erreur enregistrement : $e')),
                   );
+                  setState(() => isSaving = false);
                 }
               }
             },
-            child: const Text('Enregistrer'),
+            child: isSaving
+                ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Text('Enregistrer'),
           ),
         ],
       ),

@@ -1,6 +1,7 @@
 package com.bousselha.infrastructure.controller;
 
 import com.bousselha.application.dto.request.CarRequest;
+import com.bousselha.application.dto.response.CarAvailabilityResponse;
 import com.bousselha.application.dto.response.CarHistoryItemResponse;
 import com.bousselha.application.dto.response.CarResponse;
 import com.bousselha.application.service.CarService;
@@ -24,14 +25,18 @@ public class CarController {
 
     @GetMapping
     public List<CarResponse> findAll() { return carService.findAll(); }
-    @GetMapping("/{id}")
-    public CarResponse findById(@PathVariable Long id) { return carService.findById(id); }
+    @GetMapping("/availability")
+    public List<CarAvailabilityResponse> availability(@RequestParam java.time.LocalDate date) {
+        return carService.availabilityOnDate(date);
+    }
     @GetMapping("/available")
     public List<CarResponse> available() { return carService.findByStatus(CarStatus.AVAILABLE); }
     @GetMapping("/rented")
     public List<CarResponse> rented() { return carService.findByStatus(CarStatus.RENTED); }
     @GetMapping("/maintenance")
     public List<CarResponse> maintenance() { return carService.findByStatus(CarStatus.MAINTENANCE); }
+    @GetMapping("/{id}")
+    public CarResponse findById(@PathVariable Long id) { return carService.findById(id); }
     @PostMapping
     public CarResponse create(
             @RequestParam String brand,
@@ -79,6 +84,15 @@ public class CarController {
         );
         return carService.update(id, request, image);
     }
+    @PatchMapping("/{id}/status")
+    public CarResponse updateStatus(
+            @PathVariable Long id,
+            @RequestParam CarStatus status,
+            @RequestParam(defaultValue = "false") boolean force
+    ) {
+        return carService.updateStatus(id, status, force);
+    }
+
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) { carService.delete(id); }
     @GetMapping("/{id}/history")

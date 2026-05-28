@@ -1,5 +1,7 @@
 package com.bousselha.application.dto.response;
 
+import com.bousselha.domain.enums.MaintenanceStatus;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -11,6 +13,7 @@ public record MaintenanceResponse(
         String description,
         LocalDate startDate,
         LocalDate endDate,
-        BigDecimal cost
+        BigDecimal cost,
+        MaintenanceStatus status
 ) {
 }

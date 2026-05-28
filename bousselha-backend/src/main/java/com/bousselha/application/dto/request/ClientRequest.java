@@ -12,7 +12,7 @@ public record ClientRequest(
         String profession,
         String drivingLicenseNumber,
         String drivingLicenseIssuedAt,
-        @NotBlank String cinNumber,
+        String cinNumber,
         String passportNumber,
         LocalDate passportIssuedAt,
         @NotBlank String phone,

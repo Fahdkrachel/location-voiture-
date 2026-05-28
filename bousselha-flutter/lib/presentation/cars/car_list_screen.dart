@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
@@ -184,6 +185,41 @@ Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? 
                 }
 
                 try {
+                  if (car != null && car.status == 'MAINTENANCE' && status == 'AVAILABLE') {
+                    try {
+                      await ref.read(carRepositoryProvider).updateCarStatus(
+                            id: car.id,
+                            status: 'AVAILABLE',
+                            force: false,
+                          );
+                    } on DioException catch (e) {
+                      final body = e.response?.data?.toString() ?? '';
+                      if (!body.contains('MAINTENANCE_NOT_FINISHED') && !e.toString().contains('MAINTENANCE_NOT_FINISHED')) {
+                        rethrow;
+                      }
+                      if (!context.mounted) return;
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Maintenance en cours'),
+                          content: const Text(
+                            "Cette maintenance n'est pas encore terminée. Voulez-vous vraiment changer le statut du véhicule vers Disponible ?",
+                          ),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+                            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Oui')),
+                          ],
+                        ),
+                      );
+                      if (confirmed != true) return;
+                      await ref.read(carRepositoryProvider).updateCarStatus(
+                            id: car.id,
+                            status: 'AVAILABLE',
+                            force: true,
+                          );
+                    }
+                  }
+
                   if (car == null) {
                     await ref.read(carRepositoryProvider).createCar(
                           brand: brand,
@@ -485,6 +521,8 @@ class _CarDetailScreenState extends ConsumerState<CarDetailScreen> with SingleTi
 
   Color _contractStatusChipColor(String status) {
     switch (status) {
+      case 'IN_PROGRESS':
+        return Colors.amber;
       case 'ACTIVE':
         return Colors.green;
       case 'COMPLETED':

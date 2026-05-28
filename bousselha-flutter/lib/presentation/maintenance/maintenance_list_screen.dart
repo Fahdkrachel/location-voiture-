@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/models/maintenance_model.dart';
 import '../../shared/providers/app_providers.dart';
 
 class MaintenanceListScreen extends ConsumerWidget {
@@ -45,8 +46,22 @@ class MaintenanceListScreen extends ConsumerWidget {
                     child: ListTile(
                       leading: const Icon(Icons.build),
                       title: Text('${item.type} - ${item.carLabel}'),
-                      subtitle: Text('Debut: ${item.startDate}  |  Fin: ${item.endDate}'),
-                      trailing: Text('${item.cost.toStringAsFixed(2)} MAD'),
+                      subtitle: Text(
+                        'Début: ${item.startDate.isEmpty ? "—" : item.startDate}  |  Fin: ${item.endDate.isEmpty ? "—" : item.endDate}\n'
+                        'Statut: ${item.status == "COMPLETED" ? "Terminée" : "En cours"}',
+                      ),
+                      isThreeLine: true,
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('${item.cost.toStringAsFixed(2)} MAD'),
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () => _showEditMaintenanceDialog(context, ref, item),
+                          ),
+                        ],
+                      ),
+                      onTap: () => _showEditMaintenanceDialog(context, ref, item),
                     ),
                   );
                 },
@@ -103,11 +118,11 @@ class MaintenanceListScreen extends ConsumerWidget {
               ),
               TextField(
                 controller: startDateCtrl,
-                decoration: const InputDecoration(labelText: 'Date debut (YYYY-MM-DD)'),
+                decoration: const InputDecoration(labelText: 'Date debut (YYYY-MM-DD) — optionnel'),
               ),
               TextField(
                 controller: endDateCtrl,
-                decoration: const InputDecoration(labelText: 'Date fin (YYYY-MM-DD)'),
+                decoration: const InputDecoration(labelText: 'Date fin (YYYY-MM-DD) — optionnel'),
               ),
               TextField(
                 controller: descriptionCtrl,
@@ -116,7 +131,7 @@ class MaintenanceListScreen extends ConsumerWidget {
               TextField(
                 controller: costCtrl,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Cout (optionnel)'),
+                decoration: const InputDecoration(labelText: 'Cout (MAD) *'),
               ),
             ],
           ),
@@ -131,10 +146,10 @@ class MaintenanceListScreen extends ConsumerWidget {
                 final startDate = startDateCtrl.text.trim();
                 final endDate = endDateCtrl.text.trim();
                 final description = descriptionCtrl.text.trim();
-                final cost = double.tryParse(costCtrl.text.trim());
-                if (selectedCarId == null || type.isEmpty || startDate.isEmpty) {
+                final cost = double.tryParse(costCtrl.text.trim().replaceAll(',', '.'));
+                if (selectedCarId == null || type.isEmpty || cost == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Voiture, type et date debut sont obligatoires.')),
+                    const SnackBar(content: Text('Voiture, type et cout sont obligatoires.')),
                   );
                   return;
                 }
@@ -142,11 +157,12 @@ class MaintenanceListScreen extends ConsumerWidget {
                   await ref.read(maintenanceRepositoryProvider).createMaintenance(
                         carId: selectedCarId!,
                         type: type,
-                        startDate: startDate,
+                        startDate: startDate.isEmpty ? null : startDate,
                         endDate: endDate.isEmpty ? null : endDate,
                         description: description.isEmpty ? null : description,
                         cost: cost,
                       );
+                  ref.invalidate(carsProvider);
                   ref.invalidate(maintenanceProvider);
                   if (context.mounted) {
                     Navigator.pop(context);
@@ -158,6 +174,124 @@ class MaintenanceListScreen extends ConsumerWidget {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Erreur ajout maintenance: $e')),
+                    );
+                  }
+                }
+              },
+              child: const Text('Enregistrer'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showEditMaintenanceDialog(
+    BuildContext context,
+    WidgetRef ref,
+    MaintenanceModel item,
+  ) async {
+    final typeCtrl = TextEditingController(text: item.type);
+    final descriptionCtrl = TextEditingController(text: item.description);
+    final startDateCtrl = TextEditingController(text: item.startDate);
+    final endDateCtrl = TextEditingController(text: item.endDate);
+    final costCtrl = TextEditingController(text: item.cost.toString());
+    final cars = await ref.read(carRepositoryProvider).getCars();
+    if (!context.mounted) return;
+    int? selectedCarId = item.carId;
+    String status = item.status.isNotEmpty ? item.status : 'IN_PROGRESS';
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Modifier maintenance'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<int>(
+                  value: selectedCarId,
+                  items: cars
+                      .map(
+                        (car) => DropdownMenuItem<int>(
+                          value: car.id,
+                          child: Text('${car.brand} (${car.matricule})'),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) => setState(() => selectedCarId = value),
+                  decoration: const InputDecoration(labelText: 'Voiture *'),
+                ),
+                TextField(controller: typeCtrl, decoration: const InputDecoration(labelText: 'Type de coût *')),
+                TextField(
+                  controller: startDateCtrl,
+                  decoration: const InputDecoration(labelText: 'Date début (YYYY-MM-DD) — optionnel'),
+                ),
+                TextField(
+                  controller: endDateCtrl,
+                  decoration: const InputDecoration(labelText: 'Date fin (YYYY-MM-DD) — optionnel'),
+                ),
+                TextField(
+                  controller: descriptionCtrl,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                  maxLines: 2,
+                ),
+                TextField(
+                  controller: costCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'Montant (MAD) *'),
+                ),
+                DropdownButtonFormField<String>(
+                  value: status,
+                  items: const [
+                    DropdownMenuItem(value: 'IN_PROGRESS', child: Text('En cours')),
+                    DropdownMenuItem(value: 'COMPLETED', child: Text('Terminée')),
+                  ],
+                  onChanged: (value) => setState(() => status = value ?? status),
+                  decoration: const InputDecoration(labelText: 'Statut maintenance'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
+            FilledButton(
+              onPressed: () async {
+                final type = typeCtrl.text.trim();
+                final startDate = startDateCtrl.text.trim();
+                final endDate = endDateCtrl.text.trim();
+                final description = descriptionCtrl.text.trim();
+                final cost = double.tryParse(costCtrl.text.trim().replaceAll(',', '.'));
+                if (selectedCarId == null || type.isEmpty || cost == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Voiture, type et montant sont obligatoires.')),
+                  );
+                  return;
+                }
+                try {
+                  await ref.read(maintenanceRepositoryProvider).updateMaintenance(
+                        id: item.id,
+                        carId: selectedCarId!,
+                        type: type,
+                        startDate: startDate.isEmpty ? null : startDate,
+                        endDate: endDate.isEmpty ? null : endDate,
+                        description: description.isEmpty ? null : description,
+                        cost: cost,
+                        status: status,
+                      );
+                  ref.invalidate(carsProvider);
+                  ref.invalidate(maintenanceProvider);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Maintenance modifiée avec succès.')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Erreur modification: $e')),
                     );
                   }
                 }

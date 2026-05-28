@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.Optional;
 
 import java.util.List;
@@ -14,8 +16,13 @@ public interface ContractRepository extends JpaRepository<Contract, Long> {
     List<Contract> findByDeletedFalse();
     List<Contract> findByDeletedFalseAndCarId(Long carId);
     List<Contract> findByDeletedFalseAndStatus(ContractStatus status);
+    List<Contract> findByDeletedFalseAndStatusIn(Collection<ContractStatus> statuses);
     boolean existsByClientIdAndDeletedFalseAndStatus(Long clientId, ContractStatus status);
     boolean existsByCarIdAndDeletedFalseAndStatus(Long carId, ContractStatus status);
+    boolean existsByClientIdAndDeletedFalseAndStatusIn(Long clientId, Collection<ContractStatus> statuses);
+    boolean existsByCarIdAndDeletedFalseAndStatusIn(Long carId, Collection<ContractStatus> statuses);
+
+    long countByDeletedFalseAndClientId(Long clientId);
 
     @Query("""
             select c from Contract c

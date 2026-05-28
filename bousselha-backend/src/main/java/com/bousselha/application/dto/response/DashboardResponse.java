@@ -4,6 +4,8 @@ public record DashboardResponse(
         long totalCars,
         long available,
         long rented,
-        long maintenance
+        long maintenance,
+        java.math.BigDecimal totalIncome,
+        java.math.BigDecimal totalExpense
 ) {
 }
