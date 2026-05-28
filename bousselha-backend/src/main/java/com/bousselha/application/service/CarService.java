@@ -4,6 +4,7 @@ import com.bousselha.application.dto.request.CarRequest;
 import com.bousselha.application.dto.response.CarHistoryItemResponse;
 import com.bousselha.application.dto.response.CarResponse;
 import com.bousselha.domain.enums.CarStatus;
+import com.bousselha.domain.enums.ContractStatus;
 import com.bousselha.domain.model.Car;
 import com.bousselha.domain.repository.CarRepository;
 import com.bousselha.domain.repository.ContractRepository;
@@ -11,12 +12,23 @@ import com.bousselha.domain.repository.MaintenanceRepository;
 import com.bousselha.infrastructure.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.Objects;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @Transactional
 public class CarService {
+    private static final String UPLOADS_DIR = "src/main/resources/static/uploads/cars";
+    private static final String PUBLIC_UPLOADS_PREFIX = "/uploads/cars/";
+
     private final CarRepository carRepository;
     private final ContractRepository contractRepository;
     private final MaintenanceRepository maintenanceRepository;
@@ -39,20 +51,25 @@ public class CarService {
         return carRepository.findByStatus(status).stream().map(this::map).toList();
     }
 
-    public CarResponse create(CarRequest request) {
+    public CarResponse create(CarRequest request, MultipartFile image) {
         Car car = new Car();
-        apply(car, request);
+        apply(car, request, image);
         return map(carRepository.save(car));
     }
 
-    public CarResponse update(Long id, CarRequest request) {
+    public CarResponse update(Long id, CarRequest request, MultipartFile image) {
         Car car = getCar(id);
-        apply(car, request);
+        apply(car, request, image);
         return map(carRepository.save(car));
     }
 
     public void delete(Long id) {
-        carRepository.delete(getCar(id));
+        Car car = getCar(id);
+        boolean hasActiveContracts = contractRepository.existsByCarIdAndDeletedFalseAndStatus(car.getId(), ContractStatus.ACTIVE);
+        if (hasActiveContracts) {
+            throw new IllegalArgumentException("Impossible : voiture en location active");
+        }
+        carRepository.delete(car);
     }
 
     public List<CarHistoryItemResponse> history(Long carId) {
@@ -88,14 +105,36 @@ public class CarService {
                 .orElseThrow(() -> new ResourceNotFoundException("Car not found: " + id));
     }
 
-    private void apply(Car car, CarRequest request) {
+    private void apply(Car car, CarRequest request, MultipartFile image) {
         car.setBrand(request.brand());
         car.setFuelType(request.fuelType());
         car.setMatricule(request.matricule());
         car.setNextInspectionDate(request.nextInspectionDate());
         car.setLastOilChangeDate(request.lastOilChangeDate());
         car.setInsuranceExpiryDate(request.insuranceExpiryDate());
+        if (image != null && !image.isEmpty()) {
+            car.setImageUrl(storeImage(image));
+        }
         car.setStatus(request.status() == null ? CarStatus.AVAILABLE : request.status());
+    }
+
+    private String storeImage(MultipartFile image) {
+        String original = Objects.requireNonNullElse(image.getOriginalFilename(), "image.jpg");
+        String ext = "";
+        int idx = original.lastIndexOf('.');
+        if (idx >= 0) ext = original.substring(idx).toLowerCase();
+        if (!List.of(".jpg", ".jpeg", ".png").contains(ext)) {
+            throw new IllegalArgumentException("Unsupported image format");
+        }
+        String filename = UUID.randomUUID() + ext;
+        try {
+            Path dir = Paths.get(UPLOADS_DIR);
+            Files.createDirectories(dir);
+            Files.copy(image.getInputStream(), dir.resolve(filename), StandardCopyOption.REPLACE_EXISTING);
+            return PUBLIC_UPLOADS_PREFIX + filename;
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Unable to store image: " + e.getMessage());
+        }
     }
 
     private CarResponse map(Car car) {
@@ -107,6 +146,7 @@ public class CarService {
                 car.getNextInspectionDate(),
                 car.getLastOilChangeDate(),
                 car.getInsuranceExpiryDate(),
+                car.getImageUrl(),
                 car.getStatus()
         );
     }

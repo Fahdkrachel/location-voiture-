@@ -5,8 +5,11 @@ import com.bousselha.application.dto.response.CarHistoryItemResponse;
 import com.bousselha.application.dto.response.CarResponse;
 import com.bousselha.application.service.CarService;
 import com.bousselha.domain.enums.CarStatus;
-import jakarta.validation.Valid;
+import com.bousselha.domain.enums.FuelType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDate;
 
 import java.util.List;
 
@@ -30,9 +33,52 @@ public class CarController {
     @GetMapping("/maintenance")
     public List<CarResponse> maintenance() { return carService.findByStatus(CarStatus.MAINTENANCE); }
     @PostMapping
-    public CarResponse create(@Valid @RequestBody CarRequest request) { return carService.create(request); }
+    public CarResponse create(
+            @RequestParam String brand,
+            @RequestParam FuelType fuelType,
+            @RequestParam String matricule,
+            @RequestParam(required = false) LocalDate nextInspectionDate,
+            @RequestParam(required = false) LocalDate lastOilChangeDate,
+            @RequestParam(required = false) LocalDate insuranceExpiryDate,
+            @RequestParam(required = false) CarStatus status,
+            @RequestParam(required = false) MultipartFile image
+    ) {
+        CarRequest request = new CarRequest(
+                brand,
+                fuelType,
+                matricule,
+                nextInspectionDate,
+                lastOilChangeDate,
+                insuranceExpiryDate,
+                null,
+                status
+        );
+        return carService.create(request, image);
+    }
     @PutMapping("/{id}")
-    public CarResponse update(@PathVariable Long id, @Valid @RequestBody CarRequest request) { return carService.update(id, request); }
+    public CarResponse update(
+            @PathVariable Long id,
+            @RequestParam String brand,
+            @RequestParam FuelType fuelType,
+            @RequestParam String matricule,
+            @RequestParam(required = false) LocalDate nextInspectionDate,
+            @RequestParam(required = false) LocalDate lastOilChangeDate,
+            @RequestParam(required = false) LocalDate insuranceExpiryDate,
+            @RequestParam(required = false) CarStatus status,
+            @RequestParam(required = false) MultipartFile image
+    ) {
+        CarRequest request = new CarRequest(
+                brand,
+                fuelType,
+                matricule,
+                nextInspectionDate,
+                lastOilChangeDate,
+                insuranceExpiryDate,
+                null,
+                status
+        );
+        return carService.update(id, request, image);
+    }
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) { carService.delete(id); }
     @GetMapping("/{id}/history")

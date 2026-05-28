@@ -14,6 +14,7 @@ Monorepo de demarrage pour un systeme de gestion de location de voitures.
 3. Executer:
 
 ```bash
+cd "C:\Users\pc\Desktop\BOUSSELHA CARS"
 cd bousselha-backend
 mvn spring-boot:run
 ```
@@ -23,6 +24,7 @@ Swagger: `http://localhost:8080/swagger-ui.html`
 ## Lancer le frontend
 
 ```bash
+cd "C:\Users\pc\Desktop\BOUSSELHA CARS"
 cd bousselha-flutter
 flutter pub get
 flutter run -d windows

@@ -25,4 +25,6 @@ public class ClientController {
     public ClientResponse create(@Valid @RequestBody ClientRequest request) { return clientService.create(request); }
     @PutMapping("/{id}")
     public ClientResponse update(@PathVariable Long id, @Valid @RequestBody ClientRequest request) { return clientService.update(id, request); }
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) { clientService.delete(id); }
 }

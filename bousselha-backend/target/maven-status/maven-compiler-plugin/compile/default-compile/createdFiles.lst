@@ -26,13 +26,9 @@ com\bousselha\application\dto\request\MaintenanceRequest.class
 com\bousselha\config\CorsConfig.class
 com\bousselha\domain\repository\ClientRepository.class
 com\bousselha\application\dto\request\ClientRequest.class
+com\bousselha\application\dto\response\DashboardAlertResponse.class
 com\bousselha\BousselhaApplication.class
-com\bousselha\application\service\MaintenanceService.class
 com\bousselha\config\CorsConfig$1.class
-com\bousselha\domain\model\Car.class
-com\bousselha\application\dto\request\CarRequest.class
 com\bousselha\application\dto\response\CarHistoryItemResponse.class
-com\bousselha\infrastructure\controller\ContractController.class
 com\bousselha\infrastructure\exception\GlobalExceptionHandler.class
 com\bousselha\application\dto\response\MaintenanceResponse.class
-com\bousselha\application\dto\response\ContractResponse.class

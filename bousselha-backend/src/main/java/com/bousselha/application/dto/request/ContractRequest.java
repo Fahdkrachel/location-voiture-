@@ -15,6 +15,7 @@ public record ContractRequest(
         String returnPlace,
         @NotNull LocalDateTime departureDatetime,
         LocalDateTime expectedReturnDatetime,
+        LocalDateTime actualReturnDatetime,
         Integer durationDays,
         BigDecimal pricePerDay,
         BigDecimal pricePerWeek,

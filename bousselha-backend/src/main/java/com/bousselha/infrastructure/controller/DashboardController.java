@@ -1,6 +1,7 @@
 package com.bousselha.infrastructure.controller;
 
 import com.bousselha.application.dto.response.ContractResponse;
+import com.bousselha.application.dto.response.DashboardAlertResponse;
 import com.bousselha.application.dto.response.DashboardResponse;
 import com.bousselha.application.service.DashboardService;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,5 +27,10 @@ public class DashboardController {
     @GetMapping("/calendar")
     public List<ContractResponse> calendar() {
         return dashboardService.calendar();
+    }
+
+    @GetMapping("/alerts")
+    public List<DashboardAlertResponse> alerts() {
+        return dashboardService.alerts();
     }
 }

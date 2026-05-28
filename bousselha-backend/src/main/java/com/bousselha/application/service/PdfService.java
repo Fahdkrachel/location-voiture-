@@ -23,8 +23,7 @@ public class PdfService {
     }
 
     public byte[] generateContractPdf(Long id) throws IOException {
-        Contract contract = contractRepository.findById(id)
-                .filter(c -> !c.isDeleted())
+        Contract contract = contractRepository.findDetailedById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Contract not found: " + id));
 
         try (PDDocument doc = new PDDocument(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {

@@ -34,6 +34,10 @@ public class ContractService {
         return contractRepository.findByDeletedFalse().stream().map(this::map).toList();
     }
 
+    public List<ContractResponse> findAllByCarId(Long carId) {
+        return contractRepository.findByDeletedFalseAndCarId(carId).stream().map(this::map).toList();
+    }
+
     public ContractResponse findById(Long id) {
         return map(getContract(id));
     }
@@ -45,6 +49,9 @@ public class ContractService {
     public ContractResponse create(ContractRequest request) {
         Car car = carRepository.findById(request.carId())
                 .orElseThrow(() -> new ResourceNotFoundException("Car not found: " + request.carId()));
+        if (car.getStatus() != CarStatus.AVAILABLE) {
+            throw new IllegalArgumentException("Car is not available for rental: " + car.getMatricule());
+        }
         Client client = clientRepository.findById(request.clientId())
                 .orElseThrow(() -> new ResourceNotFoundException("Client not found: " + request.clientId()));
         Contract contract = new Contract();
@@ -57,11 +64,46 @@ public class ContractService {
 
     public ContractResponse registerReturn(Long id) {
         Contract contract = getContract(id);
+        if (contract.getStatus() != ContractStatus.ACTIVE) {
+            throw new IllegalArgumentException("Only active contracts can be returned");
+        }
         contract.setActualReturnDatetime(LocalDateTime.now());
         contract.setStatus(ContractStatus.COMPLETED);
         Car car = contract.getCar();
         car.setStatus(CarStatus.AVAILABLE);
         return map(contractRepository.save(contract));
+    }
+
+    public ContractResponse update(Long id, ContractRequest request) {
+        Contract contract = getContract(id);
+
+        Car car = carRepository.findById(request.carId())
+                .orElseThrow(() -> new ResourceNotFoundException("Car not found: " + request.carId()));
+        Client client = clientRepository.findById(request.clientId())
+                .orElseThrow(() -> new ResourceNotFoundException("Client not found: " + request.clientId()));
+
+        if (contract.getStatus() == ContractStatus.ACTIVE && !contract.getCar().getId().equals(request.carId())) {
+            throw new IllegalArgumentException("Cannot change assigned car while contract is active");
+        }
+
+        contract.setCar(car);
+        contract.setClient(client);
+        apply(contract, request);
+
+        if (contract.getStatus() == ContractStatus.ACTIVE) {
+            contract.getCar().setStatus(CarStatus.RENTED);
+        }
+
+        return map(contractRepository.save(contract));
+    }
+
+    public void softDelete(Long id) {
+        Contract contract = getContract(id);
+        if (contract.getStatus() == ContractStatus.ACTIVE) {
+            throw new IllegalArgumentException("Impossible : terminez d'abord le contrat");
+        }
+        contract.setDeleted(true);
+        contractRepository.save(contract);
     }
 
     private Contract getContract(Long id) {
@@ -78,6 +120,7 @@ public class ContractService {
         c.setReturnPlace(r.returnPlace());
         c.setDepartureDatetime(r.departureDatetime());
         c.setExpectedReturnDatetime(r.expectedReturnDatetime());
+        c.setActualReturnDatetime(r.actualReturnDatetime());
         c.setDurationDays(r.durationDays());
         c.setPricePerDay(r.pricePerDay());
         c.setPricePerWeek(r.pricePerWeek());
@@ -100,12 +143,46 @@ public class ContractService {
                 c.getId(),
                 c.getCar().getId(),
                 c.getCar().getBrand() + " - " + c.getCar().getMatricule(),
+                c.getCar().getBrand(),
+                c.getCar().getMatricule(),
+                c.getCar().getFuelType(),
+                c.getDeparturePlace(),
+                c.getReturnPlace(),
                 c.getClient().getId(),
                 c.getClient().getFullName(),
+                c.getClient().getBirthDate(),
+                c.getClient().getAddressMorocco(),
+                c.getClient().getAddressAbroad(),
+                c.getClient().getProfession(),
+                c.getClient().getDrivingLicenseNumber(),
+                c.getClient().getDrivingLicenseIssuedAt(),
+                c.getClient().getCinNumber(),
+                c.getClient().getPassportNumber(),
+                c.getClient().getPassportIssuedAt(),
+                c.getClient().getPhone(),
+                c.getAdditionalDriverName(),
+                c.getAdditionalDriverLicense(),
+                c.getClient().getAdditionalDriverDrivingLicenseIssuedAt() == null ? null : c.getClient().getAdditionalDriverDrivingLicenseIssuedAt().toString(),
+                c.getAdditionalDriverPassport(),
                 c.getDepartureDatetime(),
                 c.getExpectedReturnDatetime(),
                 c.getActualReturnDatetime(),
+                c.getDurationDays(),
+                c.getPricePerHour(),
+                c.getPricePerDay(),
+                c.getPricePerWeek(),
+                c.getPricePerMonth(),
+                c.getWithInsurance(),
+                c.getTotalPrice(),
+                c.getSupplement(),
                 c.getTotalGeneral(),
+                c.getPaymentCash(),
+                c.getPaymentCheck(),
+                c.getPaymentDeposit(),
+                c.getVehicleConditionDeparture(),
+                c.getVehicleConditionReturn(),
+                c.getDamagesIdentified(),
+                c.getCreatedAt(),
                 c.getStatus()
         );
     }

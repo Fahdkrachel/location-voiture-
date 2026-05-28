@@ -37,7 +37,7 @@ public class MaintenanceService {
         Maintenance maintenance = new Maintenance();
         maintenance.setCar(car);
         apply(maintenance, request);
-        car.setStatus(CarStatus.MAINTENANCE);
+        applyCarStatusByMaintenance(car, maintenance);
         return map(maintenanceRepository.save(maintenance));
     }
 
@@ -47,7 +47,18 @@ public class MaintenanceService {
         Car car = getCar(request.carId());
         maintenance.setCar(car);
         apply(maintenance, request);
+        applyCarStatusByMaintenance(car, maintenance);
         return map(maintenanceRepository.save(maintenance));
+    }
+
+    private void applyCarStatusByMaintenance(Car car, Maintenance maintenance) {
+        if (maintenance.getEndDate() == null) {
+            car.setStatus(CarStatus.MAINTENANCE);
+            return;
+        }
+        if (car.getStatus() == CarStatus.MAINTENANCE) {
+            car.setStatus(CarStatus.AVAILABLE);
+        }
     }
 
     private Car getCar(Long id) {

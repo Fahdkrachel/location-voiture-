@@ -25,7 +25,9 @@ public class ContractController {
     }
 
     @GetMapping
-    public List<ContractResponse> findAll() { return contractService.findAll(); }
+    public List<ContractResponse> findAll(@RequestParam(required = false) Long carId) {
+        return carId == null ? contractService.findAll() : contractService.findAllByCarId(carId);
+    }
     @GetMapping("/{id}")
     public ContractResponse findById(@PathVariable Long id) { return contractService.findById(id); }
     @GetMapping("/active")
@@ -34,6 +36,17 @@ public class ContractController {
     public ContractResponse create(@Valid @RequestBody ContractRequest request) { return contractService.create(request); }
     @PutMapping("/{id}/return")
     public ContractResponse registerReturn(@PathVariable Long id) { return contractService.registerReturn(id); }
+
+    @PutMapping("/{id}")
+    public ContractResponse update(@PathVariable Long id, @Valid @RequestBody ContractRequest request) {
+        return contractService.update(id, request);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> softDelete(@PathVariable Long id) {
+        contractService.softDelete(id);
+        return ResponseEntity.noContent().build();
+    }
 
     @GetMapping("/{id}/pdf")
     public ResponseEntity<byte[]> pdf(@PathVariable Long id) throws IOException {

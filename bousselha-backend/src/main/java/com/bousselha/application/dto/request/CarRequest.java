@@ -14,6 +14,7 @@ public record CarRequest(
         LocalDate nextInspectionDate,
         LocalDate lastOilChangeDate,
         LocalDate insuranceExpiryDate,
+        String imageUrl,
         CarStatus status
 ) {
 }

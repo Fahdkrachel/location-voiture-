@@ -13,6 +13,7 @@ public record CarResponse(
         LocalDate nextInspectionDate,
         LocalDate lastOilChangeDate,
         LocalDate insuranceExpiryDate,
+        String imageUrl,
         CarStatus status
 ) {
 }

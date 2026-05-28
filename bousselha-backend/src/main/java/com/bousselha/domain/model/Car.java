@@ -37,6 +37,9 @@ public class Car {
     @Column(name = "insurance_expiry_date")
     private LocalDate insuranceExpiryDate;
 
+    @Column(name = "image_url", length = 300)
+    private String imageUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private CarStatus status = CarStatus.AVAILABLE;

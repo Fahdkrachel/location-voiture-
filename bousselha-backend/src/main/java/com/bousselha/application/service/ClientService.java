@@ -2,8 +2,10 @@ package com.bousselha.application.service;
 
 import com.bousselha.application.dto.request.ClientRequest;
 import com.bousselha.application.dto.response.ClientResponse;
+import com.bousselha.domain.enums.ContractStatus;
 import com.bousselha.domain.model.Client;
 import com.bousselha.domain.repository.ClientRepository;
+import com.bousselha.domain.repository.ContractRepository;
 import com.bousselha.infrastructure.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,9 +16,11 @@ import java.util.List;
 @Transactional
 public class ClientService {
     private final ClientRepository clientRepository;
+    private final ContractRepository contractRepository;
 
-    public ClientService(ClientRepository clientRepository) {
+    public ClientService(ClientRepository clientRepository, ContractRepository contractRepository) {
         this.clientRepository = clientRepository;
+        this.contractRepository = contractRepository;
     }
 
     public List<ClientResponse> findAll() {
@@ -39,6 +43,15 @@ public class ClientService {
         return map(clientRepository.save(client));
     }
 
+    public void delete(Long id) {
+        Client client = getClient(id);
+        boolean hasActiveContracts = contractRepository.existsByClientIdAndDeletedFalseAndStatus(client.getId(), ContractStatus.ACTIVE);
+        if (hasActiveContracts) {
+            throw new IllegalArgumentException("Impossible de supprimer : client a des contrats en cours");
+        }
+        clientRepository.delete(client);
+    }
+
     private Client getClient(Long id) {
         return clientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Client not found: " + id));
@@ -56,6 +69,11 @@ public class ClientService {
         client.setPassportNumber(request.passportNumber());
         client.setPassportIssuedAt(request.passportIssuedAt());
         client.setPhone(request.phone());
+
+        client.setAdditionalDriverFullName(request.additionalDriverFullName());
+        client.setAdditionalDriverDrivingLicenseNumber(request.additionalDriverDrivingLicenseNumber());
+        client.setAdditionalDriverDrivingLicenseIssuedAt(request.additionalDriverDrivingLicenseIssuedAt());
+        client.setAdditionalDriverPassportNumber(request.additionalDriverPassportNumber());
     }
 
     private ClientResponse map(Client client) {
@@ -71,7 +89,11 @@ public class ClientService {
                 client.getCinNumber(),
                 client.getPassportNumber(),
                 client.getPassportIssuedAt(),
-                client.getPhone()
+                client.getPhone(),
+                client.getAdditionalDriverFullName(),
+                client.getAdditionalDriverDrivingLicenseNumber(),
+                client.getAdditionalDriverDrivingLicenseIssuedAt(),
+                client.getAdditionalDriverPassportNumber()
         );
     }
 }

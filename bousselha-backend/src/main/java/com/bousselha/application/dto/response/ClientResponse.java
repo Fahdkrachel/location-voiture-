@@ -13,7 +13,12 @@ public record ClientResponse(
         String drivingLicenseIssuedAt,
         String cinNumber,
         String passportNumber,
-        String passportIssuedAt,
-        String phone
+        LocalDate passportIssuedAt,
+        String phone,
+
+        String additionalDriverFullName,
+        String additionalDriverDrivingLicenseNumber,
+        LocalDate additionalDriverDrivingLicenseIssuedAt,
+        String additionalDriverPassportNumber
 ) {
 }
