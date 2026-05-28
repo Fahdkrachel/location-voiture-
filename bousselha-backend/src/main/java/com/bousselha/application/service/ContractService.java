@@ -29,17 +29,20 @@ public class ContractService {
     private final CarRepository carRepository;
     private final ClientRepository clientRepository;
     private final FinancialService financialService;
+    private final OrphanClientService orphanClientService;
 
     public ContractService(
             ContractRepository contractRepository,
             CarRepository carRepository,
             ClientRepository clientRepository,
-            FinancialService financialService
+            FinancialService financialService,
+            OrphanClientService orphanClientService
     ) {
         this.contractRepository = contractRepository;
         this.carRepository = carRepository;
         this.clientRepository = clientRepository;
         this.financialService = financialService;
+        this.orphanClientService = orphanClientService;
     }
 
     public List<ContractResponse> findAll() {
@@ -149,9 +152,7 @@ public class ContractService {
         Long clientId = contract.getClient().getId();
         contract.setDeleted(true);
         contractRepository.save(contract);
-        if (contractRepository.countByDeletedFalseAndClientId(clientId) == 0) {
-            clientRepository.deleteById(clientId);
-        }
+        orphanClientService.removeClientIfOrphan(clientId);
     }
 
     private Contract getContract(Long id) {

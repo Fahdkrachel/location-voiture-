@@ -164,6 +164,8 @@ class MaintenanceListScreen extends ConsumerWidget {
                       );
                   ref.invalidate(carsProvider);
                   ref.invalidate(maintenanceProvider);
+                  ref.invalidate(dashboardStatsProvider);
+                  ref.invalidate(contractsProvider);
                   if (context.mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -282,6 +284,8 @@ class MaintenanceListScreen extends ConsumerWidget {
                       );
                   ref.invalidate(carsProvider);
                   ref.invalidate(maintenanceProvider);
+                  ref.invalidate(dashboardStatsProvider);
+                  ref.invalidate(contractsProvider);
                   if (context.mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(

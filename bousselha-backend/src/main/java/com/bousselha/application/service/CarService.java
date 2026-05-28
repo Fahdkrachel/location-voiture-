@@ -52,14 +52,18 @@ public class CarService {
     }
 
     public List<CarResponse> findAll() {
+        maintenanceService.reconcileAllCarStatuses();
         return carRepository.findAll().stream().map(this::map).toList();
     }
 
     public CarResponse findById(Long id) {
-        return map(getCar(id));
+        Car car = getCar(id);
+        maintenanceService.reconcileCarStatus(car);
+        return map(car);
     }
 
     public List<CarResponse> findByStatus(CarStatus status) {
+        maintenanceService.reconcileAllCarStatuses();
         return carRepository.findByStatus(status).stream().map(this::map).toList();
     }
 

@@ -2,6 +2,7 @@ package com.bousselha.domain.repository;
 
 import com.bousselha.domain.model.IncomeRecord;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -12,6 +13,10 @@ import java.util.Optional;
 
 public interface IncomeRecordRepository extends JpaRepository<IncomeRecord, Long> {
     Optional<IncomeRecord> findByContractId(Long contractId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from IncomeRecord i where i.contractId = :contractId")
+    void deleteByContractId(@Param("contractId") Long contractId);
 
     @Query("select coalesce(sum(i.amount), 0) from IncomeRecord i")
     BigDecimal sumAll();

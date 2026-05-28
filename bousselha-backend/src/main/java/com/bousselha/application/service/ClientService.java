@@ -17,10 +17,16 @@ import java.util.List;
 public class ClientService {
     private final ClientRepository clientRepository;
     private final ContractRepository contractRepository;
+    private final OrphanClientService orphanClientService;
 
-    public ClientService(ClientRepository clientRepository, ContractRepository contractRepository) {
+    public ClientService(
+            ClientRepository clientRepository,
+            ContractRepository contractRepository,
+            OrphanClientService orphanClientService
+    ) {
         this.clientRepository = clientRepository;
         this.contractRepository = contractRepository;
+        this.orphanClientService = orphanClientService;
     }
 
     public List<ClientResponse> findAll() {
@@ -50,7 +56,7 @@ public class ClientService {
         if (hasOpenContracts) {
             throw new IllegalArgumentException("Impossible de supprimer : client a des contrats en cours");
         }
-        clientRepository.delete(client);
+        orphanClientService.removeClientIfOrphan(id);
     }
 
     private Client getClient(Long id) {

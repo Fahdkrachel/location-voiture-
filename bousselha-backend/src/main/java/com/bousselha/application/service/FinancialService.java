@@ -2,17 +2,14 @@ package com.bousselha.application.service;
 
 import com.bousselha.application.dto.response.ExpenseRecordResponse;
 import com.bousselha.application.dto.response.IncomeRecordResponse;
-import com.bousselha.domain.enums.ContractStatus;
 import com.bousselha.domain.enums.ExpenseSource;
 import com.bousselha.domain.enums.IncomeSource;
 import com.bousselha.domain.model.Contract;
 import com.bousselha.domain.model.ExpenseRecord;
 import com.bousselha.domain.model.IncomeRecord;
 import com.bousselha.domain.model.Maintenance;
-import com.bousselha.domain.repository.ContractRepository;
 import com.bousselha.domain.repository.ExpenseRecordRepository;
 import com.bousselha.domain.repository.IncomeRecordRepository;
-import com.bousselha.domain.repository.MaintenanceRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,19 +24,12 @@ import java.util.List;
 public class FinancialService {
     private final IncomeRecordRepository incomeRecordRepository;
     private final ExpenseRecordRepository expenseRecordRepository;
-    private final ContractRepository contractRepository;
-    private final MaintenanceRepository maintenanceRepository;
-
     public FinancialService(
             IncomeRecordRepository incomeRecordRepository,
-            ExpenseRecordRepository expenseRecordRepository,
-            ContractRepository contractRepository,
-            MaintenanceRepository maintenanceRepository
+            ExpenseRecordRepository expenseRecordRepository
     ) {
         this.incomeRecordRepository = incomeRecordRepository;
         this.expenseRecordRepository = expenseRecordRepository;
-        this.contractRepository = contractRepository;
-        this.maintenanceRepository = maintenanceRepository;
     }
 
     public BigDecimal totalIncome() {
@@ -107,21 +97,6 @@ public class FinancialService {
         record.setDescription(maintenance.getDescription());
         record.setMaintenanceId(maintenance.getId());
         expenseRecordRepository.save(record);
-    }
-
-    public void syncLedgerFromExistingData() {
-        for (Contract contract : contractRepository.findByDeletedFalse()) {
-            if (contract.getStatus() == ContractStatus.ACTIVE || contract.getStatus() == ContractStatus.COMPLETED) {
-                if (incomeRecordRepository.findByContractId(contract.getId()).isEmpty()) {
-                    recordIncomeFromContract(contract);
-                }
-            }
-        }
-        for (Maintenance maintenance : maintenanceRepository.findAll()) {
-            if (expenseRecordRepository.findByMaintenanceId(maintenance.getId()).isEmpty()) {
-                recordExpenseFromMaintenance(maintenance);
-            }
-        }
     }
 
     private IncomeRecordResponse mapIncome(IncomeRecord i) {

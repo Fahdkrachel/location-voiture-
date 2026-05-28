@@ -334,6 +334,9 @@ class _ContractDetailScreenState extends ConsumerState<ContractDetailScreen> {
     try {
       await ref.read(contractRepositoryProvider).deleteContract(c.id);
       ref.invalidate(contractsProvider);
+      ref.invalidate(clientsProvider);
+      ref.invalidate(carsProvider);
+      ref.invalidate(dashboardStatsProvider);
       if (!scaffoldContext.mounted) return;
       Navigator.of(scaffoldContext).pop();
       messenger.showSnackBar(

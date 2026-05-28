@@ -24,6 +24,8 @@ public interface ContractRepository extends JpaRepository<Contract, Long> {
 
     long countByDeletedFalseAndClientId(Long clientId);
 
+    List<Contract> findByClientId(Long clientId);
+
     @Query("""
             select c from Contract c
             join fetch c.client

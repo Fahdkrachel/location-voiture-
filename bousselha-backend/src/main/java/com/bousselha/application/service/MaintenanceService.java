@@ -33,10 +33,13 @@ public class MaintenanceService {
     }
 
     public List<MaintenanceResponse> findAll() {
+        reconcileAllCarStatuses();
         return maintenanceRepository.findAll().stream().map(this::map).toList();
     }
 
     public List<MaintenanceResponse> findByCarId(Long carId) {
+        Car car = getCar(carId);
+        reconcileCarStatus(car);
         return maintenanceRepository.findByCarId(carId).stream().map(this::map).toList();
     }
 
@@ -49,6 +52,7 @@ public class MaintenanceService {
             maintenance.setStatus(MaintenanceStatus.IN_PROGRESS);
         }
         car.setStatus(CarStatus.MAINTENANCE);
+        carRepository.save(car);
         Maintenance saved = maintenanceRepository.save(maintenance);
         financialService.recordExpenseFromMaintenance(saved);
         return map(saved);
@@ -60,7 +64,8 @@ public class MaintenanceService {
         Car car = getCar(request.carId());
         maintenance.setCar(car);
         apply(maintenance, request);
-        applyCarStatusByMaintenance(car);
+        reconcileCarStatus(car);
+        carRepository.save(car);
         Maintenance saved = maintenanceRepository.save(maintenance);
         financialService.recordExpenseFromMaintenance(saved);
         return map(saved);
@@ -71,23 +76,42 @@ public class MaintenanceService {
                 .anyMatch(this::isOngoing);
     }
 
+    /**
+     * Met à jour les statuts véhicules selon les maintenances en cours (appelé à la lecture, pas au démarrage).
+     */
+    public void reconcileAllCarStatuses() {
+        for (Car car : carRepository.findAll()) {
+            reconcileCarStatus(car);
+        }
+    }
+
+    void reconcileCarStatus(Car car) {
+        if (car.getStatus() == CarStatus.RENTED) {
+            return;
+        }
+        boolean hasOngoing = maintenanceRepository.findByCarId(car.getId()).stream()
+                .anyMatch(this::isOngoing);
+        if (hasOngoing) {
+            if (car.getStatus() != CarStatus.MAINTENANCE) {
+                car.setStatus(CarStatus.MAINTENANCE);
+                carRepository.save(car);
+            }
+        } else if (car.getStatus() == CarStatus.MAINTENANCE) {
+            car.setStatus(CarStatus.AVAILABLE);
+            carRepository.save(car);
+        }
+    }
+
     private boolean isOngoing(Maintenance maintenance) {
         if (maintenance.getStatus() == MaintenanceStatus.COMPLETED) {
             return false;
         }
         LocalDate today = LocalDate.now();
         LocalDate end = maintenance.getEndDate();
-        return end == null || !end.isBefore(today);
-    }
-
-    private void applyCarStatusByMaintenance(Car car) {
-        boolean hasOngoing = maintenanceRepository.findByCarId(car.getId()).stream()
-                .anyMatch(this::isOngoing);
-        if (hasOngoing) {
-            car.setStatus(CarStatus.MAINTENANCE);
-        } else if (car.getStatus() == CarStatus.MAINTENANCE) {
-            car.setStatus(CarStatus.AVAILABLE);
+        if (end != null && end.isBefore(today)) {
+            return false;
         }
+        return true;
     }
 
     private Car getCar(Long id) {

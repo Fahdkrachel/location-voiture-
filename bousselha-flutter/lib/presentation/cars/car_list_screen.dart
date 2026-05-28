@@ -246,6 +246,10 @@ Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? 
                   }
 
                   if (context.mounted) {
+                    ref.invalidate(carsProvider);
+                    ref.invalidate(maintenanceProvider);
+                    ref.invalidate(dashboardStatsProvider);
+                    ref.invalidate(contractsProvider);
                     Navigator.pop(context, true);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
