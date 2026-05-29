@@ -36,6 +36,9 @@ public class ExpenseRecord {
     @Column(name = "maintenance_id")
     private Long maintenanceId;
 
+    @Column(name = "car_name", length = 200)
+    private String carName;
+
     @Column(name = "created_by", length = 120)
     private String createdBy = "Administrateur";
 

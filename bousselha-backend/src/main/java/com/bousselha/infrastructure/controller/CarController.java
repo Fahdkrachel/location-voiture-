@@ -88,13 +88,9 @@ public class CarController {
         );
         return carService.update(id, request, image);
     }
-    @PatchMapping("/{id}/status")
-    public CarResponse updateStatus(
-            @PathVariable Long id,
-            @RequestParam CarStatus status,
-            @RequestParam(defaultValue = "false") boolean force
-    ) {
-        return carService.updateStatus(id, status, force);
+    @PatchMapping("/{id}/available")
+    public CarResponse markAvailable(@PathVariable Long id) {
+        return carService.markAvailable(id);
     }
 
     @DeleteMapping("/{id}")

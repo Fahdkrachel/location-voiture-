@@ -25,4 +25,9 @@ public class MaintenanceController {
     public MaintenanceResponse create(@Valid @RequestBody MaintenanceRequest request) { return maintenanceService.create(request); }
     @PutMapping("/{id}")
     public MaintenanceResponse update(@PathVariable Long id, @Valid @RequestBody MaintenanceRequest request) { return maintenanceService.update(id, request); }
+
+    @PatchMapping("/{id}/complete")
+    public MaintenanceResponse complete(@PathVariable Long id) {
+        return maintenanceService.complete(id);
+    }
 }

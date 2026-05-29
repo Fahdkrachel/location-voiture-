@@ -55,6 +55,11 @@ class MaintenanceListScreen extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text('${item.cost.toStringAsFixed(2)} MAD'),
+                          if (item.status != 'COMPLETED')
+                            FilledButton.tonal(
+                              onPressed: () => _completeMaintenance(context, ref, item),
+                              child: const Text('Terminer'),
+                            ),
                           IconButton(
                             icon: const Icon(Icons.edit),
                             onPressed: () => _showEditMaintenanceDialog(context, ref, item),
@@ -188,6 +193,45 @@ class MaintenanceListScreen extends ConsumerWidget {
     );
   }
 
+  Future<void> _completeMaintenance(
+    BuildContext context,
+    WidgetRef ref,
+    MaintenanceModel item,
+  ) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Terminer la maintenance'),
+        content: Text(
+          'Marquer la maintenance « ${item.type} » (${item.carLabel}) comme terminée ?\n'
+          'Le véhicule redeviendra disponible si aucune autre maintenance n’est en cours.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Terminer')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await ref.read(maintenanceRepositoryProvider).completeMaintenance(item.id);
+      ref.invalidate(carsProvider);
+      ref.invalidate(maintenanceProvider);
+      ref.invalidate(dashboardStatsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Maintenance terminée. Véhicule disponible si applicable.')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur : $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _showEditMaintenanceDialog(
     BuildContext context,
     WidgetRef ref,
@@ -201,7 +245,7 @@ class MaintenanceListScreen extends ConsumerWidget {
     final cars = await ref.read(carRepositoryProvider).getCars();
     if (!context.mounted) return;
     int? selectedCarId = item.carId;
-    String status = item.status.isNotEmpty ? item.status : 'IN_PROGRESS';
+    final isCompleted = item.status == 'COMPLETED';
 
     await showDialog<void>(
       context: context,
@@ -244,15 +288,20 @@ class MaintenanceListScreen extends ConsumerWidget {
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(labelText: 'Montant (MAD) *'),
                 ),
-                DropdownButtonFormField<String>(
-                  value: status,
-                  items: const [
-                    DropdownMenuItem(value: 'IN_PROGRESS', child: Text('En cours')),
-                    DropdownMenuItem(value: 'COMPLETED', child: Text('Terminée')),
-                  ],
-                  onChanged: (value) => setState(() => status = value ?? status),
-                  decoration: const InputDecoration(labelText: 'Statut maintenance'),
+                InputDecorator(
+                  decoration: const InputDecoration(labelText: 'Statut'),
+                  child: Text(
+                    isCompleted ? 'Terminée' : 'En cours',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                 ),
+                if (!isCompleted) ...[
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Pour clôturer, utilisez le bouton « Terminer » dans la liste.',
+                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                ],
               ],
             ),
           ),
@@ -280,7 +329,7 @@ class MaintenanceListScreen extends ConsumerWidget {
                         endDate: endDate.isEmpty ? null : endDate,
                         description: description.isEmpty ? null : description,
                         cost: cost,
-                        status: status,
+                        status: item.status.isNotEmpty ? item.status : 'IN_PROGRESS',
                       );
                   ref.invalidate(carsProvider);
                   ref.invalidate(maintenanceProvider);

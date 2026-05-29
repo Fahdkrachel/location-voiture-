@@ -313,6 +313,25 @@ Alertes calculées sur **toutes les voitures** :
 
 Chaque alerte : `type`, `carId`, `carLabel`, `message`, `severity`, `dueDate`.
 
+### Comment tester les alertes (manuellement)
+
+**Prérequis** : backend démarré (`mvn spring-boot:run`), application Flutter ouverte sur l’onglet **Dashboard**.
+
+| Étape | Action | Résultat attendu |
+|-------|--------|------------------|
+| 1 | Ouvrir **Voitures** → **Modifier** une voiture (ou en créer une) | Formulaire avec dates visite / vidange / assurance |
+| 2 | Renseigner **Expiration assurance** à une date dans **≤ 30 jours** (ex. aujourd’hui + 15 jours, format `YYYY-MM-DD`) | — |
+| 3 | **Enregistrer**, puis aller sur **Dashboard** | Panneau droit : alerte **INSURANCE**, icône orange, message assurance, date d’échéance |
+| 4 | Mettre **Prochaine visite** à une date passée ou dans 30 jours | Alerte **INSPECTION** (rouge si date passée = `HIGH`, orange si à venir = `MEDIUM`) |
+| 5 | Mettre **Dernière vidange** à une date **> 180 jours** dans le passé (ex. aujourd’hui − 200 jours) | Alerte **OIL_CHANGE** (vidange en retard) |
+| 6 | Mettre toutes ces dates **loin dans le futur** (ex. + 1 an) ou les laisser vides | Panneau droit : **« Aucune alerte. »** |
+
+**Vérification API (optionnelle)** : dans Swagger (`http://localhost:8080/swagger-ui.html`), appeler `GET /api/dashboard/alerts` et contrôler le JSON (tableau vide ou objets avec `type`, `carLabel`, `severity`, `dueDate`).
+
+**Rafraîchir les données** : bouton rafraîchir du module ou redémarrer l’onglet Dashboard ; les alertes sont recalculées à chaque appel API (pas de cache côté serveur).
+
+> Les alertes ne dépendent **pas** des contrats ni des maintenances : uniquement des **dates enregistrées sur la fiche voiture**.
+
 ---
 
 ## 8. Backend — Génération PDF
@@ -404,12 +423,24 @@ Les sections détaillées (dommages, observation légale, signature) ne sont **p
    - Liste : voiture, client, dates départ → retour prévu
    - Source : `GET /api/dashboard/calendar`
 
-3. **Alertes** (panneau droit)
-   - Icône rouge/orange selon `severity` (`HIGH` / autre)
-   - Type, message, date d’échéance
-   - Source : `GET /api/dashboard/alerts`
+3. **Alertes véhicules** (panneau droit, sous le calendrier des locations actives)
+   - Rappels **assurance**, **contrôle technique**, **vidange** (voir §7 — `GET /api/dashboard/alerts`)
+   - Icône rouge si `severity = HIGH` (échéance dépassée), orange sinon (`MEDIUM`)
+   - Affichage : `carLabel`, type (`INSURANCE` / `INSPECTION` / `OIL_CHANGE`), message, `dueDate`
+   - Si aucune condition n’est remplie : **« Aucune alerte. »**
 
 4. **États UI** : chargement (`CircularProgressIndicator`), erreur réseau affichée
+
+#### Comment tester les alertes depuis l’interface
+
+Voir le guide pas à pas : **[§7 — Comment tester les alertes](#comment-tester-les-alertes-manuellement)**.
+
+Résumé rapide :
+
+1. **Voitures** → modifier une voiture.
+2. Saisir au moins une date « sensible » (assurance ou visite dans les 30 prochains jours, ou vidange il y a plus de 6 mois).
+3. **Dashboard** → vérifier le panneau de droite (liste d’alertes ou « Aucune alerte. »).
+4. Corriger les dates → l’alerte correspondante disparaît au prochain chargement.
 
 ---
 

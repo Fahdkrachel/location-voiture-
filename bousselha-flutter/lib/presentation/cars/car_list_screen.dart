@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
@@ -12,14 +11,65 @@ import '../../shared/providers/app_providers.dart';
 /// Tag Hero stable pour transitions liste → détail.
 String carHeroTag(int carId) => 'car-cover-$carId';
 
-bool _isMaintenanceNotFinishedError(DioException e) {
-  final data = e.response?.data;
-  if (data is Map) {
-    final err = data['error']?.toString() ?? '';
-    if (err.contains('MAINTENANCE_NOT_FINISHED')) return true;
+String _carActionErrorMessage(Object e) {
+  final raw = e.toString();
+  if (raw.contains('MAINTENANCE_NOT_FINISHED')) {
+    return 'Terminez la maintenance via le module Maintenance avant de remettre le véhicule disponible.';
   }
-  final raw = e.response?.data?.toString() ?? e.message ?? '';
-  return raw.contains('MAINTENANCE_NOT_FINISHED');
+  if (raw.contains('CAR_HAS_ACTIVE_CONTRACT')) {
+    return 'Impossible : un contrat en cours ou actif est lié à ce véhicule.';
+  }
+  if (raw.contains('ONLY_RENTED_OR_MAINTENANCE')) {
+    return 'Seuls les véhicules loués ou en maintenance peuvent être remis disponibles.';
+  }
+  return 'Erreur : $e';
+}
+
+Future<bool> markCarAvailable(BuildContext context, WidgetRef ref, CarModel car) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Remettre disponible'),
+      content: Text(
+        'Confirmer la remise en disponibilité de ${car.brand} (${car.matricule}) ?',
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirmer')),
+      ],
+    ),
+  );
+  if (ok != true) return false;
+  try {
+    await ref.read(carRepositoryProvider).markCarAvailable(id: car.id);
+    _invalidateVehicleLists(ref);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Véhicule remis en disponibilité.')),
+      );
+    }
+    return true;
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_carActionErrorMessage(e))),
+      );
+    }
+    return false;
+  }
+}
+
+String _statusLabel(String status) {
+  switch (status) {
+    case 'AVAILABLE':
+      return 'Disponible';
+    case 'RENTED':
+      return 'Louée';
+    case 'MAINTENANCE':
+      return 'En maintenance';
+    default:
+      return status;
+  }
 }
 
 void _invalidateVehicleLists(WidgetRef ref) {
@@ -38,7 +88,6 @@ Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? 
   final insuranceCtrl = TextEditingController(text: car?.insuranceExpiryDate ?? '');
 
   String fuelType = car?.fuelType.isNotEmpty == true ? car!.fuelType : 'ESSENCE';
-  String status = car?.status.isNotEmpty == true ? car!.status : 'AVAILABLE';
   String? imagePath;
   String? imageName;
   String existingImageUrl = car?.imageUrl ?? '';
@@ -68,17 +117,23 @@ Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? 
                     onChanged: (value) => setState(() => fuelType = value ?? 'ESSENCE'),
                     decoration: const InputDecoration(labelText: 'Carburant *'),
                   ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    initialValue: status,
-                    items: const [
-                      DropdownMenuItem(value: 'AVAILABLE', child: Text('Disponible')),
-                      DropdownMenuItem(value: 'RENTED', child: Text('Louee')),
-                      DropdownMenuItem(value: 'MAINTENANCE', child: Text('Maintenance')),
+                  if (car != null) ...[
+                    const SizedBox(height: 8),
+                    InputDecorator(
+                      decoration: const InputDecoration(labelText: 'Statut (lecture seule)'),
+                      child: Text(
+                        _statusLabel(car.status),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    if (car.status == 'RENTED' || car.status == 'MAINTENANCE') ...[
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Pour remettre le véhicule disponible, utilisez l’action « Remettre disponible » dans la liste.',
+                        style: TextStyle(fontSize: 12, color: Colors.black54),
+                      ),
                     ],
-                    onChanged: (value) => setState(() => status = value ?? 'AVAILABLE'),
-                    decoration: const InputDecoration(labelText: 'Statut'),
-                  ),
+                  ],
                   const SizedBox(height: 8),
                   TextField(
                     controller: inspectionCtrl,
@@ -202,46 +257,6 @@ Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? 
                 }
 
                 try {
-                  if (car != null && status == 'AVAILABLE' && car.status == 'MAINTENANCE') {
-                    var forcedAvailable = false;
-                    try {
-                      await ref.read(carRepositoryProvider).updateCarStatus(
-                            id: car.id,
-                            status: 'AVAILABLE',
-                            force: false,
-                          );
-                      forcedAvailable = true;
-                    } on DioException catch (e) {
-                      if (!_isMaintenanceNotFinishedError(e)) rethrow;
-                      if (!context.mounted) return;
-                      final confirmed = await showDialog<bool>(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Maintenance en cours'),
-                          content: const Text(
-                            "Cette maintenance n'est pas encore terminée.\n"
-                            'Voulez-vous vraiment changer le statut du véhicule vers Disponible ?',
-                          ),
-                          actions: [
-                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-                            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Oui')),
-                          ],
-                        ),
-                      );
-                      if (confirmed != true) return;
-                      await ref.read(carRepositoryProvider).updateCarStatus(
-                            id: car.id,
-                            status: 'AVAILABLE',
-                            force: true,
-                          );
-                      forcedAvailable = true;
-                    }
-                    if (forcedAvailable) {
-                      status = 'AVAILABLE';
-                    }
-                  }
-
                   if (car == null) {
                     await ref.read(carRepositoryProvider).createCar(
                           brand: brand,
@@ -251,7 +266,7 @@ Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? 
                           lastOilChangeDate: lastOilChangeDate.isEmpty ? null : lastOilChangeDate,
                           insuranceExpiryDate: insuranceExpiryDate.isEmpty ? null : insuranceExpiryDate,
                           imagePath: imagePath,
-                          status: status,
+                          status: 'AVAILABLE',
                         );
                   } else {
                     await ref.read(carRepositoryProvider).updateCar(
@@ -263,7 +278,7 @@ Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? 
                           lastOilChangeDate: lastOilChangeDate.isEmpty ? null : lastOilChangeDate,
                           insuranceExpiryDate: insuranceExpiryDate.isEmpty ? null : insuranceExpiryDate,
                           imagePath: imagePath,
-                          status: status,
+                          status: car.status,
                         );
                   }
 
@@ -382,7 +397,7 @@ class CarListScreen extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Chip(
-                            label: Text(car.status),
+                            label: Text(_statusLabel(car.status)),
                             backgroundColor: _statusColor(car.status).withValues(alpha: 0.15),
                             side: BorderSide(color: _statusColor(car.status)),
                           ),
@@ -391,13 +406,21 @@ class CarListScreen extends ConsumerWidget {
                               if (value == 'edit') {
                                 final changed = await showCarFormDialog(context, ref, car: car);
                                 if (changed == true) ref.invalidate(carsProvider);
+                              } else if (value == 'available') {
+                                final ok = await markCarAvailable(context, ref, car);
+                                if (ok) ref.invalidate(carsProvider);
                               } else if (value == 'delete') {
                                 await _deleteCar(context, ref, car);
                               }
                             },
-                            itemBuilder: (context) => const [
-                              PopupMenuItem(value: 'edit', child: Text('Modifier')),
-                              PopupMenuItem(value: 'delete', child: Text('Supprimer')),
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(value: 'edit', child: Text('Modifier')),
+                              if (car.status == 'RENTED' || car.status == 'MAINTENANCE')
+                                const PopupMenuItem(
+                                  value: 'available',
+                                  child: Text('Remettre disponible'),
+                                ),
+                              const PopupMenuItem(value: 'delete', child: Text('Supprimer')),
                             ],
                           ),
                         ],
@@ -763,6 +786,21 @@ class _CarDetailScreenState extends ConsumerState<CarDetailScreen> with SingleTi
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
+          if (_car.status == 'RENTED' || _car.status == 'MAINTENANCE') ...[
+            FloatingActionButton.extended(
+              heroTag: 'fab-car-available',
+              backgroundColor: const Color(0xFF2E7D32),
+              foregroundColor: Colors.white,
+              elevation: 4,
+              icon: const Icon(Icons.check_circle_outline),
+              label: const Text('Remettre disponible'),
+              onPressed: () async {
+                final ok = await markCarAvailable(context, ref, _car);
+                if (ok) await _loadData(animate: true);
+              },
+            ),
+            const SizedBox(height: 12),
+          ],
           FloatingActionButton.small(
             heroTag: 'fab-car-delete',
             backgroundColor: const Color(0xFFD32F2F),
@@ -794,7 +832,7 @@ class _CarDetailScreenState extends ConsumerState<CarDetailScreen> with SingleTi
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 14, offset: const Offset(0, 8))],
       ),
       child: Text(
-        status,
+        _statusLabel(status),
         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, letterSpacing: 0.8, fontSize: 12),
       ),
     );

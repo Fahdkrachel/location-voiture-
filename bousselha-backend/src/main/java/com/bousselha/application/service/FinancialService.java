@@ -4,6 +4,7 @@ import com.bousselha.application.dto.response.ExpenseRecordResponse;
 import com.bousselha.application.dto.response.IncomeRecordResponse;
 import com.bousselha.domain.enums.ExpenseSource;
 import com.bousselha.domain.enums.IncomeSource;
+import com.bousselha.domain.model.Car;
 import com.bousselha.domain.model.Contract;
 import com.bousselha.domain.model.ExpenseRecord;
 import com.bousselha.domain.model.IncomeRecord;
@@ -86,6 +87,10 @@ public class FinancialService {
         record.setCategory(maintenance.getType());
         record.setDescription(maintenance.getDescription());
         record.setMaintenanceId(maintenance.getId());
+        Car car = maintenance.getCar();
+        if (car != null) {
+            record.setCarName(car.getBrand() + " — " + car.getMatricule());
+        }
         expenseRecordRepository.save(record);
     }
 
@@ -110,7 +115,8 @@ public class FinancialService {
                 e.getSource(),
                 e.getCategory(),
                 e.getDescription(),
-                e.getMaintenanceId()
+                e.getMaintenanceId(),
+                e.getCarName()
         );
     }
 }

@@ -34,5 +34,6 @@ CREATE TABLE IF NOT EXISTS expense_records (
     category VARCHAR(80),
     description TEXT,
     maintenance_id BIGINT,
+    car_name VARCHAR(200),
     created_by VARCHAR(120) DEFAULT 'Administrateur'
 );

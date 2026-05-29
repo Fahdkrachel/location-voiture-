@@ -80,15 +80,8 @@ class CarRepository {
     await dio.delete('/cars/$id');
   }
 
-  Future<CarModel> updateCarStatus({
-    required int id,
-    required String status,
-    bool force = false,
-  }) async {
-    final res = await dio.patch(
-      '/cars/$id/status',
-      queryParameters: {'status': status, 'force': force},
-    );
+  Future<CarModel> markCarAvailable({required int id}) async {
+    final res = await dio.patch('/cars/$id/available');
     return CarModel.fromJson((res.data as Map).cast<String, dynamic>());
   }
 

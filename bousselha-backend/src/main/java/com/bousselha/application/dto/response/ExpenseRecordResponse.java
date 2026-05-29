@@ -12,6 +12,7 @@ public record ExpenseRecordResponse(
         ExpenseSource source,
         String category,
         String description,
-        Long maintenanceId
+        Long maintenanceId,
+        String carName
 ) {
 }

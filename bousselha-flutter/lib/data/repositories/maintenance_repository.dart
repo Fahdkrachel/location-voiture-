@@ -62,4 +62,9 @@ class MaintenanceRepository {
     final res = await dio.put('/maintenance/$id', data: data);
     return MaintenanceModel.fromJson((res.data as Map).cast<String, dynamic>());
   }
+
+  Future<MaintenanceModel> completeMaintenance(int id) async {
+    final res = await dio.patch('/maintenance/$id/complete');
+    return MaintenanceModel.fromJson((res.data as Map).cast<String, dynamic>());
+  }
 }

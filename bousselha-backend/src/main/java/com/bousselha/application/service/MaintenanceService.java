@@ -61,6 +61,10 @@ public class MaintenanceService {
     public MaintenanceResponse update(Long id, MaintenanceRequest request) {
         Maintenance maintenance = maintenanceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Maintenance not found: " + id));
+        if (request.status() == MaintenanceStatus.COMPLETED
+                && maintenance.getStatus() != MaintenanceStatus.COMPLETED) {
+            throw new IllegalArgumentException("USE_COMPLETE_ENDPOINT");
+        }
         Car car = getCar(request.carId());
         maintenance.setCar(car);
         apply(maintenance, request);
@@ -71,26 +75,28 @@ public class MaintenanceService {
         return map(saved);
     }
 
+    public MaintenanceResponse complete(Long id) {
+        Maintenance maintenance = maintenanceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Maintenance not found: " + id));
+        if (maintenance.getStatus() == MaintenanceStatus.COMPLETED) {
+            throw new IllegalArgumentException("MAINTENANCE_ALREADY_COMPLETED");
+        }
+        LocalDate today = LocalDate.now();
+        maintenance.setStatus(MaintenanceStatus.COMPLETED);
+        if (maintenance.getEndDate() == null) {
+            maintenance.setEndDate(today);
+        }
+        Maintenance saved = maintenanceRepository.save(maintenance);
+        Car car = saved.getCar();
+        reconcileCarStatus(car);
+        carRepository.save(car);
+        financialService.recordExpenseFromMaintenance(saved);
+        return map(saved);
+    }
+
     public boolean hasOngoingMaintenance(Long carId) {
         return maintenanceRepository.findByCarId(carId).stream()
                 .anyMatch(this::isOngoing);
-    }
-
-    /**
-     * Clôture les maintenances encore en cours lorsque l'admin force le véhicule en AVAILABLE.
-     */
-    public void completeOngoingMaintenancesForCar(Long carId) {
-        LocalDate today = LocalDate.now();
-        for (Maintenance maintenance : maintenanceRepository.findByCarId(carId)) {
-            if (!isOngoing(maintenance)) {
-                continue;
-            }
-            maintenance.setStatus(MaintenanceStatus.COMPLETED);
-            if (maintenance.getEndDate() == null || !maintenance.getEndDate().isBefore(today)) {
-                maintenance.setEndDate(today);
-            }
-            maintenanceRepository.save(maintenance);
-        }
     }
 
     /**

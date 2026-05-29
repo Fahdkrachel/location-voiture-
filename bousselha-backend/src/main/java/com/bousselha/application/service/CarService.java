@@ -69,28 +69,44 @@ public class CarService {
 
     public CarResponse create(CarRequest request, MultipartFile image) {
         Car car = new Car();
-        apply(car, request, image);
+        apply(car, request, image, true);
+        if (car.getStatus() != CarStatus.AVAILABLE) {
+            throw new IllegalArgumentException("NEW_CAR_MUST_BE_AVAILABLE");
+        }
         return map(carRepository.save(car));
     }
 
     public CarResponse update(Long id, CarRequest request, MultipartFile image) {
         Car car = getCar(id);
-        apply(car, request, image);
+        CarStatus currentStatus = car.getStatus();
+        apply(car, request, image, false);
+        car.setStatus(currentStatus);
         return map(carRepository.save(car));
     }
 
-    public CarResponse updateStatus(Long id, CarStatus newStatus, boolean forceMaintenanceOverride) {
+    /**
+     * Remise en disponibilité uniquement : depuis LOUÉE ou MAINTENANCE.
+     * En maintenance, terminer la maintenance via le module dédié avant.
+     */
+    public CarResponse markAvailable(Long id) {
         Car car = getCar(id);
-        if (newStatus == CarStatus.AVAILABLE
-                && car.getStatus() == CarStatus.MAINTENANCE
-                && maintenanceService.hasOngoingMaintenance(id)
-                && !forceMaintenanceOverride) {
+        CarStatus current = car.getStatus();
+        if (current != CarStatus.RENTED && current != CarStatus.MAINTENANCE) {
+            throw new IllegalArgumentException("ONLY_RENTED_OR_MAINTENANCE_CAN_BECOME_AVAILABLE");
+        }
+        if (current == CarStatus.MAINTENANCE && maintenanceService.hasOngoingMaintenance(id)) {
             throw new IllegalArgumentException("MAINTENANCE_NOT_FINISHED");
         }
-        if (newStatus == CarStatus.AVAILABLE && forceMaintenanceOverride) {
-            maintenanceService.completeOngoingMaintenancesForCar(id);
+        if (current == CarStatus.RENTED) {
+            boolean hasOpenContract = contractRepository.existsByCarIdAndDeletedFalseAndStatusIn(
+                    car.getId(),
+                    java.util.EnumSet.of(ContractStatus.IN_PROGRESS, ContractStatus.ACTIVE)
+            );
+            if (hasOpenContract) {
+                throw new IllegalArgumentException("CAR_HAS_ACTIVE_CONTRACT");
+            }
         }
-        car.setStatus(newStatus);
+        car.setStatus(CarStatus.AVAILABLE);
         return map(carRepository.save(car));
     }
 
@@ -200,7 +216,7 @@ public class CarService {
                 .orElseThrow(() -> new ResourceNotFoundException("Car not found: " + id));
     }
 
-    private void apply(Car car, CarRequest request, MultipartFile image) {
+    private void apply(Car car, CarRequest request, MultipartFile image, boolean allowStatusOnCreate) {
         car.setBrand(request.brand());
         car.setFuelType(request.fuelType());
         car.setMatricule(request.matricule());
@@ -210,7 +226,9 @@ public class CarService {
         if (image != null && !image.isEmpty()) {
             car.setImageUrl(storeImage(image));
         }
-        car.setStatus(request.status() == null ? CarStatus.AVAILABLE : request.status());
+        if (allowStatusOnCreate) {
+            car.setStatus(request.status() == null ? CarStatus.AVAILABLE : request.status());
+        }
     }
 
     private String storeImage(MultipartFile image) {

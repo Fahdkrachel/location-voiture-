@@ -108,8 +108,15 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
                                     const SizedBox(height: 4),
                                     Text(item.description, style: const TextStyle(fontSize: 14)),
                                   ],
+                                  if (item.carName.isNotEmpty) ...[
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      'Véhicule : ${item.carName}',
+                                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                                    ),
+                                  ],
                                   if (item.maintenanceId != null) ...[
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 4),
                                     Text(
                                       'Maintenance #${item.maintenanceId}',
                                       style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
