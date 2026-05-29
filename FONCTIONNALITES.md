@@ -24,6 +24,7 @@ Document de référence décrivant **toutes les capacités** du système de gest
 16. [Frontend — Maintenance](#16-frontend--maintenance)
 17. [Matrice Backend ↔ Frontend](#17-matrice-backend--frontend)
 18. [Limites connues](#18-limites-connues)
+19. [Fonctionnalités dépendantes du contrat — analyse détaillée](#19-fonctionnalités-dépendantes-du-contrat--analyse-détaillée)
 
 ---
 
@@ -33,7 +34,7 @@ Document de référence décrivant **toutes les capacités** du système de gest
 |-----------|-------------|------|
 | **bousselha-backend** | Spring Boot 3.3, Java 17, JPA/Hibernate, MySQL | API REST, persistance, PDF, fichiers images |
 | **bousselha-flutter** | Flutter (desktop Windows), Riverpod, Dio | Interface utilisateur, consommation API |
-| **Base de données** | MySQL (`bousselha_db`) | Entités : `cars`, `clients`, `contracts`, `maintenance` |
+| **Base de données** | MySQL (`bousselha_db`) | Entités : `cars`, `clients`, `contracts`, `maintenance`, `income_records`, `expense_records` |
 
 - **URL API** : `http://localhost:8080/api` (configurable via `application.properties`)
 - **Swagger UI** : `http://localhost:8080/swagger-ui.html`
@@ -60,13 +61,15 @@ com.bousselha
 |------|---------|--------|
 | `CarStatus` | `AVAILABLE`, `RENTED`, `MAINTENANCE` | Statut de la voiture |
 | `FuelType` | `ESSENCE`, `DIESEL` | Type de carburant |
-| `ContractStatus` | `ACTIVE`, `COMPLETED`, `CANCELLED` | Statut du contrat |
+| `ContractStatus` | `IN_PROGRESS`, `ACTIVE`, `COMPLETED`, `CANCELLED` | Cycle de vie du contrat |
+| `MaintenanceStatus` | `IN_PROGRESS`, `COMPLETED` | Statut d’une maintenance |
+| `IncomeSource` | `CONTRACT`, `PAYMENT`, `OTHER` | Source d’un revenu enregistré |
 
 ### Persistance
 
-- `spring.jpa.hibernate.ddl-auto=update` : schéma mis à jour automatiquement au démarrage
-- Contrats : **suppression logique** (`deleted = true`), pas de suppression physique
-- Voitures / clients : **suppression physique** en base
+- `spring.jpa.hibernate.ddl-auto=none` : schéma géré manuellement (`bousselha-backend/src/main/resources/db/schema_once.sql`)
+- Contrats : **suppression logique** (`deleted = true`) ; les lignes restent en base jusqu’à purge client orphelin
+- Voitures : **suppression physique** ; clients : **suppression physique** (souvent déclenchée via le contrat)
 
 ---
 
@@ -111,7 +114,9 @@ com.bousselha
 ### Règles métier
 
 1. **Image** : stockée dans `src/main/resources/static/uploads/cars/`, URL publique `/uploads/cars/{uuid}.ext`
-2. **Suppression** : refusée si un contrat **ACTIVE** existe pour cette voiture → message `Impossible : voiture en location active`
+2. **Suppression** : refusée si un contrat **IN_PROGRESS** ou **ACTIVE** existe → `Impossible : voiture avec contrat en cours`
+3. **Disponibilité calendrier** (`GET /api/cars/availability?date=`) : une voiture est **Louée** si un contrat (non supprimé) couvre la date (statuts `IN_PROGRESS`, `ACTIVE`, ou `COMPLETED` dans la plage)
+4. **Historique** : alimenté par les contrats liés à la voiture
 3. **Historique** (`/history`) : fusionne
    - les contrats non supprimés liés à la voiture (type `RENTAL`, client, dates, montant, statut contrat)
    - les enregistrements maintenance (type `MAINTENANCE`, type, dates, coût)
@@ -161,12 +166,15 @@ com.bousselha
 
 ### Validation `ClientRequest`
 
-- Obligatoires : `fullName`, `cinNumber`, `phone`
+- Obligatoires : `fullName`, `phone`
+- `cinNumber` : **optionnel**
 - Autres champs optionnels
 
 ### Règles métier
 
-- **Suppression** : refusée si le client a un contrat **ACTIVE** → `Impossible de supprimer : client a des contrats en cours`
+- **Création** : dans l’UI, les clients sont créés **via le wizard « Nouveau contrat »** (étape 1), pas depuis la liste clients
+- **Suppression manuelle** : refusée si contrat **IN_PROGRESS** ou **ACTIVE**
+- **Suppression automatique** : si le dernier contrat du client est supprimé (soft-delete) et qu’il ne reste aucun contrat actif, le client et ses contrats archivés sont purgés (`OrphanClientService`)
 
 ---
 
@@ -184,7 +192,7 @@ Lie une **voiture** et un **client**, avec tarification, paiements et état du v
 | Tarifs | `pricePerHour/Day/Week/Month`, `withInsurance`, `totalPrice`, `supplement`, `totalGeneral` |
 | Paiement | `paymentCash`, `paymentCheck`, `paymentDeposit` |
 | Dommages (PDF / données) | `vehicleConditionDeparture`, `vehicleConditionReturn`, `damagesIdentified` |
-| Statut | `status` (défaut `ACTIVE`), `deleted`, `createdAt` |
+| Statut | `status` (défaut **`IN_PROGRESS`**), `deleted`, `createdAt` |
 
 ### Endpoints
 
@@ -193,35 +201,44 @@ Lie une **voiture** et un **client**, avec tarification, paiements et état du v
 | `GET` | `/api/contracts` | Tous les contrats non supprimés |
 | `GET` | `/api/contracts?carId={id}` | Contrats d’une voiture |
 | `GET` | `/api/contracts/{id}` | Détail (réponse enrichie client + voiture) |
-| `GET` | `/api/contracts/active` | Contrats `ACTIVE` uniquement |
+| `GET` | `/api/contracts/active` | Contrats **`IN_PROGRESS`** + **`ACTIVE`** |
 | `POST` | `/api/contracts` | Création |
 | `PUT` | `/api/contracts/{id}` | Mise à jour |
-| `PUT` | `/api/contracts/{id}/return` | **Clôture** : retour véhicule |
-| `DELETE` | `/api/contracts/{id}` | **Suppression logique** (204 No Content) |
+| `PATCH` | `/api/contracts/{id}/status` | Transition **`IN_PROGRESS` → `ACTIVE`** ou **`ACTIVE` → `COMPLETED`** |
+| `PUT` | `/api/contracts/{id}/return` | Alias clôture → `COMPLETED` |
+| `DELETE` | `/api/contracts/{id}` | **Suppression logique** (204) + purge client orphelin |
 | `GET` | `/api/contracts/{id}/pdf` | PDF binaire |
 
 ### Règles métier — Création
 
-1. La voiture doit exister et être **`AVAILABLE`**
-2. Le client doit exister
-3. À l’enregistrement : statut contrat **`ACTIVE`**, voiture passée en **`RENTED`**
+1. La voiture doit être **`AVAILABLE`** (pas en maintenance ni déjà louée)
+2. Aucun autre contrat **ouvert** (`IN_PROGRESS` ou `ACTIVE`) sur cette voiture
+3. Le client doit exister (créé juste avant via l’UI ou déjà en base)
+4. Statut initial : **`IN_PROGRESS`** — la voiture **reste `AVAILABLE`** (réservation / préparation)
 
-### Règles métier — Retour (`/return`)
+### Règles métier — Activation (`PATCH .../status` → `ACTIVE`)
 
-1. Uniquement si statut **`ACTIVE`**
+1. Uniquement depuis **`IN_PROGRESS`**
+2. La voiture doit encore être **`AVAILABLE`**
+3. Contrat → **`ACTIVE`**, voiture → **`RENTED`**
+4. Enregistrement d’un **revenu** (`income_records`, source `CONTRACT`, montant = `totalGeneral`)
+
+### Règles métier — Fin de location (`ACTIVE` → `COMPLETED` ou `/return`)
+
+1. Uniquement depuis **`ACTIVE`**
 2. `actualReturnDatetime` = maintenant
-3. Statut contrat → **`COMPLETED`**
-4. Voiture → **`AVAILABLE`**
+3. Contrat → **`COMPLETED`**, voiture → **`AVAILABLE`**
 
 ### Règles métier — Mise à jour
 
-1. Si contrat **ACTIVE** : **interdiction de changer de voiture** (`carId` doit rester le même)
-2. Si contrat **ACTIVE** après MAJ : la voiture liée reste **`RENTED`**
+1. Si **ACTIVE** : impossible de changer de voiture
+2. Si **IN_PROGRESS** : changement de voiture autorisé seulement vers une voiture **`AVAILABLE`**
+3. Si **ACTIVE** après MAJ : voiture maintenue en **`RENTED`**
 
 ### Règles métier — Suppression
 
-1. **Interdit** si statut **ACTIVE** → `Impossible : terminez d'abord le contrat`
-2. Sinon : `deleted = true` (le contrat disparaît des listes `findByDeletedFalse`)
+1. **Interdit** si **`IN_PROGRESS`** ou **`ACTIVE`**
+2. Sinon : `deleted = true` ; si le client n’a plus de contrat actif → **suppression automatique du client** (et purge physique des contrats supprimés + revenus liés)
 
 ### Réponse `ContractResponse`
 
@@ -276,7 +293,13 @@ Retourne `DashboardResponse` :
 
 ### `GET /api/dashboard/calendar`
 
-Liste des **contrats actifs** (`ACTIVE`) — même données que `/api/contracts/active`, format `ContractResponse`.
+Liste des contrats **en cours** (`IN_PROGRESS` + `ACTIVE`) — même logique que `/api/contracts/active`.
+
+### Revenus / dépenses (liés indirectement aux contrats)
+
+- **Revenus** : enregistrés à l’**activation** du contrat (`ACTIVE`) dans `income_records`
+- **Dépenses** : liées aux maintenances, pas aux contrats
+- Détail : `GET /api/financial/income` et `GET /api/financial/expenses` (cartes cliquables du dashboard Flutter)
 
 ### `GET /api/dashboard/alerts`
 
@@ -361,7 +384,7 @@ Les sections détaillées (dommages, observation légale, signature) ne sont **p
 
 ### `HomeShell`
 
-- **NavigationRail** (5 onglets) : Dashboard, Voitures, Clients, Contrats, Maintenance
+- **NavigationRail** (6 onglets) : Dashboard, Voitures, Clients, Contrats, Maintenance, Calendrier
 - **AppBar globale** : titre `BOUSSELHA CARS - {module}` pour tous les onglets **sauf Contrats** (l’écran Contrats a sa propre AppBar intégrée)
 - Contenu : `IndexedStack` (état conservé entre onglets)
 
@@ -373,9 +396,9 @@ Les sections détaillées (dommages, observation légale, signature) ne sont **p
 
 ### Fonctionnalités
 
-1. **Cartes statistiques** (4 indicateurs colorés)
-   - Total voitures, Disponibles, Louées, En maintenance
-   - Source : `GET /api/dashboard/stats`
+1. **Cartes statistiques** (6 indicateurs)
+   - Total voitures, Disponibles, Louées, En maintenance, **Revenus (Income)**, **Dépenses (Expense)** — cartes revenus/dépenses **cliquables** vers écrans détail filtrés
+   - Source : `GET /api/dashboard/stats` + `GET /api/financial/income|expenses`
 
 2. **Calendrier des locations actives** (panneau gauche)
    - Liste : voiture, client, dates départ → retour prévu
@@ -431,9 +454,9 @@ Images affichées via URL publique : `http://localhost:8080` + `imageUrl` retour
 
 | Action | Détail |
 |--------|--------|
-| Affichage | Avatar **initiales** + couleur dérivée du nom, nom, téléphone, CIN, n° permis |
-| Ajouter | Formulaire en **2 sections** (FR locataire / AR conducteur supplémentaire) |
-| Détail | Clic → `ClientDetailScreen` |
+| Affichage | `#id`, nom, téléphone |
+| Ajout manuel | **Désactivé** — clients créés via **Nouveau contrat** (§19) |
+| Détail | `ClientDetailScreen` — **Modifier** uniquement |
 | Rafraîchir | Invalidation `clientsProvider` |
 
 ### Formulaire client (création / édition)
@@ -442,13 +465,12 @@ Images affichées via URL publique : `http://localhost:8080` + `imageUrl` retour
 
 **Section 2 — Conducteur supplémentaire** : nom, permis, date délivrance, passeport.
 
-Champs obligatoires côté UI : nom, CIN, téléphone (aligné backend `@NotBlank`).
+Champs obligatoires côté UI (wizard contrat) : nom, téléphone ; CIN optionnel.
 
 ### Écran détail client
 
 - Affichage structuré de toutes les informations
-- Boutons **Modifier** / **Supprimer**
-- Suppression bloquée côté serveur si contrats actifs (message d’erreur API affiché)
+- Bouton **Modifier** uniquement (suppression automatique via contrat — §19)
 
 ---
 
@@ -462,18 +484,15 @@ Champs obligatoires côté UI : nom, CIN, téléphone (aligné backend `@NotBlan
 - Bouton doré **Nouveau contrat**, rafraîchir
 - Cartes : icône document, titre `Marque - Immat — Client`, sous-titre dates `jj/mm/aaaa`, badge statut, montant en **or**, chevron
 
-### Création / modification (dialogue unifié `_showUnifiedContractSheet`)
+### Création / modification (wizard `_showUnifiedContractSheet`)
 
 | Élément | Détail |
 |---------|--------|
-| Voiture | Liste disponibles ; en édition d’un contrat **ACTIVE**, voiture **verrouillée** |
-| Client | Liste complète |
-| Dates | Tableau J / M / A / H / mn (départ, retour prévu, retour définitif, durée) |
-| Tarifs | Heures, jours, semaines, mois, assurance — calcul lignes + TOTAL + supplément + TOTAL général |
-| Paiement | Espèces, chèque, caution |
-| Lieux | Départ / retour |
-| Création | `POST /api/contracts` |
-| Modification | `PUT /api/contracts/{id}` (+ conservation champs dommages/conducteur existants) |
+| Étape 1 | Client (formulaire) → **Suivant** |
+| Étape 2 | Voiture **disponibles**, dates, tarifs, paiement → **Précédent** / **Enregistrer** |
+| Création | `POST /clients` + `POST /contracts` → **`IN_PROGRESS`** |
+| Édition | Voiture verrouillée si contrat **ACTIVE** ; `PUT /api/contracts/{id}` |
+| Activation / fin | `PATCH /api/contracts/{id}/status` (voir §19) |
 
 ### Écran détail contrat (`ContractDetailScreen`)
 
@@ -499,14 +518,16 @@ Champs obligatoires côté UI : nom, CIN, téléphone (aligné backend `@NotBlan
 
 | Bouton | Comportement |
 |--------|--------------|
-| Terminer | Si `ACTIVE` : dialogue → `PUT .../return` → SnackBar vert ; si `COMPLETED` : désactivé « Contrat terminé » |
-| Modifier | Ouvre le formulaire → SnackBar bleu après succès |
-| Supprimer | Si `ACTIVE` : message d’erreur ; sinon dialogue → `DELETE` → retour liste, SnackBar rouge |
+| Activer (livraison) | `IN_PROGRESS` → `PATCH` `ACTIVE` |
+| Terminer | `ACTIVE` → `COMPLETED` |
+| Modifier | Formulaire unifié |
+| Supprimer | Interdit si ouvert ; sinon soft-delete (+ client orphelin) |
 
 ### Badges statut (UI)
 
 | Statut | Style |
 |--------|-------|
+| `IN_PROGRESS` | Ambre |
 | `ACTIVE` | Vert |
 | `COMPLETED` | Bleu |
 | `CANCELLED` | Rouge |
@@ -520,10 +541,8 @@ Champs obligatoires côté UI : nom, CIN, téléphone (aligné backend `@NotBlan
 | Action | Détail |
 |--------|--------|
 | Liste | Type, voiture, dates début/fin, coût MAD |
-| Ajouter | Dialogue : voiture, type, dates, description, coût → `POST /api/maintenance` |
-| Rafraîchir | Invalidation `maintenanceProvider` |
-
-**Non implémenté dans Flutter** : modification d’une maintenance (`PUT` existe côté API), suppression, filtre par voiture via `/maintenance/car/{id}`.
+| Ajouter / Modifier | Dates, type, coût, description, statut → `POST` / `PUT /api/maintenance` |
+| Rafraîchir | Invalidation `maintenanceProvider` et voitures |
 
 ---
 
@@ -573,6 +592,174 @@ Champs obligatoires côté UI : nom, CIN, téléphone (aligné backend `@NotBlan
 ## Démarrage rapide
 
 Voir le fichier racine [`README.md`](README.md) pour les commandes `mvn spring-boot:run` et `flutter run -d windows`.
+
+---
+
+---
+
+## 19. Fonctionnalités dépendantes du contrat — analyse détaillée
+
+Le **contrat de location** est l’entité centrale du métier : il relie une **voiture**, un **client**, des **montants**, des **dates** et un **statut**. De nombreuses autres fonctionnalités du système ne fonctionnent qu’en présence, en absence ou selon l’état d’un contrat.
+
+### 19.1 Rôle du contrat dans le modèle de données
+
+```
+┌─────────────┐       ┌─────────────┐       ┌─────────────┐
+│   Client    │◄──────│  Contract   │──────►│     Car     │
+└─────────────┘  1:N  └──────┬──────┘  N:1  └─────────────┘
+                             │
+                             │ 1:0..1
+                             ▼
+                      ┌─────────────┐
+                      │ income_record│  (revenu, source CONTRACT)
+                      └─────────────┘
+```
+
+| Relation | Cardinalité | Conséquence |
+|----------|-------------|-------------|
+| Client ↔ Contrat | 1 client, N contrats | Un client existe parce qu’au moins un contrat l’a référencé (création UI) |
+| Voiture ↔ Contrat | 1 voiture, N contrats (dans le temps) | Une seule location **ouverte** à la fois par voiture |
+| Contrat ↔ Revenu | 0..1 enregistrement `income_records` | Créé à l’activation (`ACTIVE`) |
+
+---
+
+### 19.2 Cycle de vie du contrat (statuts)
+
+| Statut | Signification métier | Effet sur la voiture | Visible où (Flutter) |
+|--------|---------------------|----------------------|----------------------|
+| **`IN_PROGRESS`** | Contrat préparé / réservé, pas encore livré | Voiture reste **`AVAILABLE`** | Liste contrats, détail, calendrier dashboard, calendrier dispo. |
+| **`ACTIVE`** | Location en cours (véhicule chez le client) | Voiture **`RENTED`** | Idem + compteur « Louées » du dashboard |
+| **`COMPLETED`** | Location terminée | Voiture **`AVAILABLE`** (si pas maintenance) | Historique, calendrier passé, suppression possible |
+| **`CANCELLED`** | Annulé (enum prévu) | Peu utilisé dans l’UI actuelle | Badge rouge si présent |
+
+#### Transitions autorisées (backend)
+
+```mermaid
+stateDiagram-v2
+    [*] --> IN_PROGRESS : POST /contracts
+    IN_PROGRESS --> ACTIVE : PATCH status ACTIVE\n(voiture RENTED + revenu)
+    ACTIVE --> COMPLETED : PATCH status COMPLETED\nou PUT /return
+    COMPLETED --> [*]
+```
+
+| Action UI (Flutter) | Appel API | Transition |
+|---------------------|-----------|------------|
+| **Nouveau contrat** (étape 2, Enregistrer) | `POST /api/contracts` | → `IN_PROGRESS` |
+| **Activer (livraison)** | `PATCH /api/contracts/{id}/status` `{ "status": "ACTIVE" }` | `IN_PROGRESS` → `ACTIVE` |
+| **Terminer** | `PATCH` → `COMPLETED` ou `PUT .../return` | `ACTIVE` → `COMPLETED` |
+| **Supprimer** | `DELETE /api/contracts/{id}` | Soft-delete (si pas ouvert) |
+
+---
+
+### 19.3 Fonctionnalités **directement** pilotées par le contrat
+
+#### A. Module Contrats (cœur métier)
+
+| Fonctionnalité | Dépendance contrat | Détail |
+|----------------|-------------------|--------|
+| Liste des contrats | Tous les `deleted = false` | Cartes avec client, voiture, dates, montant, badge statut |
+| Détail contrat | `GET /contracts/{id}` | 6 sections UI : véhicule, dates, locataire, conducteur supp., tarifs, paiement |
+| Création en 2 étapes | Nouveau contrat | **Étape 1** : fiche client (sans API) → **Étape 2** : voiture + tarifs → `POST` client puis `POST` contrat |
+| Navigation Précédent / Suivant | Wizard création | Retour étape 1 pour corriger le client avant validation |
+| Modification | `PUT /contracts/{id}` | Verrouillage voiture si `ACTIVE` |
+| PDF contrat | `GET /contracts/{id}/pdf` | Contenu basé sur le contrat + client + voiture (résumé PDFBox) |
+
+#### B. Statut et disponibilité des **voitures**
+
+| Règle | Déclencheur contrat |
+|-------|---------------------|
+| Voiture **non sélectionnable** à la création | `GET /cars/available` : exclut tout sauf `AVAILABLE` |
+| Voiture passe **Louée** | Contrat → `ACTIVE` |
+| Voiture redevient **Disponible** | Contrat → `COMPLETED` (si pas maintenance en cours) |
+| Impossible de **supprimer** la voiture | Contrat ouvert (`IN_PROGRESS` ou `ACTIVE`) sur cette voiture |
+| **Timeline** sur fiche voiture | `GET /contracts?carId=` : historique des locations |
+
+#### C. Module **Clients**
+
+| Fonctionnalité | Lien avec le contrat |
+|----------------|---------------------|
+| **Création client** | Uniquement via **Nouveau contrat** (pas de bouton « Ajouter client » sur la liste) |
+| **Suppression client (UI)** | Bouton retiré ; suppression **automatique** si plus aucun contrat actif après suppression du dernier contrat |
+| **Modification client** | Indépendante, mais le client reste lié à ses contrats passés |
+| Blocage suppression manuelle API | Tant qu’un contrat `IN_PROGRESS` / `ACTIVE` existe |
+
+#### D. **Revenus** (Income / dashboard)
+
+| Étape | Lien contrat |
+|-------|--------------|
+| Enregistrement revenu | À l’activation : `totalGeneral` → table `income_records`, `source = CONTRACT`, `contract_id` renseigné |
+| Carte dashboard « Revenus » | Somme des `income_records` |
+| Écran détail revenus | Filtres + liste ; chaque ligne peut référencer `contractId` et la description « Contrat #n — Nom client » |
+
+> Les revenus ne sont **pas** créés à la simple création (`IN_PROGRESS`) : seulement à la **livraison / activation**.
+
+#### E. **Tableau de bord**
+
+| Widget | Donnée issue des contrats |
+|--------|---------------------------|
+| Compteur **Louées** | Voitures en statut `RENTED` (mis à jour par contrat `ACTIVE`) |
+| **Calendrier des locations actives** | `GET /dashboard/calendar` = contrats `IN_PROGRESS` + `ACTIVE` |
+| (Indirect) **Disponibles** | Voitures `AVAILABLE` non bloquées par un contrat ouvert |
+
+#### F. Module **Calendrier** (disponibilité par date)
+
+Pour une date donnée (`GET /api/cars/availability?date=`):
+
+| Affichage | Condition liée au contrat |
+|-----------|---------------------------|
+| **Loué** | Un contrat non supprimé couvre la date (départ ≤ date ≤ retour prévu ou réel) et statut ∈ {`IN_PROGRESS`, `ACTIVE`, `COMPLETED` dans la plage} |
+| **Disponible** | Pas de maintenance ce jour-là **et** pas de contrat couvrant la date |
+
+---
+
+### 19.4 Fonctionnalités **indirectement** liées au contrat
+
+| Module | Lien |
+|--------|------|
+| **Maintenance** | Prioritaire sur le contrat pour le statut voiture : maintenance en cours → `MAINTENANCE` même si aucun contrat |
+| **Alertes dashboard** | Basées sur les **voitures** (assurance, visite, vidange), pas sur les contrats |
+| **Dépenses (Expense)** | Liées aux **maintenances**, pas aux contrats |
+| **Suppression logique contrat** | Peut entraîner la **disparition du client** de la liste (purge orphelin) |
+
+---
+
+### 19.5 Matrice « Qui dépend de quoi ? »
+
+| Fonctionnalité système | Sans contrat | Contrat `IN_PROGRESS` | Contrat `ACTIVE` | Contrat `COMPLETED` |
+|------------------------|--------------|------------------------|------------------|---------------------|
+| Client en liste | Possible (orphelin rare) | Oui | Oui | Oui (jusqu’à purge) |
+| Voiture en location (`RENTED`) | Non | Non | **Oui** | Non |
+| Voiture choisissable nouveau contrat | Oui si `AVAILABLE` | Non (déjà réservée si même voiture) | Non | Oui si `AVAILABLE` |
+| Revenu enregistré | Non | Non | **Oui** | Oui (déjà enregistré à l’activation) |
+| PDF contrat | Non | Oui | Oui | Oui |
+| Suppression contrat | — | Non | Non | Oui (soft-delete) |
+| Suppression client auto | — | Non | Non | Possible si dernier contrat supprimé |
+
+---
+
+### 19.6 Parcours utilisateur typique (frontend)
+
+1. **Contrats** → **Nouveau contrat**
+2. **Étape 1** : saisie locataire (+ conducteur supplémentaire optionnel) → **Suivant**
+3. **Étape 2** : choix voiture **disponible**, dates, tarifs, paiement → **Enregistrer**  
+   → API : création client + création contrat **`IN_PROGRESS`**
+4. Fiche contrat → **Activer (livraison)**  
+   → voiture **Louée**, revenu enregistré, contrat **`ACTIVE`**
+5. Fin de location → **Terminer**  
+   → voiture **Disponible**, contrat **`COMPLETED`**
+6. (Optionnel) **Supprimer** le contrat archivé  
+   → si dernier contrat du client : **client retiré de la liste**
+
+---
+
+### 19.7 Fichiers source à consulter
+
+| Couche | Fichiers principaux |
+|--------|---------------------|
+| Backend métier | `ContractService.java`, `OrphanClientService.java`, `FinancialService.java`, `CarService.java` (availability, delete) |
+| Backend API | `ContractController.java`, `PdfService.java` |
+| Backend modèle | `Contract.java`, `ContractStatus.java`, `IncomeRecord.java` |
+| Frontend | `contract_list_screen.dart`, `client_list_screen.dart` (`pickClientForNewContract`), `car_list_screen.dart` (timeline), `dashboard_screen.dart`, `income_detail_screen.dart`, `calendar_screen.dart` |
 
 ---
 

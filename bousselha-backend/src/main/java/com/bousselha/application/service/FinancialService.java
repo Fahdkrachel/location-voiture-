@@ -84,6 +84,14 @@ public class FinancialService {
         incomeRecordRepository.save(record);
     }
 
+    /** Enregistre le revenu une seule fois (activation, clôture ou suppression d’un contrat terminé). */
+    public void ensureIncomeForContract(Contract contract) {
+        if (incomeRecordRepository.findByContractId(contract.getId()).isPresent()) {
+            return;
+        }
+        recordIncomeFromContract(contract);
+    }
+
     public void recordExpenseFromMaintenance(Maintenance maintenance) {
         if (maintenance.getCost() == null) {
             return;

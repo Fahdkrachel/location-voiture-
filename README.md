@@ -8,6 +8,8 @@ Pour la **liste détaillée de toutes les fonctionnalités** (API REST, règles 
 
 **[FONCTIONNALITES.md](./FONCTIONNALITES.md)**
 
+Pour tout ce qui **dépend du contrat de location** (cycle de vie, impact voitures/clients/revenus/calendrier), voir la **section 19** du même document.
+
 ## Projets
 
 - `bousselha-backend`: Spring Boot 3 + MySQL + Swagger + PDFBox

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/models/client_model.dart';
 import '../../data/models/contract_model.dart';
@@ -284,6 +283,7 @@ class _ContractDetailScreenState extends ConsumerState<ContractDetailScreen> {
       await _fetch();
       ref.invalidate(contractsProvider);
       ref.invalidate(carsProvider);
+      ref.invalidate(clientsProvider);
       ref.invalidate(dashboardStatsProvider);
       if (scaffoldContext.mounted) {
         messenger.showSnackBar(
@@ -302,29 +302,37 @@ class _ContractDetailScreenState extends ConsumerState<ContractDetailScreen> {
 
   Future<void> _maybeDelete(BuildContext scaffoldContext, ContractModel c) async {
     final messenger = ScaffoldMessenger.of(scaffoldContext);
-    if (c.status == 'ACTIVE' || c.status == 'IN_PROGRESS') {
+    if (c.status == 'ACTIVE') {
       messenger.showSnackBar(
         const SnackBar(
           backgroundColor: Cc.danger,
-          content: Text('Impossible : terminez ou activez d’abord le contrat.', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+          content: Text(
+            'Impossible : terminez le contrat avant de le supprimer.',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          ),
         ),
       );
       return;
     }
 
+    final isCancelInProgress = c.status == 'IN_PROGRESS';
     final ok = await showDialog<bool>(
       context: scaffoldContext,
       builder: (ctx) => AlertDialog(
-        title: const Text('Suppression'),
-        content: const Text(
-          'Supprimer définitivement ce contrat ?\nCette action est irréversible.',
+        title: Text(isCancelInProgress ? 'Annuler le contrat' : 'Suppression'),
+        content: Text(
+          isCancelInProgress
+              ? 'Annuler ce contrat en préparation ?\n'
+                  'Le client lié sera supprimé s’il n’a aucun autre contrat.\n'
+                  'Aucun revenu n’a été enregistré pour ce contrat.'
+              : 'Supprimer définitivement ce contrat ?\nCette action est irréversible.',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Cc.danger),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Supprimer'),
+            child: Text(isCancelInProgress ? 'Oui, annuler' : 'Supprimer'),
           ),
         ],
       ),
@@ -340,9 +348,12 @@ class _ContractDetailScreenState extends ConsumerState<ContractDetailScreen> {
       if (!scaffoldContext.mounted) return;
       Navigator.of(scaffoldContext).pop();
       messenger.showSnackBar(
-        const SnackBar(
+        SnackBar(
           backgroundColor: Cc.danger,
-          content: Text('Contrat supprimé', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+          content: Text(
+            isCancelInProgress ? 'Contrat annulé' : 'Contrat supprimé',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          ),
         ),
       );
     } catch (e) {
@@ -372,7 +383,7 @@ class _ContractDetailScreenState extends ConsumerState<ContractDetailScreen> {
     final insuranceLine = c.withInsurance ? c.supplement : 0.0;
 
     final repo = ref.read(contractRepositoryProvider);
-    final pdfUrl = Uri.parse(repo.contractPdfAbsoluteUrl(c.id));
+    final canDownloadPdf = c.status == 'ACTIVE' || c.status == 'COMPLETED';
 
     return Scaffold(
       backgroundColor: Cc.bgGrey,
@@ -394,41 +405,36 @@ class _ContractDetailScreenState extends ConsumerState<ContractDetailScreen> {
           ],
         ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            child: OutlinedButton.icon(
-              onPressed: () async {
-                await launchUrl(pdfUrl, mode: LaunchMode.externalApplication);
-              },
-              icon: const Icon(Icons.open_in_browser_rounded, size: 18),
-              label: const Text('Enregistrer PDF', style: TextStyle(fontWeight: FontWeight.w600)),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: BorderSide(color: Colors.white.withValues(alpha: 0.75)),
-                visualDensity: VisualDensity.compact,
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 10, left: 2),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: OutlinedButton.icon(
-                onPressed: () async {
-                  final path = await repo.downloadContractPdf(c.id);
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('PDF téléchargé : $path')));
-                },
-                icon: const Icon(Icons.download_rounded, size: 18),
-                label: const Text('Télécharger PDF', style: TextStyle(fontWeight: FontWeight.w600)),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: BorderSide(color: Colors.white.withValues(alpha: 0.75)),
-                  visualDensity: VisualDensity.compact,
+          if (canDownloadPdf)
+            Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    try {
+                      final path = await repo.downloadContractPdf(c.id);
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('PDF téléchargé : $path')),
+                      );
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(backgroundColor: Cc.danger, content: Text('$e')),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.download_rounded, size: 18),
+                  label: const Text('Télécharger PDF', style: TextStyle(fontWeight: FontWeight.w600)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: BorderSide(color: Colors.white.withValues(alpha: 0.75)),
+                    visualDensity: VisualDensity.compact,
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
       body: Column(
@@ -531,6 +537,18 @@ class _ContractDetailScreenState extends ConsumerState<ContractDetailScreen> {
               successMessage: 'Contrat terminé avec succès',
             ),
             onEdit: () async {
+              if (c.status == 'ACTIVE' || c.status == 'COMPLETED') {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    backgroundColor: Cc.danger,
+                    content: Text(
+                      'Modification impossible : contrat en location ou déjà terminé.',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                );
+                return;
+              }
               final changed = await _showUnifiedContractSheet(context, ref, existing: c) == true;
               if (!context.mounted || changed != true) return;
               await _fetch();
@@ -906,7 +924,7 @@ class _ContractFooterActions extends StatelessWidget {
                 child: SizedBox(
                   height: Cc.actionButtonHeight,
                   child: FilledButton.icon(
-                    onPressed: onEdit,
+                    onPressed: (contract.status == 'ACTIVE' || contract.status == 'COMPLETED') ? null : onEdit,
                     icon: const Text('✏️', style: TextStyle(fontSize: 15)),
                     label: const Text('Modifier', style: TextStyle(fontWeight: FontWeight.w700)),
                     style: FilledButton.styleFrom(
@@ -922,9 +940,15 @@ class _ContractFooterActions extends StatelessWidget {
                 child: SizedBox(
                   height: Cc.actionButtonHeight,
                   child: OutlinedButton.icon(
-                    onPressed: onDelete,
-                    icon: const Text('🗑️', style: TextStyle(fontSize: 14)),
-                    label: const Text('Supprimer', style: TextStyle(fontWeight: FontWeight.w700)),
+                    onPressed: contract.status == 'ACTIVE' ? null : onDelete,
+                    icon: Text(
+                      contract.status == 'IN_PROGRESS' ? '✕' : '🗑️',
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    label: Text(
+                      contract.status == 'IN_PROGRESS' ? 'Annuler' : 'Supprimer',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Cc.danger,
                       backgroundColor: Colors.white,
@@ -952,6 +976,16 @@ Future<Object?> _showUnifiedContractSheet(
   ContractModel? existing,
   ClientFormPayload? pendingClient,
 }) async {
+  if (existing != null && (existing.status == 'ACTIVE' || existing.status == 'COMPLETED')) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        backgroundColor: Cc.danger,
+        content: Text('Modification impossible : contrat en location ou déjà terminé.'),
+      ),
+    );
+    return false;
+  }
+
   if (existing == null && pendingClient == null) {
     final picked = await pickClientForNewContract(context);
     if (!context.mounted || picked == null) return false;

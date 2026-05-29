@@ -96,7 +96,7 @@ public class ContractService {
             }
             car.setStatus(CarStatus.RENTED);
             contract.setStatus(ContractStatus.ACTIVE);
-            financialService.recordIncomeFromContract(contract);
+            financialService.ensureIncomeForContract(contract);
         } else if (newStatus == ContractStatus.COMPLETED) {
             if (current != ContractStatus.ACTIVE) {
                 throw new IllegalArgumentException("Seul un contrat ACTIVE peut être terminé");
@@ -104,6 +104,7 @@ public class ContractService {
             contract.setActualReturnDatetime(LocalDateTime.now());
             contract.setStatus(ContractStatus.COMPLETED);
             contract.getCar().setStatus(CarStatus.AVAILABLE);
+            financialService.ensureIncomeForContract(contract);
         } else {
             throw new IllegalArgumentException("Transition de statut non autorisée vers " + newStatus);
         }
@@ -117,6 +118,9 @@ public class ContractService {
 
     public ContractResponse update(Long id, ContractRequest request) {
         Contract contract = getContract(id);
+        if (contract.getStatus() == ContractStatus.ACTIVE || contract.getStatus() == ContractStatus.COMPLETED) {
+            throw new IllegalArgumentException("Impossible de modifier un contrat en location ou déjà terminé");
+        }
 
         Car car = carRepository.findById(request.carId())
                 .orElseThrow(() -> new ResourceNotFoundException("Car not found: " + request.carId()));
@@ -146,8 +150,11 @@ public class ContractService {
 
     public void softDelete(Long id) {
         Contract contract = getContract(id);
-        if (OPEN_CONTRACT_STATUSES.contains(contract.getStatus())) {
-            throw new IllegalArgumentException("Impossible : terminez ou activez d'abord le contrat");
+        if (contract.getStatus() == ContractStatus.ACTIVE) {
+            throw new IllegalArgumentException("Impossible : terminez le contrat avant de le supprimer");
+        }
+        if (contract.getStatus() == ContractStatus.COMPLETED) {
+            financialService.ensureIncomeForContract(contract);
         }
         Long clientId = contract.getClient().getId();
         contract.setDeleted(true);

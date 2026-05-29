@@ -1,5 +1,6 @@
 package com.bousselha.application.service;
 
+import com.bousselha.domain.enums.ContractStatus;
 import com.bousselha.domain.model.Contract;
 import com.bousselha.domain.repository.ContractRepository;
 import com.bousselha.infrastructure.exception.ResourceNotFoundException;
@@ -25,6 +26,11 @@ public class PdfService {
     public byte[] generateContractPdf(Long id) throws IOException {
         Contract contract = contractRepository.findDetailedById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Contract not found: " + id));
+
+        if (contract.getStatus() != ContractStatus.ACTIVE && contract.getStatus() != ContractStatus.COMPLETED) {
+            throw new IllegalArgumentException(
+                    "Le PDF est disponible uniquement après activation du contrat (statut ACTIVE ou termine)");
+        }
 
         try (PDDocument doc = new PDDocument(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             PDPage page = new PDPage(PDRectangle.A4);
