@@ -12,6 +12,23 @@ import '../../shared/providers/app_providers.dart';
 /// Tag Hero stable pour transitions liste → détail.
 String carHeroTag(int carId) => 'car-cover-$carId';
 
+bool _isMaintenanceNotFinishedError(DioException e) {
+  final data = e.response?.data;
+  if (data is Map) {
+    final err = data['error']?.toString() ?? '';
+    if (err.contains('MAINTENANCE_NOT_FINISHED')) return true;
+  }
+  final raw = e.response?.data?.toString() ?? e.message ?? '';
+  return raw.contains('MAINTENANCE_NOT_FINISHED');
+}
+
+void _invalidateVehicleLists(WidgetRef ref) {
+  ref.invalidate(carsProvider);
+  ref.invalidate(maintenanceProvider);
+  ref.invalidate(dashboardStatsProvider);
+  ref.invalidate(contractsProvider);
+}
+
 /// Ouverture du formulaire voiture depuis la liste ou l’écran détail.
 Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? car}) async {
   final brandCtrl = TextEditingController(text: car?.brand ?? '');
@@ -185,25 +202,26 @@ Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? 
                 }
 
                 try {
-                  if (car != null && car.status == 'MAINTENANCE' && status == 'AVAILABLE') {
+                  if (car != null && status == 'AVAILABLE' && car.status == 'MAINTENANCE') {
+                    var forcedAvailable = false;
                     try {
                       await ref.read(carRepositoryProvider).updateCarStatus(
                             id: car.id,
                             status: 'AVAILABLE',
                             force: false,
                           );
+                      forcedAvailable = true;
                     } on DioException catch (e) {
-                      final body = e.response?.data?.toString() ?? '';
-                      if (!body.contains('MAINTENANCE_NOT_FINISHED') && !e.toString().contains('MAINTENANCE_NOT_FINISHED')) {
-                        rethrow;
-                      }
+                      if (!_isMaintenanceNotFinishedError(e)) rethrow;
                       if (!context.mounted) return;
                       final confirmed = await showDialog<bool>(
                         context: context,
+                        barrierDismissible: false,
                         builder: (ctx) => AlertDialog(
                           title: const Text('Maintenance en cours'),
                           content: const Text(
-                            "Cette maintenance n'est pas encore terminée. Voulez-vous vraiment changer le statut du véhicule vers Disponible ?",
+                            "Cette maintenance n'est pas encore terminée.\n"
+                            'Voulez-vous vraiment changer le statut du véhicule vers Disponible ?',
                           ),
                           actions: [
                             TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
@@ -217,6 +235,10 @@ Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? 
                             status: 'AVAILABLE',
                             force: true,
                           );
+                      forcedAvailable = true;
+                    }
+                    if (forcedAvailable) {
+                      status = 'AVAILABLE';
                     }
                   }
 
@@ -246,10 +268,7 @@ Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? 
                   }
 
                   if (context.mounted) {
-                    ref.invalidate(carsProvider);
-                    ref.invalidate(maintenanceProvider);
-                    ref.invalidate(dashboardStatsProvider);
-                    ref.invalidate(contractsProvider);
+                    _invalidateVehicleLists(ref);
                     Navigator.pop(context, true);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(

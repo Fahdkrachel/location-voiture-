@@ -20,10 +20,10 @@ C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\service\DashboardService.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\service\FinancialService.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\service\MaintenanceService.java
+C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\service\OrphanClientService.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\service\PdfService.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\BousselhaApplication.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\config\CorsConfig.java
-C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\config\DatabaseSchemaMigration.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\config\OpenApiConfig.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\enums\CarStatus.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\enums\ContractStatus.java

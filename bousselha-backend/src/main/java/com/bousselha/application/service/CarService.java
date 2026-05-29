@@ -87,6 +87,9 @@ public class CarService {
                 && !forceMaintenanceOverride) {
             throw new IllegalArgumentException("MAINTENANCE_NOT_FINISHED");
         }
+        if (newStatus == CarStatus.AVAILABLE && forceMaintenanceOverride) {
+            maintenanceService.completeOngoingMaintenancesForCar(id);
+        }
         car.setStatus(newStatus);
         return map(carRepository.save(car));
     }

@@ -77,6 +77,23 @@ public class MaintenanceService {
     }
 
     /**
+     * Clôture les maintenances encore en cours lorsque l'admin force le véhicule en AVAILABLE.
+     */
+    public void completeOngoingMaintenancesForCar(Long carId) {
+        LocalDate today = LocalDate.now();
+        for (Maintenance maintenance : maintenanceRepository.findByCarId(carId)) {
+            if (!isOngoing(maintenance)) {
+                continue;
+            }
+            maintenance.setStatus(MaintenanceStatus.COMPLETED);
+            if (maintenance.getEndDate() == null || !maintenance.getEndDate().isBefore(today)) {
+                maintenance.setEndDate(today);
+            }
+            maintenanceRepository.save(maintenance);
+        }
+    }
+
+    /**
      * Met à jour les statuts véhicules selon les maintenances en cours (appelé à la lecture, pas au démarrage).
      */
     public void reconcileAllCarStatuses() {

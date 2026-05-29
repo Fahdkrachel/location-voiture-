@@ -7,6 +7,7 @@ com\bousselha\domain\repository\IncomeRecordRepository.class
 com\bousselha\infrastructure\controller\DashboardController.class
 com\bousselha\application\service\ContractService.class
 com\bousselha\domain\enums\FuelType.class
+com\bousselha\application\service\OrphanClientService.class
 com\bousselha\domain\repository\CarRepository.class
 com\bousselha\infrastructure\exception\ResourceNotFoundException.class
 com\bousselha\config\OpenApiConfig.class
@@ -28,7 +29,6 @@ com\bousselha\domain\enums\IncomeSource.class
 com\bousselha\infrastructure\controller\CarController.class
 com\bousselha\application\service\DashboardService.class
 com\bousselha\domain\repository\MaintenanceRepository.class
-com\bousselha\config\DatabaseSchemaMigration.class
 com\bousselha\domain\model\Contract.class
 com\bousselha\infrastructure\controller\MaintenanceController.class
 com\bousselha\domain\model\Maintenance.class
