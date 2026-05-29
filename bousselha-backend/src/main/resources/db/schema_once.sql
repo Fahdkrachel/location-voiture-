@@ -5,8 +5,9 @@
 ALTER TABLE contracts
     MODIFY COLUMN status VARCHAR(30) NOT NULL DEFAULT 'IN_PROGRESS';
 
--- Statut maintenance (ignorer l'erreur si la colonne existe déjà)
--- ALTER TABLE maintenance ADD COLUMN status VARCHAR(30) NOT NULL DEFAULT 'IN_PROGRESS';
+-- Statut maintenance (exécuter une seule fois ; ignorer si la colonne existe déjà)
+ALTER TABLE maintenance
+    ADD COLUMN status VARCHAR(30) NOT NULL DEFAULT 'IN_PROGRESS';
 
 -- Tables financières (si absentes — Hibernate ddl-auto=none ne les crée plus)
 CREATE TABLE IF NOT EXISTS income_records (
