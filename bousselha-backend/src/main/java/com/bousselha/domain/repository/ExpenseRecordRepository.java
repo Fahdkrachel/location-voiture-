@@ -16,6 +16,8 @@ public interface ExpenseRecordRepository extends JpaRepository<ExpenseRecord, Lo
     @Query("select coalesce(sum(e.amount), 0) from ExpenseRecord e")
     BigDecimal sumAll();
 
+    List<ExpenseRecord> findAllByOrderByRecordedAtDesc();
+
     @Query("""
             select e from ExpenseRecord e
             where (:from is null or e.recordedAt >= :from)

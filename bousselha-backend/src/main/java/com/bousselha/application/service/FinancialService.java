@@ -14,9 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -40,34 +38,16 @@ public class FinancialService {
         return expenseRecordRepository.sumAll();
     }
 
-    public List<IncomeRecordResponse> listIncome(
-            LocalDate from,
-            LocalDate to,
-            IncomeSource source,
-            BigDecimal minAmount,
-            BigDecimal maxAmount
-    ) {
-        return incomeRecordRepository.search(
-                from != null ? from.atStartOfDay() : null,
-                to != null ? to.atTime(LocalTime.MAX) : null,
-                source,
-                minAmount,
-                maxAmount
-        ).stream().map(this::mapIncome).toList();
+    public List<IncomeRecordResponse> listAllIncome() {
+        return incomeRecordRepository.findAllByOrderByRecordedAtDesc().stream()
+                .map(this::mapIncome)
+                .toList();
     }
 
-    public List<ExpenseRecordResponse> listExpenses(
-            LocalDate from,
-            LocalDate to,
-            ExpenseSource source,
-            String category
-    ) {
-        return expenseRecordRepository.search(
-                from != null ? from.atStartOfDay() : null,
-                to != null ? to.atTime(LocalTime.MAX) : null,
-                source,
-                category
-        ).stream().map(this::mapExpense).toList();
+    public List<ExpenseRecordResponse> listAllExpenses() {
+        return expenseRecordRepository.findAllByOrderByRecordedAtDesc().stream()
+                .map(this::mapExpense)
+                .toList();
     }
 
     public void recordIncomeFromContract(Contract contract) {
@@ -80,6 +60,8 @@ public class FinancialService {
         record.setRecordedAt(LocalDateTime.now());
         record.setSource(IncomeSource.CONTRACT);
         record.setContractId(contract.getId());
+        record.setClientId(contract.getClient().getId());
+        record.setClientName(contract.getClient().getFullName());
         record.setDescription("Contrat #" + contract.getId() + " — " + contract.getClient().getFullName());
         incomeRecordRepository.save(record);
     }
@@ -115,7 +97,8 @@ public class FinancialService {
                 i.getSource(),
                 i.getDescription(),
                 i.getContractId(),
-                i.getCreatedBy()
+                i.getClientId(),
+                i.getClientName()
         );
     }
 
@@ -127,8 +110,7 @@ public class FinancialService {
                 e.getSource(),
                 e.getCategory(),
                 e.getDescription(),
-                e.getMaintenanceId(),
-                e.getCreatedBy()
+                e.getMaintenanceId()
         );
     }
 }

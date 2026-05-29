@@ -29,6 +29,10 @@ public class CarController {
     public List<CarAvailabilityResponse> availability(@RequestParam java.time.LocalDate date) {
         return carService.availabilityOnDate(date);
     }
+    @GetMapping("/availability/available")
+    public List<CarAvailabilityResponse> availableOnDate(@RequestParam LocalDate date) {
+        return carService.availableOnDate(date);
+    }
     @GetMapping("/available")
     public List<CarResponse> available() { return carService.findByStatus(CarStatus.AVAILABLE); }
     @GetMapping("/rented")

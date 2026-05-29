@@ -6,7 +6,6 @@ class ExpenseRecordModel {
   final String category;
   final String description;
   final int? maintenanceId;
-  final String createdBy;
 
   const ExpenseRecordModel({
     required this.id,
@@ -16,7 +15,6 @@ class ExpenseRecordModel {
     required this.category,
     required this.description,
     this.maintenanceId,
-    required this.createdBy,
   });
 
   factory ExpenseRecordModel.fromJson(Map<String, dynamic> json) {
@@ -28,7 +26,6 @@ class ExpenseRecordModel {
       category: json['category'] as String? ?? '',
       description: json['description'] as String? ?? '',
       maintenanceId: json['maintenanceId'] as int?,
-      createdBy: json['createdBy'] as String? ?? 'Administrateur',
     );
   }
 }

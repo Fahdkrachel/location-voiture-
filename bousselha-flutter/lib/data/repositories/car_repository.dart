@@ -97,4 +97,10 @@ class CarRepository {
     final list = (res.data as List).cast<Map<String, dynamic>>();
     return list.map(CarAvailabilityModel.fromJson).toList();
   }
+
+  Future<List<CarAvailabilityModel>> getAvailableOnDate(String dateIso) async {
+    final res = await dio.get('/cars/availability/available', queryParameters: {'date': dateIso});
+    final list = (res.data as List).cast<Map<String, dynamic>>();
+    return list.map(CarAvailabilityModel.fromJson).toList();
+  }
 }

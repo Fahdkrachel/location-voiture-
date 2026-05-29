@@ -12,6 +12,7 @@ public record IncomeRecordResponse(
         IncomeSource source,
         String description,
         Long contractId,
-        String createdBy
+        Long clientId,
+        String clientName
 ) {
 }

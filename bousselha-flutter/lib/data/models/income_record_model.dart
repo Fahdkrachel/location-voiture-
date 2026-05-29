@@ -5,7 +5,8 @@ class IncomeRecordModel {
   final String source;
   final String description;
   final int? contractId;
-  final String createdBy;
+  final int? clientId;
+  final String clientName;
 
   const IncomeRecordModel({
     required this.id,
@@ -14,7 +15,8 @@ class IncomeRecordModel {
     required this.source,
     required this.description,
     this.contractId,
-    required this.createdBy,
+    this.clientId,
+    required this.clientName,
   });
 
   factory IncomeRecordModel.fromJson(Map<String, dynamic> json) {
@@ -25,7 +27,8 @@ class IncomeRecordModel {
       source: json['source'] as String? ?? '',
       description: json['description'] as String? ?? '',
       contractId: json['contractId'] as int?,
-      createdBy: json['createdBy'] as String? ?? 'Administrateur',
+      clientId: json['clientId'] as int?,
+      clientName: json['clientName'] as String? ?? '',
     );
   }
 }

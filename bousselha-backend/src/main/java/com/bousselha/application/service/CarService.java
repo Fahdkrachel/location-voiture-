@@ -104,6 +104,12 @@ public class CarService {
         carRepository.delete(car);
     }
 
+    public List<CarAvailabilityResponse> availableOnDate(LocalDate date) {
+        return availabilityOnDate(date).stream()
+                .filter(item -> item.currentStatus() == CarStatus.AVAILABLE)
+                .toList();
+    }
+
     public List<CarAvailabilityResponse> availabilityOnDate(LocalDate date) {
         List<Car> cars = carRepository.findAll();
         List<Contract> contracts = contractRepository.findByDeletedFalse();

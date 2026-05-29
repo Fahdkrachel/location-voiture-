@@ -33,6 +33,12 @@ public class IncomeRecord {
     @Column(name = "contract_id")
     private Long contractId;
 
+    @Column(name = "client_id")
+    private Long clientId;
+
+    @Column(name = "client_name", length = 200)
+    private String clientName;
+
     @Column(name = "created_by", length = 120)
     private String createdBy = "Administrateur";
 

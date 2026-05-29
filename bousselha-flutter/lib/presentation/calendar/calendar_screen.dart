@@ -14,24 +14,56 @@ class CalendarScreen extends ConsumerStatefulWidget {
 
 class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   DateTime _selectedDate = DateTime.now();
-  AsyncValue<List<CarAvailabilityModel>> _availability = const AsyncValue.loading();
+  List<CarAvailabilityModel> _allAvailable = [];
+  List<CarAvailabilityModel> _filtered = [];
+  bool _loading = true;
+  final _searchCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    _searchCtrl.addListener(_applySearch);
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.removeListener(_applySearch);
+    _searchCtrl.dispose();
+    super.dispose();
   }
 
   String get _dateIso => DateFormat('yyyy-MM-dd').format(_selectedDate);
 
   Future<void> _load() async {
-    setState(() => _availability = const AsyncValue.loading());
+    setState(() => _loading = true);
     try {
-      final items = await ref.read(carRepositoryProvider).getAvailabilityOnDate(_dateIso);
-      if (mounted) setState(() => _availability = AsyncValue.data(items));
-    } catch (e, st) {
-      if (mounted) setState(() => _availability = AsyncValue.error(e, st));
+      final items = await ref.read(carRepositoryProvider).getAvailableOnDate(_dateIso);
+      if (mounted) {
+        setState(() {
+          _allAvailable = items;
+          _applySearch();
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur : $e')));
+      }
     }
+  }
+
+  void _applySearch() {
+    final query = _searchCtrl.text.trim().toLowerCase();
+    if (query.isEmpty) {
+      _filtered = List.from(_allAvailable);
+    } else {
+      _filtered = _allAvailable
+          .where((c) => c.brand.toLowerCase().contains(query))
+          .toList();
+    }
+    if (mounted) setState(() {});
   }
 
   Future<void> _pickDate() async {
@@ -44,19 +76,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     if (picked != null) {
       setState(() => _selectedDate = picked);
       await _load();
-    }
-  }
-
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'AVAILABLE':
-        return Colors.green;
-      case 'RENTED':
-        return Colors.orange;
-      case 'MAINTENANCE':
-        return Colors.red;
-      default:
-        return Colors.grey;
     }
   }
 
@@ -82,45 +101,61 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
-            'Disponibilité des véhicules au ${_dateIso}',
+            'Véhicules disponibles — ${DateFormat('dd/MM/yyyy').format(_selectedDate)}',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: _availability.when(
-              data: (items) {
-                if (items.isEmpty) {
-                  return const Center(child: Text('Aucune voiture enregistrée.'));
-                }
-                return ListView.separated(
-                  itemCount: items.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    final color = _statusColor(item.currentStatus);
-                    return Card(
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: color.withValues(alpha: 0.15),
-                          child: Icon(Icons.directions_car, color: color),
-                        ),
-                        title: Text('${item.brand} — ${item.matricule}', style: const TextStyle(fontWeight: FontWeight.w700)),
-                        subtitle: Text('${item.fuelType} · ${item.availabilityLabel}'),
-                        trailing: Chip(
-                          label: Text(item.availabilityLabel, style: TextStyle(color: color, fontWeight: FontWeight.w600)),
-                          side: BorderSide(color: color),
-                          backgroundColor: color.withValues(alpha: 0.08),
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Erreur : $e')),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _searchCtrl,
+            decoration: InputDecoration(
+              hintText: 'Rechercher par nom du véhicule…',
+              prefixIcon: const Icon(Icons.search),
+              border: const OutlineInputBorder(),
+              isDense: true,
             ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${_filtered.length} véhicule(s) disponible(s)',
+            style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _filtered.isEmpty
+                    ? Center(
+                        child: Text(
+                          _allAvailable.isEmpty
+                              ? 'Aucun véhicule disponible à cette date.'
+                              : 'Aucun résultat pour cette recherche.',
+                        ),
+                      )
+                    : ListView.separated(
+                        itemCount: _filtered.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final item = _filtered[index];
+                          return Card(
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: Colors.green.withValues(alpha: 0.12),
+                                child: const Icon(Icons.directions_car, color: Colors.green),
+                              ),
+                              title: Text(
+                                item.brand,
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                              ),
+                              subtitle: Text(
+                                item.matricule,
+                                style: const TextStyle(fontSize: 15, letterSpacing: 0.5),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
           ),
         ],
       ),

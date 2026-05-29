@@ -21,6 +21,8 @@ public interface IncomeRecordRepository extends JpaRepository<IncomeRecord, Long
     @Query("select coalesce(sum(i.amount), 0) from IncomeRecord i")
     BigDecimal sumAll();
 
+    List<IncomeRecord> findAllByOrderByRecordedAtDesc();
+
     @Query("""
             select i from IncomeRecord i
             where (:from is null or i.recordedAt >= :from)
