@@ -51,6 +51,7 @@ public record ContractResponse(
         String vehicleConditionReturn,
         String damagesIdentified,
         LocalDateTime createdAt,
-        ContractStatus status
+        ContractStatus status,
+        boolean deleted
 ) {
 }

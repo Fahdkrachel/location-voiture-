@@ -139,7 +139,7 @@ public class CarService {
             if (inMaintenance) {
                 return new CarAvailabilityResponse(
                         car.getId(), car.getBrand(), car.getMatricule(), car.getFuelType(),
-                        CarStatus.MAINTENANCE, "En maintenance"
+                        CarStatus.MAINTENANCE, "En maintenance", car.getImageUrl()
                 );
             }
 
@@ -152,13 +152,13 @@ public class CarService {
             if (rented) {
                 return new CarAvailabilityResponse(
                         car.getId(), car.getBrand(), car.getMatricule(), car.getFuelType(),
-                        CarStatus.RENTED, "Loué"
+                        CarStatus.RENTED, "Loué", car.getImageUrl()
                 );
             }
 
             return new CarAvailabilityResponse(
                     car.getId(), car.getBrand(), car.getMatricule(), car.getFuelType(),
-                    CarStatus.AVAILABLE, "Disponible"
+                    CarStatus.AVAILABLE, "Disponible", car.getImageUrl()
             );
         }).toList();
     }
@@ -185,8 +185,7 @@ public class CarService {
 
     public List<CarHistoryItemResponse> history(Long carId) {
         getCar(carId);
-        List<CarHistoryItemResponse> rentals = contractRepository.findByDeletedFalse().stream()
-                .filter(c -> c.getCar().getId().equals(carId))
+        List<CarHistoryItemResponse> rentals = contractRepository.findByCarIdForHistory(carId).stream()
                 .map(c -> new CarHistoryItemResponse(
                         "RENTAL",
                         c.getClient().getFullName(),

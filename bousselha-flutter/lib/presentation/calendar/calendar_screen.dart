@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../data/models/car_availability_model.dart';
+import '../cars/car_list_screen.dart' show toPublicCarImageUrl;
 import '../../shared/providers/app_providers.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
@@ -64,6 +65,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           .toList();
     }
     if (mounted) setState(() {});
+  }
+
+  Widget _calendarCarPlaceholder() {
+    return Container(
+      width: 52,
+      height: 52,
+      color: Colors.green.withValues(alpha: 0.12),
+      child: const Icon(Icons.directions_car, color: Colors.green),
+    );
   }
 
   Future<void> _pickDate() async {
@@ -140,9 +150,17 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                           final item = _filtered[index];
                           return Card(
                             child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: Colors.green.withValues(alpha: 0.12),
-                                child: const Icon(Icons.directions_car, color: Colors.green),
+                              leading: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: item.imageUrl.isNotEmpty
+                                    ? Image.network(
+                                        toPublicCarImageUrl(item.imageUrl),
+                                        width: 52,
+                                        height: 52,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => _calendarCarPlaceholder(),
+                                      )
+                                    : _calendarCarPlaceholder(),
                               ),
                               title: Text(
                                 item.brand,

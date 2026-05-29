@@ -307,8 +307,91 @@ Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? 
 }
 
 String toPublicCarImageUrl(String imageUrl) {
+  if (imageUrl.isEmpty) return '';
   if (imageUrl.startsWith('http')) return imageUrl;
   return 'http://localhost:8080$imageUrl';
+}
+
+void showCarImageFullscreen(BuildContext context, {required String imageUrl, String? heroTag}) {
+  if (imageUrl.isEmpty) return;
+  Navigator.of(context).push(
+    PageRouteBuilder<void>(
+      opaque: false,
+      barrierColor: Colors.black87,
+      pageBuilder: (ctx, _, __) => _FullscreenCarImagePage(
+        imageUrl: toPublicCarImageUrl(imageUrl),
+        heroTag: heroTag,
+      ),
+    ),
+  );
+}
+
+Widget buildCarCoverImage({
+  required String imageUrl,
+  required double height,
+  BoxFit fit = BoxFit.cover,
+  String? heroTag,
+}) {
+  final child = imageUrl.isEmpty
+      ? DecoratedBox(
+          decoration: const BoxDecoration(color: Color(0xFFE8EEF7)),
+          child: Icon(Icons.directions_car_rounded, size: height * 0.45, color: Color(0xFF173A63)),
+        )
+      : Image.network(
+          toPublicCarImageUrl(imageUrl),
+          fit: fit,
+          width: double.infinity,
+          height: height,
+          errorBuilder: (_, __, ___) => DecoratedBox(
+            decoration: const BoxDecoration(color: Color(0xFFE8EEF7)),
+            child: Icon(Icons.directions_car_rounded, size: height * 0.45, color: Color(0xFF173A63)),
+          ),
+        );
+  final sized = SizedBox(height: height, width: double.infinity, child: child);
+  if (heroTag != null) {
+    return Hero(tag: heroTag, child: Material(color: Colors.transparent, child: sized));
+  }
+  return sized;
+}
+
+class _FullscreenCarImagePage extends StatelessWidget {
+  final String imageUrl;
+  final String? heroTag;
+
+  const _FullscreenCarImagePage({required this.imageUrl, this.heroTag});
+
+  @override
+  Widget build(BuildContext context) {
+    final image = InteractiveViewer(
+      minScale: 0.5,
+      maxScale: 4,
+      child: Center(
+        child: heroTag != null
+            ? Hero(
+                tag: heroTag!,
+                child: Image.network(imageUrl, fit: BoxFit.contain),
+              )
+            : Image.network(imageUrl, fit: BoxFit.contain),
+      ),
+    );
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          Positioned.fill(child: image),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Route animée vers le détail voiture (fade + slide).
@@ -380,58 +463,38 @@ class CarListScreen extends ConsumerWidget {
               if (data.isEmpty) {
                 return const Center(child: Text('Aucune voiture trouvee.'));
               }
-              return ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: data.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  final car = data[index];
-                  return Card(
-                    child: ListTile(
-                      leading: _buildCarLeading(car),
-                      title: Text('${car.brand} - ${car.matricule}'),
-                      subtitle: Text(
-                        'Carburant: ${car.fuelType} | Prochaine visite: ${_valueOrDash(car.nextInspectionDate)}',
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Chip(
-                            label: Text(_statusLabel(car.status)),
-                            backgroundColor: _statusColor(car.status).withValues(alpha: 0.15),
-                            side: BorderSide(color: _statusColor(car.status)),
-                          ),
-                          PopupMenuButton<String>(
-                            onSelected: (value) async {
-                              if (value == 'edit') {
-                                final changed = await showCarFormDialog(context, ref, car: car);
-                                if (changed == true) ref.invalidate(carsProvider);
-                              } else if (value == 'available') {
-                                final ok = await markCarAvailable(context, ref, car);
-                                if (ok) ref.invalidate(carsProvider);
-                              } else if (value == 'delete') {
-                                await _deleteCar(context, ref, car);
-                              }
-                            },
-                            itemBuilder: (context) => [
-                              const PopupMenuItem(value: 'edit', child: Text('Modifier')),
-                              if (car.status == 'RENTED' || car.status == 'MAINTENANCE')
-                                const PopupMenuItem(
-                                  value: 'available',
-                                  child: Text('Remettre disponible'),
-                                ),
-                              const PopupMenuItem(value: 'delete', child: Text('Supprimer')),
-                            ],
-                          ),
-                        ],
-                      ),
-                      onTap: () async {
-                        final changed = await Navigator.of(context).push<bool>(carDetailRoute(car));
-                        if (changed == true) ref.invalidate(carsProvider);
-                      },
+              return Scrollbar(
+                thumbVisibility: true,
+                child: SingleChildScrollView(
+                  primary: true,
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
+                      children: data.map((car) {
+                        return _HorizontalCarCard(
+                          car: car,
+                          statusColor: _statusColor(car.status),
+                          onOpen: () async {
+                            final changed = await Navigator.of(context).push<bool>(carDetailRoute(car));
+                            if (changed == true) ref.invalidate(carsProvider);
+                          },
+                          onEdit: () async {
+                            final changed = await showCarFormDialog(context, ref, car: car);
+                            if (changed == true) ref.invalidate(carsProvider);
+                          },
+                          onAvailable: () async {
+                            final ok = await markCarAvailable(context, ref, car);
+                            if (ok) ref.invalidate(carsProvider);
+                          },
+                          onDelete: () => _deleteCar(context, ref, car),
+                        );
+                      }).toList(),
                     ),
-                  );
-                },
+                  ),
+                ),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -441,39 +504,6 @@ class CarListScreen extends ConsumerWidget {
       ],
     );
   }
-
-  Widget _buildCarLeading(CarModel car) {
-    final thumb = ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: car.imageUrl.isEmpty
-          ? const SizedBox(
-              width: 56,
-              height: 56,
-              child: DecoratedBox(
-                decoration:
-                    BoxDecoration(color: Color(0xFFE8EEF7), borderRadius: BorderRadius.all(Radius.circular(12))),
-                child: Icon(Icons.directions_car_rounded),
-              ),
-            )
-          : Image.network(
-              toPublicCarImageUrl(car.imageUrl),
-              width: 56,
-              height: 56,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox(
-                width: 56,
-                height: 56,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(color: Color(0xFFE8EEF7)),
-                  child: Icon(Icons.directions_car_rounded),
-                ),
-              ),
-            ),
-    );
-    return Hero(tag: carHeroTag(car.id), child: SizedBox(width: 56, height: 56, child: thumb));
-  }
-
-  String _valueOrDash(String value) => value.isEmpty ? '-' : value;
 
   Future<void> _deleteCar(BuildContext context, WidgetRef ref, CarModel car) async {
     final ok = await showDialog<bool>(
@@ -501,6 +531,125 @@ class CarListScreen extends ConsumerWidget {
     }
   }
 
+}
+
+class _HorizontalCarCard extends StatelessWidget {
+  final CarModel car;
+  final Color statusColor;
+  final VoidCallback onOpen;
+  final Future<void> Function() onEdit;
+  final Future<void> Function() onAvailable;
+  final Future<void> Function() onDelete;
+
+  const _HorizontalCarCard({
+    required this.car,
+    required this.statusColor,
+    required this.onOpen,
+    required this.onEdit,
+    required this.onAvailable,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 272,
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        child: InkWell(
+          onTap: onOpen,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Stack(
+                children: [
+                  buildCarCoverImage(
+                    imageUrl: car.imageUrl,
+                    height: 156,
+                    heroTag: carHeroTag(car.id),
+                  ),
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Material(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      shape: const CircleBorder(),
+                      elevation: 2,
+                      child: PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert, size: 22),
+                        padding: EdgeInsets.zero,
+                        onSelected: (value) async {
+                          if (value == 'edit') {
+                            await onEdit();
+                          } else if (value == 'available') {
+                            await onAvailable();
+                          } else if (value == 'delete') {
+                            await onDelete();
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(value: 'edit', child: Text('Modifier')),
+                          if (car.status == 'RENTED' || car.status == 'MAINTENANCE')
+                            const PopupMenuItem(value: 'available', child: Text('Remettre disponible')),
+                          const PopupMenuItem(value: 'delete', child: Text('Supprimer')),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      car.brand,
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      car.matricule,
+                      style: TextStyle(color: Colors.grey.shade700, fontSize: 14, letterSpacing: 0.4),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Carburant: ${car.fuelType}',
+                      style: const TextStyle(fontSize: 12.5),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      'Prochaine visite: ${car.nextInspectionDate.isEmpty ? '—' : car.nextInspectionDate}',
+                      style: const TextStyle(fontSize: 12.5),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Chip(
+                        label: Text(_statusLabel(car.status)),
+                        backgroundColor: statusColor.withValues(alpha: 0.14),
+                        side: BorderSide(color: statusColor),
+                        visualDensity: VisualDensity.compact,
+                        labelStyle: TextStyle(color: statusColor, fontWeight: FontWeight.w700, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class CarDetailScreen extends ConsumerStatefulWidget {
@@ -536,7 +685,7 @@ class _CarDetailScreenState extends ConsumerState<CarDetailScreen> with SingleTi
     try {
       final car =
           await ref.read(carRepositoryProvider).getCars().then((cars) => cars.firstWhere((c) => c.id == _car.id, orElse: () => _car));
-      final contracts = await ref.read(contractRepositoryProvider).getContracts(carId: _car.id);
+      final contracts = await ref.read(contractRepositoryProvider).getContracts(carId: _car.id, history: true);
       if (mounted) {
         setState(() {
           _car = car;
@@ -601,7 +750,7 @@ class _CarDetailScreenState extends ConsumerState<CarDetailScreen> with SingleTi
         return b.departureDatetime.compareTo(a.departureDatetime);
       }
     });
-    return list.take(12).toList();
+    return list;
   }
 
   Future<void> _onEdit() async {
@@ -648,18 +797,35 @@ class _CarDetailScreenState extends ConsumerState<CarDetailScreen> with SingleTi
     final sc = Theme.of(context).colorScheme;
 
     Widget coverImage() {
+      Widget imageChild;
       if (_car.imageUrl.isEmpty) {
-        return const DecoratedBox(
+        imageChild = const DecoratedBox(
           decoration: BoxDecoration(color: Color(0xFFE8ECF5)),
-          child: Icon(Icons.directions_car_rounded, size: 96),
+          child: Center(child: Icon(Icons.directions_car_rounded, size: 96)),
+        );
+      } else {
+        imageChild = Image.network(
+          toPublicCarImageUrl(_car.imageUrl),
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+          errorBuilder: (_, __, ___) => const DecoratedBox(
+            decoration: BoxDecoration(color: Color(0xFFE8ECF5)),
+            child: Center(child: Icon(Icons.directions_car_rounded, size: 96)),
+          ),
         );
       }
-      return Image.network(
-        toPublicCarImageUrl(_car.imageUrl),
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => const DecoratedBox(
-          decoration: BoxDecoration(color: Color(0xFFE8ECF5)),
-          child: Icon(Icons.directions_car_rounded, size: 96),
+      return GestureDetector(
+        onTap: _car.imageUrl.isEmpty
+            ? null
+            : () => showCarImageFullscreen(
+                  context,
+                  imageUrl: _car.imageUrl,
+                  heroTag: carHeroTag(_car.id),
+                ),
+        child: Hero(
+          tag: carHeroTag(_car.id),
+          child: Material(color: Colors.transparent, child: imageChild),
         ),
       );
     }
@@ -686,10 +852,7 @@ class _CarDetailScreenState extends ConsumerState<CarDetailScreen> with SingleTi
                 background: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Hero(
-                      tag: carHeroTag(_car.id),
-                      child: Material(color: Colors.transparent, child: coverImage()),
-                    ),
+                    coverImage(),
                     DecoratedBox(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
@@ -1028,13 +1191,13 @@ class _CarDetailScreenState extends ConsumerState<CarDetailScreen> with SingleTi
   }
 
   Widget _timelineContractCard(ContractModel c) {
-    final chipColor = _contractStatusChipColor(c.status);
+    final chipColor = c.deleted ? Colors.grey : _contractStatusChipColor(c.status);
     return Container(
       margin: const EdgeInsets.only(bottom: 14, left: 4),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: Colors.white,
-        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+        color: c.deleted ? Colors.grey.shade50 : Colors.white,
+        border: Border.all(color: Colors.black.withValues(alpha: c.deleted ? 0.12 : 0.05)),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 14, offset: const Offset(0, 10)),
         ],
@@ -1060,12 +1223,20 @@ class _CarDetailScreenState extends ConsumerState<CarDetailScreen> with SingleTi
                     border: Border.all(color: chipColor.withValues(alpha: 0.55)),
                   ),
                   child: Text(
-                    c.status,
+                    c.deleted ? 'SUPPRIMÉ' : c.status,
                     style: TextStyle(color: chipColor, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 0.5),
                   ),
                 ),
               ],
             ),
+            if (c.deleted)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  'Contrat archivé (conservé dans l’historique)',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontStyle: FontStyle.italic),
+                ),
+              ),
             const SizedBox(height: 8),
             Text(
               '${_dash(c.departureDatetime)}  →  ${_dash(c.expectedReturnDatetime)}',

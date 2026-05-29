@@ -30,7 +30,10 @@ public class ClientService {
     }
 
     public List<ClientResponse> findAll() {
-        return clientRepository.findAll().stream().map(this::map).toList();
+        return clientRepository.findAll().stream()
+                .filter(c -> contractRepository.countByDeletedFalseAndClientId(c.getId()) > 0)
+                .map(this::map)
+                .toList();
     }
 
     public ClientResponse findById(Long id) {

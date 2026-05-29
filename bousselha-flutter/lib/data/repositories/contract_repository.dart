@@ -8,8 +8,11 @@ class ContractRepository {
   final Dio dio;
   ContractRepository(this.dio);
 
-  Future<List<ContractModel>> getContracts({int? carId}) async {
-    final res = await dio.get('/contracts', queryParameters: carId == null ? null : {'carId': carId});
+  Future<List<ContractModel>> getContracts({int? carId, bool history = false}) async {
+    final params = <String, dynamic>{};
+    if (carId != null) params['carId'] = carId;
+    if (history) params['history'] = true;
+    final res = await dio.get('/contracts', queryParameters: params.isEmpty ? null : params);
     final list = (res.data as List).cast<Map<String, dynamic>>();
     return list.map(ContractModel.fromJson).toList();
   }

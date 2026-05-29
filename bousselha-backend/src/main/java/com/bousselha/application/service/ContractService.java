@@ -53,6 +53,11 @@ public class ContractService {
         return contractRepository.findByDeletedFalseAndCarId(carId).stream().map(this::map).toList();
     }
 
+    /** Historique complet pour une voiture (contrats actifs et supprimés logiquement). */
+    public List<ContractResponse> findCarRentalHistory(Long carId) {
+        return contractRepository.findByCarIdForHistory(carId).stream().map(this::map).toList();
+    }
+
     public ContractResponse findById(Long id) {
         return map(getContract(id));
     }
@@ -239,7 +244,8 @@ public class ContractService {
                 c.getVehicleConditionReturn(),
                 c.getDamagesIdentified(),
                 c.getCreatedAt(),
-                c.getStatus()
+                c.getStatus(),
+                c.isDeleted()
         );
     }
 }

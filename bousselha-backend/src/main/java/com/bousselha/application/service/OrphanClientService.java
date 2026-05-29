@@ -1,12 +1,9 @@
 package com.bousselha.application.service;
 
-import com.bousselha.domain.model.Contract;
 import com.bousselha.domain.repository.ClientRepository;
 import com.bousselha.domain.repository.ContractRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 /**
  * Suppression contrôlée des clients sans contrat actif, en respectant les clés étrangères.
@@ -27,8 +24,8 @@ public class OrphanClientService {
     }
 
     /**
-     * Supprime le client si aucun contrat non supprimé ne lui est rattaché.
-     * Les contrats archivés sont supprimés physiquement ; les lignes income_records restent en base.
+     * Supprime le client uniquement s'il n'a plus aucun contrat (même archivé).
+     * Les contrats soft-deleted restent en base pour l'historique des locations par voiture.
      */
     public void removeClientIfOrphan(Long clientId) {
         if (contractRepository.countByDeletedFalseAndClientId(clientId) > 0) {
@@ -37,14 +34,9 @@ public class OrphanClientService {
         if (!clientRepository.existsById(clientId)) {
             return;
         }
-        deleteAllContractsForClient(clientId);
-        clientRepository.deleteById(clientId);
-    }
-
-    private void deleteAllContractsForClient(Long clientId) {
-        List<Contract> contracts = contractRepository.findByClientId(clientId);
-        for (Contract contract : contracts) {
-            contractRepository.delete(contract);
+        if (contractRepository.countByClientId(clientId) > 0) {
+            return;
         }
+        clientRepository.deleteById(clientId);
     }
 }

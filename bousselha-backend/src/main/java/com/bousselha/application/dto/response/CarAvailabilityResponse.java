@@ -9,6 +9,7 @@ public record CarAvailabilityResponse(
         String matricule,
         FuelType fuelType,
         CarStatus currentStatus,
-        String availabilityLabel
+        String availabilityLabel,
+        String imageUrl
 ) {
 }

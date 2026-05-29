@@ -1,17 +1,27 @@
-# bousselha_flutter
+# BOUSSELHA CARS — Frontend Flutter
 
-A new Flutter project.
+Ce répertoire contient l'application cliente de bureau (Windows Desktop) développée en **Flutter** pour le système **BOUSSELHA CARS**.
 
-## Getting Started
+## 📌 Informations de démarrage rapide
 
-This project is a starting point for a Flutter application.
+Pour comprendre l'architecture globale, la configuration de l'API avec Dio, la gestion d'état avec Riverpod et les étapes de build en release, merci de consulter le **README principal** à la racine du projet :
 
-A few resources to get you started if this is your first Flutter project:
+👉 **[README Principal du Monorepo](../README.md)**
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## ⚡ Commandes de base
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### 1. Télécharger les dépendances
+```bash
+flutter pub get
+```
+
+### 2. Lancer l'application en mode développement (Windows)
+```bash
+flutter run -d windows
+```
+
+### 3. Compiler pour la production (Générer le .exe)
+```bash
+flutter build windows --release
+```
+L'exécutable `.exe` sera généré dans `build/windows/x64/runner/Release/bousselha_flutter.exe`.

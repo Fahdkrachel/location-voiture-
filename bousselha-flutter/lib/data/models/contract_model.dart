@@ -42,6 +42,7 @@ class ContractModel {
   final String vehicleConditionReturn;
   final String damagesIdentified;
   final String createdAt;
+  final bool deleted;
 
   const ContractModel({
     required this.id,
@@ -87,6 +88,7 @@ class ContractModel {
     required this.vehicleConditionReturn,
     required this.damagesIdentified,
     required this.createdAt,
+    this.deleted = false,
   });
 
   factory ContractModel.fromJson(Map<String, dynamic> json) {
@@ -134,6 +136,7 @@ class ContractModel {
       vehicleConditionReturn: json['vehicleConditionReturn'] as String? ?? '',
       damagesIdentified: json['damagesIdentified'] as String? ?? '',
       createdAt: json['createdAt'] as String? ?? '',
+      deleted: json['deleted'] as bool? ?? false,
     );
   }
 }

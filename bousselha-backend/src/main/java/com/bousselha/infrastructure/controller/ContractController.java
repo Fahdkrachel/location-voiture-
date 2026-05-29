@@ -26,8 +26,14 @@ public class ContractController {
     }
 
     @GetMapping
-    public List<ContractResponse> findAll(@RequestParam(required = false) Long carId) {
-        return carId == null ? contractService.findAll() : contractService.findAllByCarId(carId);
+    public List<ContractResponse> findAll(
+            @RequestParam(required = false) Long carId,
+            @RequestParam(required = false, defaultValue = "false") boolean history
+    ) {
+        if (carId == null) {
+            return contractService.findAll();
+        }
+        return history ? contractService.findCarRentalHistory(carId) : contractService.findAllByCarId(carId);
     }
     @GetMapping("/{id}")
     public ContractResponse findById(@PathVariable Long id) { return contractService.findById(id); }
