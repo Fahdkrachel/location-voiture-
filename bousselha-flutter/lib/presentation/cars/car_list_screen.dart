@@ -670,7 +670,8 @@ class _CarDetailScreenState extends ConsumerState<CarDetailScreen> with SingleTi
   void initState() {
     super.initState();
     _car = widget.car;
-    _introController = AnimationController(vsync: this, duration: const Duration(milliseconds: 620));
+    _introController = AnimationController(vsync: this, duration: const Duration(milliseconds: 620))
+      ..addListener(() => setState(() {}));
     _loadData();
   }
 
@@ -815,18 +816,9 @@ class _CarDetailScreenState extends ConsumerState<CarDetailScreen> with SingleTi
           ),
         );
       }
-      return GestureDetector(
-        onTap: _car.imageUrl.isEmpty
-            ? null
-            : () => showCarImageFullscreen(
-                  context,
-                  imageUrl: _car.imageUrl,
-                  heroTag: carHeroTag(_car.id),
-                ),
-        child: Hero(
-          tag: carHeroTag(_car.id),
-          child: Material(color: Colors.transparent, child: imageChild),
-        ),
+      return Hero(
+        tag: carHeroTag(_car.id),
+        child: Material(color: Colors.transparent, child: imageChild),
       );
     }
 
@@ -849,45 +841,57 @@ class _CarDetailScreenState extends ConsumerState<CarDetailScreen> with SingleTi
               flexibleSpace: FlexibleSpaceBar(
                 collapseMode: CollapseMode.parallax,
                 stretchModes: const [StretchMode.zoomBackground],
-                background: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    coverImage(),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.black.withValues(alpha: 0.08), Colors.black.withValues(alpha: 0.55)],
+                background: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _car.imageUrl.isEmpty
+                      ? null
+                      : () => showCarImageFullscreen(
+                            context,
+                            imageUrl: _car.imageUrl,
+                            heroTag: carHeroTag(_car.id),
+                          ),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      coverImage(),
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Colors.black.withValues(alpha: 0.08), Colors.black.withValues(alpha: 0.55)],
+                          ),
                         ),
                       ),
-                    ),
-                    Positioned(
-                      left: 16,
-                      right: 72,
-                      bottom: 52,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _car.brand,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.4,
-                              shadows: [Shadow(offset: Offset(0, 1), blurRadius: 6, color: Colors.black54)],
-                            ),
+                      Positioned(
+                        left: 16,
+                        right: 72,
+                        bottom: 52,
+                        child: IgnorePointer(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _car.brand,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.4,
+                                  shadows: [Shadow(offset: Offset(0, 1), blurRadius: 6, color: Colors.black54)],
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                _car.matricule,
+                                style: TextStyle(color: Colors.white.withValues(alpha: 0.94), fontSize: 15, fontWeight: FontWeight.w500),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                            _car.matricule,
-                            style: TextStyle(color: Colors.white.withValues(alpha: 0.94), fontSize: 15, fontWeight: FontWeight.w500),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               actions: [
