@@ -73,10 +73,7 @@ String _statusLabel(String status) {
 }
 
 void _invalidateVehicleLists(WidgetRef ref) {
-  ref.invalidate(carsProvider);
-  ref.invalidate(maintenanceProvider);
-  ref.invalidate(dashboardStatsProvider);
-  ref.invalidate(contractsProvider);
+  invalidateAllBoushelhaProviders(ref);
 }
 
 /// Ouverture du formulaire voiture depuis la liste ou l’écran détail.
@@ -415,8 +412,27 @@ Route<bool> carDetailRoute(CarModel car) {
   );
 }
 
-class CarListScreen extends ConsumerWidget {
+class CarListScreen extends ConsumerStatefulWidget {
   const CarListScreen({super.key});
+
+  @override
+  ConsumerState<CarListScreen> createState() => _CarListScreenState();
+}
+
+class _CarListScreenState extends ConsumerState<CarListScreen> {
+  late final ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   Color _statusColor(String status) {
     switch (status) {
@@ -432,7 +448,7 @@ class CarListScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final cars = ref.watch(carsProvider);
     return Column(
       children: [
@@ -464,9 +480,10 @@ class CarListScreen extends ConsumerWidget {
                 return const Center(child: Text('Aucune voiture trouvee.'));
               }
               return Scrollbar(
+                controller: _scrollController,
                 thumbVisibility: true,
                 child: SingleChildScrollView(
-                  primary: true,
+                  controller: _scrollController,
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                   child: Align(
                     alignment: Alignment.topLeft,

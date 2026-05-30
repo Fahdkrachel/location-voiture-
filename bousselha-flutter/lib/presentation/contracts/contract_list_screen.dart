@@ -110,10 +110,7 @@ class ContractListScreen extends ConsumerWidget {
               final ok = await _showUnifiedContractSheet(context, ref, existing: null) == true;
               if (!context.mounted) return;
               if (ok == true) {
-                ref.invalidate(contractsProvider);
-                ref.invalidate(carsProvider);
-                ref.invalidate(clientsProvider);
-                ref.invalidate(dashboardStatsProvider);
+                invalidateAllBoushelhaProviders(ref);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     backgroundColor: Cc.success,
@@ -281,10 +278,7 @@ class _ContractDetailScreenState extends ConsumerState<ContractDetailScreen> {
     try {
       await ref.read(contractRepositoryProvider).updateContractStatus(c.id, newStatus);
       await _fetch();
-      ref.invalidate(contractsProvider);
-      ref.invalidate(carsProvider);
-      ref.invalidate(clientsProvider);
-      ref.invalidate(dashboardStatsProvider);
+      invalidateAllBoushelhaProviders(ref);
       if (scaffoldContext.mounted) {
         messenger.showSnackBar(
           SnackBar(
@@ -341,10 +335,7 @@ class _ContractDetailScreenState extends ConsumerState<ContractDetailScreen> {
     if (!scaffoldContext.mounted || ok != true) return;
     try {
       await ref.read(contractRepositoryProvider).deleteContract(c.id);
-      ref.invalidate(contractsProvider);
-      ref.invalidate(clientsProvider);
-      ref.invalidate(carsProvider);
-      ref.invalidate(dashboardStatsProvider);
+      invalidateAllBoushelhaProviders(ref);
       if (!scaffoldContext.mounted) return;
       Navigator.of(scaffoldContext).pop();
       messenger.showSnackBar(
@@ -552,8 +543,7 @@ class _ContractDetailScreenState extends ConsumerState<ContractDetailScreen> {
               final changed = await _showUnifiedContractSheet(context, ref, existing: c) == true;
               if (!context.mounted || changed != true) return;
               await _fetch();
-              ref.invalidate(contractsProvider);
-              ref.invalidate(carsProvider);
+              invalidateAllBoushelhaProviders(ref);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(

@@ -23,7 +23,7 @@ class MaintenanceListScreen extends ConsumerWidget {
               ),
               const SizedBox(width: 8),
               OutlinedButton.icon(
-                onPressed: () => ref.invalidate(maintenanceProvider),
+                onPressed: () => invalidateAllBoushelhaProviders(ref),
                 icon: const Icon(Icons.refresh),
                 label: const Text('Rafraichir'),
               ),
@@ -167,10 +167,7 @@ class MaintenanceListScreen extends ConsumerWidget {
                         description: description.isEmpty ? null : description,
                         cost: cost,
                       );
-                  ref.invalidate(carsProvider);
-                  ref.invalidate(maintenanceProvider);
-                  ref.invalidate(dashboardStatsProvider);
-                  ref.invalidate(contractsProvider);
+                  invalidateAllBoushelhaProviders(ref);
                   if (context.mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -215,9 +212,7 @@ class MaintenanceListScreen extends ConsumerWidget {
     if (ok != true) return;
     try {
       await ref.read(maintenanceRepositoryProvider).completeMaintenance(item.id);
-      ref.invalidate(carsProvider);
-      ref.invalidate(maintenanceProvider);
-      ref.invalidate(dashboardStatsProvider);
+      invalidateAllBoushelhaProviders(ref);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Maintenance terminée. Véhicule disponible si applicable.')),
@@ -257,7 +252,7 @@ class MaintenanceListScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<int>(
-                  value: selectedCarId,
+                  initialValue: selectedCarId,
                   items: cars
                       .map(
                         (car) => DropdownMenuItem<int>(
@@ -331,10 +326,7 @@ class MaintenanceListScreen extends ConsumerWidget {
                         cost: cost,
                         status: item.status.isNotEmpty ? item.status : 'IN_PROGRESS',
                       );
-                  ref.invalidate(carsProvider);
-                  ref.invalidate(maintenanceProvider);
-                  ref.invalidate(dashboardStatsProvider);
-                  ref.invalidate(contractsProvider);
+                  invalidateAllBoushelhaProviders(ref);
                   if (context.mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(

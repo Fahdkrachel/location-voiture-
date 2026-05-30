@@ -8,6 +8,8 @@ import '../../data/models/contract_model.dart';
 import '../../data/models/dashboard_alert_model.dart';
 import '../../data/models/dashboard_stats_model.dart';
 import '../../data/models/maintenance_model.dart';
+import '../../data/models/expense_record_model.dart';
+import '../../data/models/income_record_model.dart';
 import '../../data/repositories/car_repository.dart';
 import '../../data/repositories/client_repository.dart';
 import '../../data/repositories/contract_repository.dart';
@@ -67,3 +69,23 @@ final dashboardCalendarProvider = FutureProvider<List<ContractModel>>((ref) asyn
 final dashboardAlertsProvider = FutureProvider<List<DashboardAlertModel>>((ref) async {
   return ref.watch(dashboardRepositoryProvider).getAlerts();
 });
+
+final incomeProvider = FutureProvider<List<IncomeRecordModel>>((ref) async {
+  return ref.watch(financialRepositoryProvider).getIncome();
+});
+
+final expensesProvider = FutureProvider<List<ExpenseRecordModel>>((ref) async {
+  return ref.watch(financialRepositoryProvider).getExpenses();
+});
+
+void invalidateAllBoushelhaProviders(dynamic ref) {
+  ref.invalidate(carsProvider);
+  ref.invalidate(maintenanceProvider);
+  ref.invalidate(contractsProvider);
+  ref.invalidate(clientsProvider);
+  ref.invalidate(dashboardStatsProvider);
+  ref.invalidate(dashboardCalendarProvider);
+  ref.invalidate(dashboardAlertsProvider);
+  ref.invalidate(incomeProvider);
+  ref.invalidate(expensesProvider);
+}
