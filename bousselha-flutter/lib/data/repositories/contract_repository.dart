@@ -158,10 +158,25 @@ class ContractRepository {
       options: Options(responseType: ResponseType.bytes),
     );
     final bytes = List<int>.from(res.data as List);
+
+    final cd = res.headers.value('content-disposition');
+    String filename = 'contract-$id-${DateTime.now().millisecondsSinceEpoch}.pdf';
+    if (cd != null) {
+      final utf8Match = RegExp(r"filename\*=\s*UTF-8''([^;\n]+)").firstMatch(cd);
+      if (utf8Match != null) {
+        filename = Uri.decodeComponent(utf8Match.group(1)!);
+      } else {
+        final normalMatch = RegExp(r'filename=\s*"?([^";\n]+)"?').firstMatch(cd);
+        if (normalMatch != null) {
+          filename = normalMatch.group(1)!;
+        }
+      }
+    }
+
     final userHome = Platform.environment['USERPROFILE'] ?? Platform.environment['HOME'] ?? Directory.current.path;
     final downloadsDir = Directory('$userHome/Downloads');
     final targetDir = await (await downloadsDir.exists() ? downloadsDir : Directory.current).create(recursive: true);
-    final filePath = '${targetDir.path}${Platform.pathSeparator}contract-$id-${DateTime.now().millisecondsSinceEpoch}.pdf';
+    final filePath = '${targetDir.path}${Platform.pathSeparator}$filename';
     final file = File(filePath);
     await file.writeAsBytes(bytes, flush: true);
     return file.path;

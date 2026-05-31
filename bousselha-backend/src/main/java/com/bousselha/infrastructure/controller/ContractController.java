@@ -62,9 +62,19 @@ public class ContractController {
 
     @GetMapping("/{id}/pdf")
     public ResponseEntity<byte[]> pdf(@PathVariable Long id) throws IOException {
+        ContractResponse contract = contractService.findById(id);
+        String clientName = contract.clientName().replaceAll("[\\s/\\\\?%*:|\"<>]+", "_");
+        String matricule = contract.carMatricule().replaceAll("[\\s/\\\\?%*:|\"<>]+", "_");
+        String filename = "Contrat_" + clientName + "_" + matricule + ".pdf";
+
         byte[] bytes = pdfService.generateContractPdf(id);
+        
+        org.springframework.http.ContentDisposition cd = org.springframework.http.ContentDisposition.builder("inline")
+                .filename(filename, java.nio.charset.StandardCharsets.UTF_8)
+                .build();
+
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=contract-" + id + ".pdf")
+                .header(HttpHeaders.CONTENT_DISPOSITION, cd.toString())
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(bytes);
     }

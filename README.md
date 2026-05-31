@@ -176,6 +176,38 @@ flutter run -d windows
 
 ---
 
+## 📄 Generation du contrat PDF & Configuration du Logo
+
+Cette section détaille la génération des contrats PDF officiels de location et la personnalisation visuelle avec le logo de l'entreprise.
+
+### 1. Structure du PDF et Remplissage Automatique
+Le document PDF généré respecte fidèlement la disposition physique du contrat officiel de BOUSSELHA CARS (format A4 vertical standard) avec :
+*   Les cadres de tableau bleus harmonieux.
+*   Les informations pré-remplies du Locataire, du Véhicule (Marque, Matricule), les dates et heures de départ/retour, le conducteur supplémentaire si existant, et les commentaires de dommages initiaux.
+*   Les cases de prix (prix journalier, hebdomadaire, mensuel, suppléments, quantité, total) laissées vides pour une écriture manuelle après impression, mais dotées de la mention "DH" alignée à droite.
+*   Les signatures laissées totalement vides pour signature manuelle physique.
+
+### 2. Nom de fichier PDF Dynamique
+Le PDF téléchargé est nommé dynamiquement :
+```text
+Contrat_[NomClient]_[Immatriculation].pdf
+```
+Les espaces et caractères spéciaux sont automatiquement nettoyés et remplacés par des tirets bas (`_`) dans le nom pour assurer une compatibilité optimale lors du téléchargement.
+
+### 3. Emplacement et Chargement du Logo
+Un espace est réservé au logo officiel dans le coin supérieur gauche du contrat PDF.
+*   **Emplacement du fichier logo** :
+    ```text
+    bousselha-backend/src/main/resources/static/images/logo.png
+    ```
+*   **Comportement automatique** :
+    *   Si le fichier `logo.png` est présent à cet emplacement lors de la génération, il est automatiquement redimensionné et incrusté dans le document PDF.
+    *   Si aucun logo n'est trouvé, le système affiche à la place le texte stylisé standard **BOUSSELHA CARS / Location de Voitures / Tanger - Maroc** dans le cadre.
+
+Pour configurer votre logo, déposez simplement une image au format PNG nommée `logo.png` dans le répertoire `src/main/resources/static/images/`.
+
+---
+
 ## 🔄 Flux Métier & Fonctionnalités
 
 Pour être à l'aise avec le code, il est essentiel de comprendre comment les données circulent dans l'application :

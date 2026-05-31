@@ -22,8 +22,11 @@ com\bousselha\application\dto\request\ClientRequest.class
 com\bousselha\application\dto\response\DashboardAlertResponse.class
 com\bousselha\BousselhaApplication.class
 com\bousselha\config\CorsConfig$1.class
+com\bousselha\domain\model\Car.class
+com\bousselha\application\dto\request\CarRequest.class
 com\bousselha\application\dto\response\CarHistoryItemResponse.class
 com\bousselha\application\dto\response\CarAvailabilityResponse.class
+com\bousselha\infrastructure\controller\ContractController.class
 com\bousselha\application\dto\response\MaintenanceResponse.class
 com\bousselha\domain\enums\IncomeSource.class
 com\bousselha\infrastructure\controller\CarController.class
@@ -40,9 +43,11 @@ com\bousselha\domain\model\IncomeRecord.class
 com\bousselha\domain\enums\ContractStatus.class
 com\bousselha\application\dto\request\MaintenanceRequest.class
 com\bousselha\domain\repository\ClientRepository.class
+com\bousselha\application\service\MaintenanceService.class
 com\bousselha\application\dto\response\IncomeRecordResponse.class
 com\bousselha\domain\enums\MaintenanceStatus.class
 com\bousselha\domain\repository\ExpenseRecordRepository.class
 com\bousselha\application\controller\FinancialController.class
 com\bousselha\domain\enums\ExpenseSource.class
 com\bousselha\infrastructure\exception\GlobalExceptionHandler.class
+com\bousselha\application\dto\response\ContractResponse.class
