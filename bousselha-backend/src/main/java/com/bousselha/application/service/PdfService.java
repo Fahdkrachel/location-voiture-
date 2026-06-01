@@ -82,10 +82,10 @@ public class PdfService {
                 }
 
                 // Right header box (Company contact info)
-                drawText(cs, "Bureau: 1, Rue Ibn Chahid N°11 - Tanger", 210, 804, bold, 9, textBlack);
+                drawText(cs, "Branes 1, Rue Ibn Chahid N°11 - Tanger", 210, 804, bold, 9, textBlack);
                 drawText(cs, "Tél/Fax : 05 39 31 54 63", 210, 790, regular, 9, textBlack);
                 drawText(cs, "Gsm : 06 89 12 48 89 / 06 61 54 99 92", 210, 776, regular, 9, textBlack);
-                drawText(cs, "E-mail : bousselhacar@gmail.com", 210, 762, regular, 9, textBlack);
+                drawText(cs, "E-mail : bousselhaa@gmail.com", 210, 762, regular, 9, textBlack);
 
 
                 // --- 2. BANNER (Y = 734 to 752) ---
@@ -501,7 +501,7 @@ public class PdfService {
             } else if (c == '\n' || c == '\r' || c == '\t') {
                 sb.append(' ');
             } else {
-                if (c >= 192 && c <= 255 || c == 'œ' || c == 'Œ' || c == '€') {
+                if (c >= 160 && c <= 255 || c == 'œ' || c == 'Œ' || c == '€') {
                     sb.append(c);
                 } else {
                     sb.append('?');
@@ -519,7 +519,8 @@ public class PdfService {
              .replace("ô", "o").replace("û", "u").replace("ë", "e").replace("ï", "i")
              .replace("ü", "u").replace("œ", "oe").replace("É", "E").replace("È", "E")
              .replace("À", "A").replace("Ç", "C").replace("Ù", "U").replace("Â", "A")
-             .replace("Ê", "E").replace("Î", "I").replace("Ô", "O").replace("Û", "U");
+             .replace("Ê", "E").replace("Î", "I").replace("Ô", "O").replace("Û", "U")
+             .replace("°", "o");
         StringBuilder sb = new StringBuilder();
         for (char c : n.toCharArray()) {
             if (c >= 32 && c <= 126) {
