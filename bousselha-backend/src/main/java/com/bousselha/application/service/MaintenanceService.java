@@ -94,6 +94,16 @@ public class MaintenanceService {
         return map(saved);
     }
 
+    public void delete(Long id) {
+        Maintenance maintenance = maintenanceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Maintenance not found: " + id));
+        Car car = maintenance.getCar();
+        maintenanceRepository.delete(maintenance);
+        if (car != null) {
+            reconcileCarStatus(car);
+        }
+    }
+
     public boolean hasOngoingMaintenance(Long carId) {
         return maintenanceRepository.findByCarId(carId).stream()
                 .anyMatch(this::isOngoing);

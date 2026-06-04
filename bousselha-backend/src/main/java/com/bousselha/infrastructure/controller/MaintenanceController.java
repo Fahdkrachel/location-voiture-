@@ -30,4 +30,9 @@ public class MaintenanceController {
     public MaintenanceResponse complete(@PathVariable Long id) {
         return maintenanceService.complete(id);
     }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        maintenanceService.delete(id);
+    }
 }

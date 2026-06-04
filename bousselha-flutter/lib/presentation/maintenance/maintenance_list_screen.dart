@@ -55,10 +55,16 @@ class MaintenanceListScreen extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text('${item.cost.toStringAsFixed(2)} MAD'),
+                          const SizedBox(width: 8),
                           if (item.status != 'COMPLETED')
                             FilledButton.tonal(
                               onPressed: () => _completeMaintenance(context, ref, item),
                               child: const Text('Terminer'),
+                            )
+                          else
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => _deleteMaintenance(context, ref, item),
                             ),
                           IconButton(
                             icon: const Icon(Icons.edit),
@@ -222,6 +228,47 @@ class MaintenanceListScreen extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erreur : $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteMaintenance(
+    BuildContext context,
+    WidgetRef ref,
+    MaintenanceModel item,
+  ) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Supprimer la maintenance'),
+        content: Text(
+          'Supprimer définitivement la maintenance « ${item.type} » (${item.carLabel}) ?\n'
+          'Cette maintenance ne sera plus visible dans la liste, mais sa dépense financière restera conservée dans l\'historique.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await ref.read(maintenanceRepositoryProvider).deleteMaintenance(item.id);
+      invalidateAllBoushelhaProviders(ref);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Maintenance supprimée avec succès.')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur suppression : $e')),
         );
       }
     }

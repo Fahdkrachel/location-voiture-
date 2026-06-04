@@ -67,4 +67,8 @@ class MaintenanceRepository {
     final res = await dio.patch('/maintenance/$id/complete');
     return MaintenanceModel.fromJson((res.data as Map).cast<String, dynamic>());
   }
+
+  Future<void> deleteMaintenance(int id) async {
+    await dio.delete('/maintenance/$id');
+  }
 }
