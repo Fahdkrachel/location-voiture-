@@ -51,9 +51,9 @@ public class MaintenanceService {
         if (maintenance.getStatus() == null) {
             maintenance.setStatus(MaintenanceStatus.IN_PROGRESS);
         }
-        car.setStatus(CarStatus.MAINTENANCE);
-        carRepository.save(car);
         Maintenance saved = maintenanceRepository.save(maintenance);
+        reconcileCarStatus(car);
+        carRepository.save(car);
         financialService.recordExpenseFromMaintenance(saved);
         return map(saved);
     }
@@ -140,6 +140,10 @@ public class MaintenanceService {
             return false;
         }
         LocalDate today = LocalDate.now();
+        LocalDate start = maintenance.getStartDate();
+        if (start != null && start.isAfter(today)) {
+            return false;
+        }
         LocalDate end = maintenance.getEndDate();
         if (end != null && end.isBefore(today)) {
             return false;
