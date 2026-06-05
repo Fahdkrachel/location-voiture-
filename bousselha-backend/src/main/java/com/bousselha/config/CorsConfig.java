@@ -16,6 +16,18 @@ public class CorsConfig {
                         .allowedOrigins("*")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
             }
+
+            @Override
+            public void addResourceHandlers(org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry registry) {
+                String userDir = System.getProperty("user.dir");
+                registry.addResourceHandler("/uploads/**")
+                        .addResourceLocations(
+                                "file:src/main/resources/static/uploads/",
+                                "file:" + userDir + "/src/main/resources/static/uploads/",
+                                "file:uploads/",
+                                "file:target/classes/static/uploads/"
+                        );
+            }
         };
     }
 }

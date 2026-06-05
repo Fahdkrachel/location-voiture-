@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/maintenance_model.dart';
 import '../../shared/providers/app_providers.dart';
+import '../../shared/widgets/matricule_text.dart';
 
 class MaintenanceListScreen extends ConsumerWidget {
   const MaintenanceListScreen({super.key});
@@ -116,7 +117,7 @@ class MaintenanceListScreen extends ConsumerWidget {
                     .map(
                       (car) => DropdownMenuItem<int>(
                         value: car.id,
-                        child: Text('${car.brand} (${car.matricule})'),
+                        child: Text('${car.brand} (${preserveBidiOrder(car.matricule)})'),
                       ),
                     )
                     .toList(),
@@ -304,7 +305,7 @@ class MaintenanceListScreen extends ConsumerWidget {
                       .map(
                         (car) => DropdownMenuItem<int>(
                           value: car.id,
-                          child: Text('${car.brand} (${car.matricule})'),
+                          child: Text('${car.brand} (${preserveBidiOrder(car.matricule)})'),
                         ),
                       )
                       .toList(),

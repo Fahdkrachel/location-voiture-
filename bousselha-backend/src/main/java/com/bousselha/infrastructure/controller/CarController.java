@@ -46,9 +46,9 @@ public class CarController {
             @RequestParam String brand,
             @RequestParam FuelType fuelType,
             @RequestParam String matricule,
-            @RequestParam(required = false) LocalDate nextInspectionDate,
-            @RequestParam(required = false) LocalDate lastOilChangeDate,
-            @RequestParam(required = false) LocalDate insuranceExpiryDate,
+            @RequestParam(required = false) String nextInspectionDate,
+            @RequestParam(required = false) String lastOilChangeDate,
+            @RequestParam(required = false) String insuranceExpiryDate,
             @RequestParam(required = false) CarStatus status,
             @RequestParam(required = false) MultipartFile image
     ) {
@@ -56,23 +56,24 @@ public class CarController {
                 brand,
                 fuelType,
                 matricule,
-                nextInspectionDate,
-                lastOilChangeDate,
-                insuranceExpiryDate,
+                parseLocalDate(nextInspectionDate),
+                parseLocalDate(lastOilChangeDate),
+                parseLocalDate(insuranceExpiryDate),
                 null,
                 status
         );
         return carService.create(request, image);
     }
+
     @PutMapping("/{id}")
     public CarResponse update(
             @PathVariable Long id,
             @RequestParam String brand,
             @RequestParam FuelType fuelType,
             @RequestParam String matricule,
-            @RequestParam(required = false) LocalDate nextInspectionDate,
-            @RequestParam(required = false) LocalDate lastOilChangeDate,
-            @RequestParam(required = false) LocalDate insuranceExpiryDate,
+            @RequestParam(required = false) String nextInspectionDate,
+            @RequestParam(required = false) String lastOilChangeDate,
+            @RequestParam(required = false) String insuranceExpiryDate,
             @RequestParam(required = false) CarStatus status,
             @RequestParam(required = false) MultipartFile image
     ) {
@@ -80,14 +81,15 @@ public class CarController {
                 brand,
                 fuelType,
                 matricule,
-                nextInspectionDate,
-                lastOilChangeDate,
-                insuranceExpiryDate,
+                parseLocalDate(nextInspectionDate),
+                parseLocalDate(lastOilChangeDate),
+                parseLocalDate(insuranceExpiryDate),
                 null,
                 status
         );
         return carService.update(id, request, image);
     }
+
     @PatchMapping("/{id}/available")
     public CarResponse markAvailable(@PathVariable Long id) {
         return carService.markAvailable(id);
@@ -95,6 +97,27 @@ public class CarController {
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) { carService.delete(id); }
+
     @GetMapping("/{id}/history")
     public List<CarHistoryItemResponse> history(@PathVariable Long id) { return carService.history(id); }
+
+    private LocalDate parseLocalDate(String dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty()) {
+            return null;
+        }
+        String cleaned = dateStr.trim();
+        try {
+            return LocalDate.parse(cleaned, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        } catch (java.time.format.DateTimeParseException e) {
+            try {
+                return LocalDate.parse(cleaned, java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+            } catch (java.time.format.DateTimeParseException ex) {
+                try {
+                    return LocalDate.parse(cleaned, java.time.format.DateTimeFormatter.ofPattern("d/M/yyyy"));
+                } catch (java.time.format.DateTimeParseException ex2) {
+                    throw new IllegalArgumentException("Format de date invalide (" + dateStr + "). Utilisez YYYY-MM-DD ou DD-MM-YYYY.");
+                }
+            }
+        }
+    }
 }

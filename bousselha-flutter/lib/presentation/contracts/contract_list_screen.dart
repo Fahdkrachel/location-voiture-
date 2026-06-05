@@ -6,6 +6,7 @@ import '../../data/models/client_model.dart';
 import '../../data/models/contract_model.dart';
 import '../../shared/providers/app_providers.dart';
 import '../clients/client_list_screen.dart';
+import '../../shared/widgets/matricule_text.dart';
 
 /// Palette entreprise Contrats BOUSSELHA CARS
 abstract final class Cc {
@@ -167,7 +168,7 @@ class _ContractListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = '${contract.carBrand} - ${contract.carMatricule} — ${_dash(contract.clientName)}';
+    final title = '${contract.carBrand} - ${preserveBidiOrder(contract.carMatricule)} — ${_dash(contract.clientName)}';
     final sub = 'Départ : ${_fmtFrDate(contract.departureDatetime)} → Retour : ${_fmtFrDate(contract.expectedReturnDatetime)}';
     final amount = '${contract.totalGeneral.toStringAsFixed(2)} MAD';
 
@@ -441,7 +442,7 @@ class _ContractDetailScreenState extends ConsumerState<ContractDetailScreen> {
                     icon: Icons.directions_car_filled_rounded,
                     child: _enterpriseTwoColTable(context, [
                       ['Marque', _dash(c.carBrand)],
-                      ['Immatriculation', _dash(c.carMatricule)],
+                      ['Immatriculation', _dash(preserveBidiOrder(c.carMatricule))],
                       ['Type', _dash(c.carFuelType)],
                       ['Lieu livraison', _dash(c.departurePlace)],
                       ['Lieu reprise', _dash(c.returnPlace)],
@@ -1113,7 +1114,7 @@ Future<Object?> _showUnifiedContractSheet(
               children: [
                 DropdownButtonFormField<int>(
                   initialValue: selectedCarId,
-                  items: selectableCars.map((car) => DropdownMenuItem<int>(value: car.id, child: Text('${car.brand} (${car.matricule})'))).toList(),
+                  items: selectableCars.map((car) => DropdownMenuItem<int>(value: car.id, child: Text('${car.brand} (${preserveBidiOrder(car.matricule)})'))).toList(),
                   onChanged: lockCarPick ? null : (value) => setState(() => selectedCarId = value ?? selectedCarId),
                   decoration: InputDecoration(labelText: lockCarPick ? 'Voiture (verrouillée — contrat actif)' : 'Voiture *'),
                 ),

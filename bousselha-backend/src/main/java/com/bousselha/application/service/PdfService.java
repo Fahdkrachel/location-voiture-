@@ -44,9 +44,51 @@ public class PdfService {
             PDPage page = new PDPage(PDRectangle.A4);
             doc.addPage(page);
 
-            PDType1Font bold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-            PDType1Font regular = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
-            PDType1Font italic = new PDType1Font(Standard14Fonts.FontName.HELVETICA_OBLIQUE);
+            PDFont bold;
+            PDFont regular;
+            PDFont italic;
+
+            try {
+                java.io.InputStream regularStream = getClass().getResourceAsStream("/static/fonts/Cairo-Regular.ttf");
+                if (regularStream == null) {
+                    java.io.File f = new java.io.File("src/main/resources/static/fonts/Cairo-Regular.ttf");
+                    if (f.exists()) {
+                        regular = org.apache.pdfbox.pdmodel.font.PDType0Font.load(doc, f);
+                    } else {
+                        f = new java.io.File("bousselha-backend/src/main/resources/static/fonts/Cairo-Regular.ttf");
+                        if (f.exists()) {
+                            regular = org.apache.pdfbox.pdmodel.font.PDType0Font.load(doc, f);
+                        } else {
+                            regular = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+                        }
+                    }
+                } else {
+                    regular = org.apache.pdfbox.pdmodel.font.PDType0Font.load(doc, regularStream);
+                }
+
+                java.io.InputStream boldStream = getClass().getResourceAsStream("/static/fonts/Cairo-Bold.ttf");
+                if (boldStream == null) {
+                    java.io.File f = new java.io.File("src/main/resources/static/fonts/Cairo-Bold.ttf");
+                    if (f.exists()) {
+                        bold = org.apache.pdfbox.pdmodel.font.PDType0Font.load(doc, f);
+                    } else {
+                        f = new java.io.File("bousselha-backend/src/main/resources/static/fonts/Cairo-Bold.ttf");
+                        if (f.exists()) {
+                            bold = org.apache.pdfbox.pdmodel.font.PDType0Font.load(doc, f);
+                        } else {
+                            bold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+                        }
+                    }
+                } else {
+                    bold = org.apache.pdfbox.pdmodel.font.PDType0Font.load(doc, boldStream);
+                }
+                
+                italic = regular;
+            } catch (Exception e) {
+                regular = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+                bold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+                italic = new PDType1Font(Standard14Fonts.FontName.HELVETICA_OBLIQUE);
+            }
 
             Color darkBlue = new Color(11, 59, 140);
             Color lightBlue = new Color(208, 225, 253);
@@ -494,14 +536,17 @@ public class PdfService {
 
     private String sanitize(String text) {
         if (text == null) return "";
+        // Supprimer les caractères de contrôle bidirectionnels LRO (\u202D) et PDF (\u202C)
+        String cleaned = text.replaceAll("\u202D", "").replaceAll("\u202C", "");
         StringBuilder sb = new StringBuilder();
-        for (char c : text.toCharArray()) {
+        for (char c : cleaned.toCharArray()) {
             if (c >= 32 && c <= 126) {
                 sb.append(c);
             } else if (c == '\n' || c == '\r' || c == '\t') {
                 sb.append(' ');
             } else {
-                if (c >= 160 && c <= 255 || c == 'œ' || c == 'Œ' || c == '€') {
+                if ((c >= 160 && c <= 255) || c == 'œ' || c == 'Œ' || c == '€' 
+                        || (c >= 0x0600 && c <= 0x06FF) || (c >= 0xFE70 && c <= 0xFEFF)) {
                     sb.append(c);
                 } else {
                     sb.append('?');

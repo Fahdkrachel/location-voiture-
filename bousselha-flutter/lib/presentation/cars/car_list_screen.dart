@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import '../../data/models/car_model.dart';
 import '../../data/models/contract_model.dart';
 import '../../shared/providers/app_providers.dart';
+import '../../shared/widgets/matricule_text.dart';
 
 /// Tag Hero stable pour transitions liste → détail.
 String carHeroTag(int carId) => 'car-cover-$carId';
@@ -79,7 +80,7 @@ void _invalidateVehicleLists(WidgetRef ref) {
 /// Ouverture du formulaire voiture depuis la liste ou l’écran détail.
 Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? car}) async {
   final brandCtrl = TextEditingController(text: car?.brand ?? '');
-  final matriculeCtrl = TextEditingController(text: car?.matricule ?? '');
+  final matriculeCtrl = BidiMatriculeEditingController(text: car?.matricule ?? '');
   final inspectionCtrl = TextEditingController(text: car?.nextInspectionDate ?? '');
   final oilCtrl = TextEditingController(text: car?.lastOilChangeDate ?? '');
   final insuranceCtrl = TextEditingController(text: car?.insuranceExpiryDate ?? '');
@@ -241,7 +242,7 @@ Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? 
             FilledButton(
               onPressed: () async {
                 final brand = brandCtrl.text.trim();
-                final matricule = matriculeCtrl.text.trim();
+                final matricule = matriculeCtrl.cleanText.trim();
                 final nextInspectionDate = inspectionCtrl.text.trim();
                 final lastOilChangeDate = oilCtrl.text.trim();
                 final insuranceExpiryDate = insuranceCtrl.text.trim();
@@ -630,7 +631,7 @@ class _HorizontalCarCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
-                    Text(
+                    MatriculeText(
                       car.matricule,
                       style: TextStyle(color: Colors.grey.shade700, fontSize: 14, letterSpacing: 0.4),
                     ),
@@ -899,7 +900,7 @@ class _CarDetailScreenState extends ConsumerState<CarDetailScreen> with SingleTi
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              Text(
+                              MatriculeText(
                                 _car.matricule,
                                 style: TextStyle(color: Colors.white.withValues(alpha: 0.94), fontSize: 15, fontWeight: FontWeight.w500),
                               ),
@@ -938,7 +939,7 @@ class _CarDetailScreenState extends ConsumerState<CarDetailScreen> with SingleTi
                       accent: const Color(0xFF173A63),
                       child: _premiumInfoRows([
                         (_iconLabel(Icons.directions_car_outlined, 'Marque'), _car.brand),
-                        (_iconLabel(Icons.confirmation_number_outlined, 'Matricule'), _car.matricule),
+                        (_iconLabel(Icons.confirmation_number_outlined, 'Matricule'), preserveBidiOrder(_car.matricule)),
                         (_iconLabel(Icons.local_gas_station_rounded, 'Carburant'), _car.fuelType),
                         (_iconLabel(Icons.event_available_rounded, 'Prochaine visite'), _dash(_car.nextInspectionDate)),
                         (_iconLabel(Icons.build_circle_outlined, 'Dernière vidange'), _dash(_car.lastOilChangeDate)),

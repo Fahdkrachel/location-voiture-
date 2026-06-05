@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../data/models/car_availability_model.dart';
 import '../cars/car_list_screen.dart' show toPublicCarImageUrl;
 import '../../shared/providers/app_providers.dart';
+import '../../shared/widgets/matricule_text.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
@@ -167,7 +168,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                 style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
                               ),
                               subtitle: Text(
-                                item.matricule,
+                                preserveBidiOrder(item.matricule),
                                 style: const TextStyle(fontSize: 15, letterSpacing: 0.5),
                               ),
                             ),
