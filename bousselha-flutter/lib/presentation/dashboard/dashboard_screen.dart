@@ -6,6 +6,8 @@ import '../../data/models/contract_model.dart';
 import '../../data/models/dashboard_alert_model.dart';
 import '../../shared/providers/app_providers.dart';
 import '../cars/car_list_screen.dart';
+import '../contracts/contract_list_screen.dart';
+import '../../shared/widgets/matricule_text.dart';
 import 'expense_detail_screen.dart';
 import 'income_detail_screen.dart';
 import 'financial_chart.dart';
@@ -37,6 +39,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final stats = ref.watch(dashboardStatsProvider);
     final calendar = ref.watch(dashboardCalendarProvider);
     final alerts = ref.watch(dashboardAlertsProvider);
+    final futureReservations = ref.watch(dashboardFutureReservationsProvider);
     final incomesAsync = ref.watch(incomeProvider);
     final expensesAsync = ref.watch(expensesProvider);
     final carsAsync = ref.watch(carsProvider);
@@ -130,7 +133,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             const SizedBox(height: 28),
 
-            // 3. Section alertes
+            // 3. Réservations à venir (Réservations futures)
+            const Text(
+              'Réservations à venir',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A2B4A),
+                letterSpacing: 0.15,
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 380, // Hauteur fixe scrollable
+              child: _buildFutureReservations(futureReservations, carsAsync),
+            ),
+            const SizedBox(height: 28),
+
+            // 4. Section alertes
             const Text(
               'Section Alertes',
               style: TextStyle(
@@ -183,6 +203,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
                 return ListTile(
                   dense: true,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ContractDetailScreen(contractId: item.id),
+                      ),
+                    ).then((_) {
+                      invalidateAllBoushelhaProviders(ref);
+                    });
+                  },
                   leading: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: imageUrl.isEmpty
@@ -206,7 +235,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           ),
                   ),
                   title: Text(
-                    '${item.carLabel} — ${item.clientName}',
+                    '${item.carBrand} (${preserveBidiOrder(item.carMatricule)}) — ${item.clientName}',
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1A2B4A)),
                   ),
                   subtitle: Padding(
@@ -223,6 +252,123 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           },
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, _) => Center(child: Text('Erreur calendrier: $err')),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFutureReservations(AsyncValue<List<ContractModel>> futureReservations, AsyncValue<List<CarModel>> carsAsync) {
+    final cars = carsAsync.value ?? [];
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: futureReservations.when(
+          data: (items) {
+            if (items.isEmpty) {
+              return const Center(
+                child: Text(
+                  'Aucune réservation à venir.',
+                  style: TextStyle(color: Colors.black54, fontWeight: FontWeight.w500),
+                ),
+              );
+            }
+            return ListView.separated(
+              itemCount: items.length,
+              separatorBuilder: (_, __) => const Divider(),
+              itemBuilder: (context, index) {
+                final item = items[index];
+
+                // Trouver l'image correspondante de la voiture via cars Provider
+                String imageUrl = '';
+                final matchingCar = cars.where((c) => c.id == item.carId).toList();
+                if (matchingCar.isNotEmpty) {
+                  imageUrl = matchingCar.first.imageUrl;
+                }
+
+                // Calculer les jours restants
+                final departureDate = DateTime.tryParse(item.departureDatetime);
+                String daysLeftStr = '';
+                if (departureDate != null) {
+                  final now = DateTime.now();
+                  final diff = departureDate.difference(now);
+                  final daysLeft = diff.inDays;
+                  if (daysLeft <= 0) {
+                    daysLeftStr = "Aujourd'hui";
+                  } else if (daysLeft == 1) {
+                    daysLeftStr = "Demain";
+                  } else {
+                    daysLeftStr = "Dans $daysLeft jours";
+                  }
+                }
+
+                return ListTile(
+                  dense: true,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ContractDetailScreen(contractId: item.id),
+                      ),
+                    ).then((_) {
+                      invalidateAllBoushelhaProviders(ref);
+                    });
+                  },
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: imageUrl.isEmpty
+                        ? Container(
+                            width: 52,
+                            height: 52,
+                            color: const Color(0xFFE8EEF7),
+                            child: const Icon(Icons.directions_car, color: Color(0xFF173A63), size: 24),
+                          )
+                        : Image.network(
+                            toPublicCarImageUrl(imageUrl),
+                            width: 52,
+                            height: 52,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              width: 52,
+                              height: 52,
+                              color: const Color(0xFFE8EEF7),
+                              child: const Icon(Icons.directions_car, color: Color(0xFF173A63), size: 24),
+                            ),
+                          ),
+                  ),
+                  title: Text(
+                    '${item.carBrand} (${preserveBidiOrder(item.carMatricule)}) — ${item.clientName}',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1A2B4A)),
+                  ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Départ: ${item.departureDatetime}\nStatut: Réservation',
+                      style: TextStyle(color: Colors.grey.shade700, height: 1.3),
+                    ),
+                  ),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8EEF7),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      daysLeftStr,
+                      style: const TextStyle(
+                        color: Color(0xFF173A63),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  isThreeLine: true,
+                );
+              },
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => Center(child: Text('Erreur réservations: $err')),
         ),
       ),
     );
@@ -265,6 +411,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
                 return ListTile(
                   dense: true,
+                  onTap: (item.type == 'RETURN' && item.contractId != null)
+                      ? () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ContractDetailScreen(contractId: item.contractId!),
+                            ),
+                          ).then((_) {
+                            invalidateAllBoushelhaProviders(ref);
+                          });
+                        }
+                      : null,
                   leading: CircleAvatar(
                     backgroundColor: color.withValues(alpha: 0.12),
                     child: Icon(Icons.warning_amber_rounded, color: color, size: 22),

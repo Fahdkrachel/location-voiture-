@@ -70,6 +70,10 @@ final dashboardAlertsProvider = FutureProvider<List<DashboardAlertModel>>((ref) 
   return ref.watch(dashboardRepositoryProvider).getAlerts();
 });
 
+final dashboardFutureReservationsProvider = FutureProvider<List<ContractModel>>((ref) async {
+  return ref.watch(dashboardRepositoryProvider).getFutureReservations();
+});
+
 final incomeProvider = FutureProvider<List<IncomeRecordModel>>((ref) async {
   return ref.watch(financialRepositoryProvider).getIncome();
 });
@@ -86,6 +90,7 @@ void invalidateAllBoushelhaProviders(dynamic ref) {
   ref.invalidate(dashboardStatsProvider);
   ref.invalidate(dashboardCalendarProvider);
   ref.invalidate(dashboardAlertsProvider);
+  ref.invalidate(dashboardFutureReservationsProvider);
   ref.invalidate(incomeProvider);
   ref.invalidate(expensesProvider);
 }

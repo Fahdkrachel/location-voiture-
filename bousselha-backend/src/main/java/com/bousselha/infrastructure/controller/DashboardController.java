@@ -33,4 +33,9 @@ public class DashboardController {
     public List<DashboardAlertResponse> alerts() {
         return dashboardService.alerts();
     }
+
+    @GetMapping("/future-reservations")
+    public List<ContractResponse> getFutureReservations() {
+        return dashboardService.getFutureReservations();
+    }
 }

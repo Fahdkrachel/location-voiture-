@@ -8,6 +8,7 @@ public record DashboardAlertResponse(
         String carLabel,
         String message,
         String severity,
-        LocalDate dueDate
+        LocalDate dueDate,
+        Long contractId
 ) {
 }

@@ -22,9 +22,6 @@ import java.util.Set;
 @Service
 @Transactional
 public class ContractService {
-    private static final Set<ContractStatus> OPEN_CONTRACT_STATUSES =
-            EnumSet.of(ContractStatus.IN_PROGRESS, ContractStatus.ACTIVE);
-
     private final ContractRepository contractRepository;
     private final CarRepository carRepository;
     private final ClientRepository clientRepository;
@@ -45,24 +42,94 @@ public class ContractService {
         this.orphanClientService = orphanClientService;
     }
 
+    public void autoActivateContracts() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Contract> pendingActivation = contractRepository.findByDeletedFalseAndStatus(ContractStatus.IN_PROGRESS)
+                .stream()
+                .filter(c -> c.getDepartureDatetime() != null && !c.getDepartureDatetime().isAfter(now))
+                .toList();
+
+        for (Contract contract : pendingActivation) {
+            try {
+                Car car = contract.getCar();
+                if (car.getStatus() == CarStatus.AVAILABLE) {
+                    car.setStatus(CarStatus.RENTED);
+                    contract.setStatus(ContractStatus.ACTIVE);
+                    contractRepository.save(contract);
+                    financialService.ensureIncomeForContract(contract);
+                } else {
+                    System.err.println("Auto-activation failed for contract " + contract.getId() + ": Car " + car.getMatricule() + " is " + car.getStatus());
+                }
+            } catch (Exception e) {
+                System.err.println("Error auto-activating contract " + contract.getId() + ": " + e.getMessage());
+            }
+        }
+    }
+
+    @org.springframework.scheduling.annotation.Scheduled(fixedDelay = 10000)
+    public void scheduledAutoActivate() {
+        autoActivateContracts();
+    }
+
+    public boolean hasOverlappingContract(Long carId, LocalDateTime startProposed, LocalDateTime endProposed, Long excludeContractId) {
+        if (startProposed == null || endProposed == null) {
+            return false;
+        }
+        List<Contract> activeOrInProgress = contractRepository.findByDeletedFalseAndCarId(carId)
+                .stream()
+                .filter(c -> c.getStatus() == ContractStatus.ACTIVE || c.getStatus() == ContractStatus.IN_PROGRESS)
+                .filter(c -> excludeContractId == null || !c.getId().equals(excludeContractId))
+                .toList();
+
+        for (Contract c : activeOrInProgress) {
+            LocalDateTime startExisting = c.getDepartureDatetime();
+            LocalDateTime endExisting = c.getExpectedReturnDatetime();
+            if (startExisting != null && endExisting != null) {
+                if (startProposed.isBefore(endExisting) && endProposed.isAfter(startExisting)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public List<ContractResponse> findInProgressFutureReservations() {
+        autoActivateContracts();
+        return contractRepository.findByDeletedFalseAndStatus(ContractStatus.IN_PROGRESS)
+                .stream()
+                .sorted((c1, c2) -> {
+                    if (c1.getDepartureDatetime() == null && c2.getDepartureDatetime() == null) return 0;
+                    if (c1.getDepartureDatetime() == null) return 1;
+                    if (c2.getDepartureDatetime() == null) return -1;
+                    return c1.getDepartureDatetime().compareTo(c2.getDepartureDatetime());
+                })
+                .map(this::map)
+                .toList();
+    }
+
     public List<ContractResponse> findAll() {
+        autoActivateContracts();
         return contractRepository.findByDeletedFalse().stream().map(this::map).toList();
     }
 
     public List<ContractResponse> findAllByCarId(Long carId) {
+        autoActivateContracts();
         return contractRepository.findByDeletedFalseAndCarId(carId).stream().map(this::map).toList();
     }
 
     /** Historique complet pour une voiture (contrats actifs et supprimés logiquement). */
     public List<ContractResponse> findCarRentalHistory(Long carId) {
+        autoActivateContracts();
         return contractRepository.findByCarIdForHistory(carId).stream().map(this::map).toList();
     }
 
     public ContractResponse findById(Long id) {
+        autoActivateContracts();
         return map(getContract(id));
     }
 
     public List<ContractResponse> findActive() {
+        autoActivateContracts();
         return contractRepository.findByDeletedFalseAndStatusIn(
                 EnumSet.of(ContractStatus.IN_PROGRESS, ContractStatus.ACTIVE)
         ).stream().map(this::map).toList();
@@ -71,20 +138,35 @@ public class ContractService {
     public ContractResponse create(ContractRequest request) {
         Car car = carRepository.findById(request.carId())
                 .orElseThrow(() -> new ResourceNotFoundException("Car not found: " + request.carId()));
-        if (car.getStatus() != CarStatus.AVAILABLE) {
-            throw new IllegalArgumentException("Car is not available for rental: " + car.getMatricule());
+        
+        if (hasOverlappingContract(car.getId(), request.departureDatetime(), request.expectedReturnDatetime(), null)) {
+            throw new IllegalArgumentException("La voiture " + car.getMatricule() + " est déjà réservée ou louée sur cette période.");
         }
-        if (contractRepository.existsByCarIdAndDeletedFalseAndStatusIn(car.getId(), OPEN_CONTRACT_STATUSES)) {
-            throw new IllegalArgumentException("Car already has an open contract: " + car.getMatricule());
-        }
+
         Client client = clientRepository.findById(request.clientId())
                 .orElseThrow(() -> new ResourceNotFoundException("Client not found: " + request.clientId()));
+        
         Contract contract = new Contract();
         contract.setCar(car);
         contract.setClient(client);
-        contract.setStatus(ContractStatus.IN_PROGRESS);
+        
+        LocalDateTime now = LocalDateTime.now();
+        if (!request.departureDatetime().isAfter(now)) {
+            if (car.getStatus() != CarStatus.AVAILABLE) {
+                throw new IllegalArgumentException("La voiture n'est pas disponible pour une location immédiate (statut actuel: " + car.getStatus() + ").");
+            }
+            contract.setStatus(ContractStatus.ACTIVE);
+            car.setStatus(CarStatus.RENTED);
+        } else {
+            contract.setStatus(ContractStatus.IN_PROGRESS);
+        }
+
         apply(contract, request);
-        return map(contractRepository.save(contract));
+        Contract saved = contractRepository.save(contract);
+        if (saved.getStatus() == ContractStatus.ACTIVE) {
+            financialService.ensureIncomeForContract(saved);
+        }
+        return map(saved);
     }
 
     public ContractResponse updateStatus(Long id, ContractStatus newStatus) {
@@ -123,30 +205,37 @@ public class ContractService {
 
     public ContractResponse update(Long id, ContractRequest request) {
         Contract contract = getContract(id);
-        if (contract.getStatus() == ContractStatus.ACTIVE || contract.getStatus() == ContractStatus.COMPLETED) {
-            throw new IllegalArgumentException("Impossible de modifier un contrat en location ou déjà terminé");
+        if (contract.getStatus() == ContractStatus.COMPLETED) {
+            throw new IllegalArgumentException("Impossible de modifier un contrat déjà terminé");
         }
 
         Car car = carRepository.findById(request.carId())
                 .orElseThrow(() -> new ResourceNotFoundException("Car not found: " + request.carId()));
+        
+        if (hasOverlappingContract(car.getId(), request.departureDatetime(), request.expectedReturnDatetime(), contract.getId())) {
+            throw new IllegalArgumentException("La voiture " + car.getMatricule() + " est déjà réservée ou louée sur cette période.");
+        }
+
         Client client = clientRepository.findById(request.clientId())
                 .orElseThrow(() -> new ResourceNotFoundException("Client not found: " + request.clientId()));
 
         if (contract.getStatus() == ContractStatus.ACTIVE && !contract.getCar().getId().equals(request.carId())) {
             throw new IllegalArgumentException("Cannot change assigned car while contract is active");
         }
-        if (contract.getStatus() == ContractStatus.IN_PROGRESS && !contract.getCar().getId().equals(request.carId())) {
-            Car newCar = car;
-            if (newCar.getStatus() != CarStatus.AVAILABLE) {
-                throw new IllegalArgumentException("Car is not available: " + newCar.getMatricule());
-            }
-        }
 
         contract.setCar(car);
         contract.setClient(client);
         apply(contract, request);
 
-        if (contract.getStatus() == ContractStatus.ACTIVE) {
+        LocalDateTime now = LocalDateTime.now();
+        if (contract.getStatus() == ContractStatus.IN_PROGRESS && !contract.getDepartureDatetime().isAfter(now)) {
+            if (car.getStatus() != CarStatus.AVAILABLE) {
+                throw new IllegalArgumentException("La voiture n'est pas disponible pour une location immédiate (statut actuel: " + car.getStatus() + ").");
+            }
+            contract.setStatus(ContractStatus.ACTIVE);
+            car.setStatus(CarStatus.RENTED);
+            financialService.ensureIncomeForContract(contract);
+        } else if (contract.getStatus() == ContractStatus.ACTIVE) {
             contract.getCar().setStatus(CarStatus.RENTED);
         }
 

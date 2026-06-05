@@ -24,4 +24,10 @@ class DashboardRepository {
     final list = (res.data as List).cast<Map<String, dynamic>>();
     return list.map(DashboardAlertModel.fromJson).toList();
   }
+
+  Future<List<ContractModel>> getFutureReservations() async {
+    final res = await dio.get('/dashboard/future-reservations');
+    final list = (res.data as List).cast<Map<String, dynamic>>();
+    return list.map(ContractModel.fromJson).toList();
+  }
 }

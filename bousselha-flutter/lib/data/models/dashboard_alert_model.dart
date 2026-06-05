@@ -5,6 +5,7 @@ class DashboardAlertModel {
   final String message;
   final String severity;
   final String dueDate;
+  final int? contractId;
 
   const DashboardAlertModel({
     required this.type,
@@ -13,6 +14,7 @@ class DashboardAlertModel {
     required this.message,
     required this.severity,
     required this.dueDate,
+    this.contractId,
   });
 
   factory DashboardAlertModel.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class DashboardAlertModel {
       message: json['message'] as String? ?? '',
       severity: json['severity'] as String? ?? '',
       dueDate: json['dueDate'] as String? ?? '',
+      contractId: (json['contractId'] as num?)?.toInt(),
     );
   }
 }
