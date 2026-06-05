@@ -20,6 +20,10 @@ Verifier que le systeme permet de gerer correctement :
 - les revenus et depenses ;
 - le calendrier de disponibilite ;
 - la generation PDF ;
+- les reservations futures ;
+- l'activation automatique des contrats ;
+- les alertes de retour vehicule ;
+- l'affichage des matricules avec lettre arabe ;
 - les erreurs metier et validations.
 
 ---
@@ -99,7 +103,7 @@ Tester les familles d'API :
 | Clients | `/api/clients` |
 | Contrats | `/api/contracts` |
 | Maintenance | `/api/maintenance` |
-| Dashboard | `/api/dashboard/stats`, `/api/dashboard/alerts`, `/api/dashboard/calendar` |
+| Dashboard | `/api/dashboard/stats`, `/api/dashboard/alerts`, `/api/dashboard/calendar`, `/api/dashboard/future-reservations` |
 | Finance | `/api/financial/income`, `/api/financial/expenses` |
 
 Resultat attendu :
@@ -225,6 +229,112 @@ Resultat attendu :
 }
 ```
 
+### 4.7 Matricule avec lettre arabe dans l'UI
+
+Precondition :
+
+- creer ou modifier une voiture avec un matricule contenant une lettre arabe.
+
+Exemples :
+
+```text
+12345-ب-67
+12345-أ-67
+12345-د-67
+```
+
+Zones a verifier :
+
+- formulaire ajout voiture ;
+- formulaire modification voiture ;
+- liste des voitures ;
+- detail voiture ;
+- calendrier ;
+- dashboard ;
+- contrats ;
+- maintenance ;
+- PDF contrat.
+
+Resultat attendu :
+
+- le matricule garde exactement l'ordre saisi ;
+- la lettre arabe reste a sa position ;
+- il ne doit pas devenir `67-ب-12345`, `00-0000-ب` ou une autre permutation ;
+- le champ de saisie reste lisible de gauche a droite pour un format plaque.
+
+### 4.8 Image voiture actualisee immediatement
+
+Action :
+
+1. Creer une voiture sans image.
+2. Modifier la voiture.
+3. Choisir une image `.jpg`, `.jpeg` ou `.png`.
+4. Enregistrer.
+
+Resultat attendu :
+
+- l'image apparait dans la liste sans redemarrer l'application ;
+- l'image apparait dans le detail voiture ;
+- l'image apparait dans Dashboard / Calendrier quand la voiture est listee ;
+- le chemin API `imageUrl` pointe vers `/uploads/cars/...`.
+
+### 4.9 Ouverture image en plein ecran
+
+Precondition :
+
+- voiture avec image.
+
+Action :
+
+```text
+Detail voiture -> cliquer sur l'image
+```
+
+Resultat attendu :
+
+- l'image s'ouvre en plein ecran ;
+- le bouton fermer revient au detail ;
+- l'image garde un affichage correct avec zoom/contain.
+
+### 4.10 Remettre disponible
+
+Action disponible dans la liste ou le detail voiture si statut :
+
+```text
+RENTED
+MAINTENANCE
+```
+
+Scenario autorise :
+
+1. Avoir une voiture `RENTED` sans contrat ouvert, ou `MAINTENANCE` sans maintenance en cours.
+2. Cliquer `Remettre disponible`.
+
+Resultat attendu :
+
+- confirmation affichee ;
+- voiture repasse `AVAILABLE`.
+
+Scenario interdit : voiture louee avec contrat ouvert.
+
+Resultat attendu :
+
+```json
+{
+  "error": "CAR_HAS_ACTIVE_CONTRACT"
+}
+```
+
+Scenario interdit : voiture en maintenance avec maintenance en cours.
+
+Resultat attendu :
+
+```json
+{
+  "error": "MAINTENANCE_NOT_FINISHED"
+}
+```
+
 ---
 
 ## 5. Tests du module Clients
@@ -315,8 +425,10 @@ Paiement cash = 1200
 
 Resultat attendu :
 
-- contrat cree avec statut `IN_PROGRESS` ;
-- voiture reste `AVAILABLE` tant que le contrat n'est pas active ;
+- si la date de depart est future : contrat cree avec statut `IN_PROGRESS` ;
+- si la date de depart est maintenant ou deja passee : contrat cree directement avec statut `ACTIVE` ;
+- pour un contrat futur, la voiture reste `AVAILABLE` tant que la date de depart n'est pas atteinte ;
+- pour un contrat immediat, la voiture passe directement `RENTED` ;
 - le contrat apparait dans la liste Contrats ;
 - le client apparait dans la liste Clients.
 
@@ -336,7 +448,7 @@ Resultat attendu :
 
 ```json
 {
-  "error": "Car is not available for rental: ..."
+  "error": "La voiture n'est pas disponible pour une location immediate (statut actuel: ...)."
 }
 ```
 
@@ -356,7 +468,7 @@ Resultat attendu :
 
 ```json
 {
-  "error": "Car already has an open contract: ..."
+  "error": "La voiture ... est deja reservee ou louee sur cette periode."
 }
 ```
 
@@ -447,7 +559,7 @@ Resultat attendu :
 
 Precondition :
 
-- contrat `IN_PROGRESS`.
+- contrat `IN_PROGRESS` ou `ACTIVE`.
 
 Action :
 
@@ -457,16 +569,37 @@ Contrat detail -> Modifier
 
 Resultat attendu :
 
-- modification acceptee ;
-- changement de voiture accepte seulement si la nouvelle voiture est disponible.
+- pour `IN_PROGRESS` : modification acceptee si la periode ne chevauche pas une autre reservation ;
+- pour `ACTIVE` : modification acceptee, mais la voiture assignee ne peut pas changer ;
+- pour `IN_PROGRESS`, le changement de voiture est accepte seulement si la nouvelle voiture est disponible et sans chevauchement.
 
-### 6.9 Exception : modifier un contrat ACTIVE ou COMPLETED
+### 6.9 Exception : modifier un contrat COMPLETED
 
 Resultat attendu :
 
 ```json
 {
-  "error": "Impossible de modifier un contrat en location ou deja termine"
+  "error": "Impossible de modifier un contrat deja termine"
+}
+```
+
+### 6.9.1 Exception : changer la voiture d'un contrat ACTIVE
+
+Precondition :
+
+- contrat `ACTIVE`.
+
+Action :
+
+```text
+Modifier le contrat en changeant carId
+```
+
+Resultat attendu :
+
+```json
+{
+  "error": "Cannot change assigned car while contract is active"
 }
 ```
 
@@ -494,6 +627,100 @@ Resultat attendu :
 }
 ```
 
+### 6.11 Contrat futur / reservation
+
+Precondition :
+
+- voiture `AVAILABLE` ;
+- aucune reservation qui chevauche la periode choisie.
+
+Action :
+
+```text
+Contrats -> Nouveau contrat
+Date depart = demain ou une date future
+Retour prevu = apres la date de depart
+```
+
+Resultat attendu :
+
+- contrat cree avec statut `IN_PROGRESS` ;
+- voiture reste `AVAILABLE` ;
+- le contrat apparait dans `GET /api/dashboard/future-reservations` ;
+- la section Dashboard `Reservations a venir` affiche le contrat avec le nombre de jours restants ;
+- cliquer sur la reservation dans le Dashboard ouvre le detail du contrat.
+
+### 6.12 Activation automatique d'une reservation
+
+Le backend contient une tache planifiee toutes les 10 secondes :
+
+```text
+scheduledAutoActivate()
+```
+
+Elle active automatiquement les contrats `IN_PROGRESS` dont `departureDatetime <= maintenant`.
+
+Scenario de test :
+
+1. Creer une reservation avec depart dans 1 ou 2 minutes.
+2. Verifier que le contrat est `IN_PROGRESS`.
+3. Attendre que l'heure de depart soit atteinte, puis attendre au moins 10 secondes.
+4. Rafraichir les contrats ou le Dashboard.
+
+Resultat attendu :
+
+- contrat passe automatiquement `ACTIVE` ;
+- voiture passe `RENTED` ;
+- revenu cree une seule fois ;
+- la reservation disparait de `Reservations a venir` ;
+- le contrat apparait dans `Calendrier des locations actives`.
+
+### 6.13 Chevauchement de reservation
+
+Precondition :
+
+- voiture avec contrat `IN_PROGRESS` ou `ACTIVE` sur la periode `2026-06-10 -> 2026-06-15`.
+
+Action :
+
+```text
+Creer un autre contrat sur la meme voiture avec depart/retour qui chevauchent cette periode
+```
+
+Exemples de periodes interdites :
+
+```text
+2026-06-09 -> 2026-06-11
+2026-06-12 -> 2026-06-14
+2026-06-14 -> 2026-06-20
+```
+
+Resultat attendu :
+
+```json
+{
+  "error": "La voiture ... est deja reservee ou louee sur cette periode."
+}
+```
+
+### 6.14 Reservation non chevauchante
+
+Precondition :
+
+- voiture avec contrat du `2026-06-10` au `2026-06-15`.
+
+Action :
+
+```text
+Creer un contrat sur la meme voiture du 2026-06-16 au 2026-06-20
+```
+
+Resultat attendu :
+
+- contrat accepte ;
+- statut `IN_PROGRESS` si depart futur ;
+- les deux contrats sont visibles dans l'historique de la voiture.
+
 ---
 
 ## 7. Tests PDF contrat
@@ -516,7 +743,43 @@ Resultat attendu :
 - le nom contient le client et le matricule ;
 - le PDF contient au minimum : client, voiture, dates, paiement, sections du contrat.
 
-### 7.2 Exception : PDF sur contrat IN_PROGRESS
+### 7.2 PDF avec matricule contenant une lettre arabe
+
+Precondition :
+
+- voiture avec matricule contenant une lettre arabe, par exemple :
+
+```text
+12345-ب-67
+```
+
+Action :
+
+1. Creer un contrat avec cette voiture.
+2. Activer ou terminer le contrat.
+3. Telecharger le PDF.
+
+Resultat attendu :
+
+- le matricule garde exactement l'ordre saisi ;
+- la lettre arabe ne devient pas `?` ;
+- le fichier PDF utilise les polices Cairo si elles sont presentes dans :
+
+```text
+bousselha-backend/src/main/resources/static/fonts/Cairo-Regular.ttf
+bousselha-backend/src/main/resources/static/fonts/Cairo-Bold.ttf
+```
+
+Tester plusieurs lettres :
+
+```text
+12345-ب-67
+12345-أ-67
+12345-د-67
+12345-و-67
+```
+
+### 7.3 Exception : PDF sur contrat IN_PROGRESS
 
 Action API :
 
@@ -640,7 +903,28 @@ Scenarios :
 - creer maintenance en cours -> Maintenance augmente ;
 - terminer maintenance -> Maintenance diminue.
 
-### 9.2 Revenus
+### 9.2 Graphique financier global
+
+Le Dashboard affiche un graphique qui combine les revenus et les depenses.
+
+Preconditions :
+
+- au moins un contrat active avec revenu ;
+- au moins une maintenance avec cout.
+
+Action :
+
+```text
+Dashboard
+```
+
+Resultat attendu :
+
+- le graphique s'affiche sans erreur ;
+- les points ou courbes Income / Expense correspondent aux donnees de `GET /api/financial/income` et `GET /api/financial/expenses` ;
+- si aucune donnee n'existe, le graphique ne doit pas casser l'ecran.
+
+### 9.3 Revenus
 
 Precondition :
 
@@ -657,7 +941,7 @@ Resultat attendu :
 - dashboard `Revenus` augmente ;
 - ecran detail Income affiche une ligne `Contrat #id - client`.
 
-### 9.3 Depenses
+### 9.4 Depenses
 
 Precondition :
 
@@ -674,6 +958,46 @@ Resultat attendu :
 - dashboard `Depenses` augmente ;
 - ecran detail Expense affiche la maintenance.
 
+### 9.5 Reservations a venir
+
+Nouvelle section Dashboard :
+
+```text
+Reservations a venir
+```
+
+Elle consomme :
+
+```http
+GET /api/dashboard/future-reservations
+```
+
+Precondition :
+
+- creer un contrat avec date de depart future ;
+- statut attendu : `IN_PROGRESS`.
+
+Resultat attendu :
+
+- la reservation apparait dans la section ;
+- l'image de la voiture apparait si elle existe ;
+- le libelle affiche voiture, matricule, client et date de depart ;
+- le badge a droite affiche `Aujourd'hui`, `Demain` ou `Dans X jours` ;
+- cliquer sur la reservation ouvre l'ecran detail du contrat ;
+- apres activation automatique, la reservation disparait de cette section.
+
+### 9.6 Navigation depuis le Dashboard vers un contrat
+
+Tester les zones cliquables :
+
+| Zone | Action | Resultat attendu |
+|---|---|---|
+| Calendrier des locations actives | cliquer sur une ligne | ouverture detail contrat |
+| Reservations a venir | cliquer sur une ligne | ouverture detail contrat |
+| Alerte `RETURN` | cliquer sur l'alerte | ouverture detail contrat |
+
+Apres retour au Dashboard, les providers doivent etre invalides et les donnees rafraichies.
+
 ---
 
 ## 10. Tests des alertes Dashboard
@@ -684,7 +1008,8 @@ Les alertes viennent de :
 GET /api/dashboard/alerts
 ```
 
-Elles dependent uniquement des dates de voiture.
+Les alertes `INSURANCE`, `INSPECTION` et `OIL_CHANGE` dependent des dates de voiture.
+Les alertes `RETURN` dependent des contrats `ACTIVE` et de leur date de retour prevue.
 
 ### 10.1 Assurance
 
@@ -713,6 +1038,50 @@ Le seuil est 180 jours. Pour 2026-06-05, une vidange avant 2025-12-07 doit decle
 | `2025-11-01` | alerte `OIL_CHANGE`, `MEDIUM` |
 | `2026-02-01` | pas d'alerte |
 
+### 10.4 Retour vehicule proche ou depasse
+
+Type d'alerte :
+
+```text
+RETURN
+```
+
+Cette alerte depend des contrats `ACTIVE`, pas des dates de maintenance.
+
+Scenario A - retour dans moins de 24h :
+
+1. Creer ou modifier un contrat `ACTIVE`.
+2. Mettre `expectedReturnDatetime` dans moins de 24 heures.
+3. Appeler `GET /api/dashboard/alerts` ou ouvrir Dashboard.
+
+Resultat attendu :
+
+```json
+{
+  "type": "RETURN",
+  "severity": "MEDIUM",
+  "message": "Retour prevu dans moins de 24h pour ..."
+}
+```
+
+Scenario B - retour depasse :
+
+1. Avoir un contrat `ACTIVE`.
+2. Mettre `expectedReturnDatetime` dans le passe.
+3. Ouvrir Dashboard.
+
+Resultat attendu :
+
+```json
+{
+  "type": "RETURN",
+  "severity": "HIGH",
+  "message": "Retour depasse pour ..."
+}
+```
+
+Dans l'UI, cliquer sur l'alerte `RETURN` doit ouvrir le detail du contrat lie (`contractId`).
+
 ---
 
 ## 11. Tests Calendrier
@@ -721,6 +1090,18 @@ Chemin UI :
 
 ```text
 Calendrier
+```
+
+L'UI utilise principalement :
+
+```http
+GET /api/cars/availability/available?date=YYYY-MM-DD
+```
+
+Pour verifier tous les statuts, utiliser aussi :
+
+```http
+GET /api/cars/availability?date=YYYY-MM-DD
 ```
 
 ### 11.1 Voiture disponible
@@ -752,6 +1133,33 @@ Resultat attendu :
 
 - API availability retourne `MAINTENANCE` ;
 - la voiture n'apparait pas dans `/availability/available`.
+
+### 11.4 Recherche dans le calendrier
+
+Action :
+
+1. Ouvrir `Calendrier`.
+2. Choisir une date.
+3. Saisir une marque dans le champ de recherche.
+
+Resultat attendu :
+
+- la liste se filtre par marque ;
+- si aucun resultat ne correspond, l'UI affiche un message de resultat vide ;
+- le compteur de vehicules disponibles est mis a jour.
+
+### 11.5 Changement de date
+
+Action :
+
+```text
+Calendrier -> bouton date -> choisir une autre date
+```
+
+Resultat attendu :
+
+- la liste est rechargee ;
+- les voitures disponibles changent selon les contrats et maintenances de cette date.
 
 ---
 
@@ -920,21 +1328,34 @@ Avant de considerer une version stable, verifier :
 - [ ] ajout voiture OK ;
 - [ ] upload image voiture OK ;
 - [ ] modification voiture OK ;
+- [ ] matricule avec lettre arabe affiche dans le bon ordre ;
+- [ ] image voiture visible immediatement apres upload ;
+- [ ] image voiture ouvrable en plein ecran ;
+- [ ] action `Remettre disponible` OK et exceptions OK ;
 - [ ] suppression voiture sans contrat OK ;
 - [ ] blocage suppression voiture avec contrat OK ;
 - [ ] creation client via contrat OK ;
 - [ ] creation contrat `IN_PROGRESS` OK ;
+- [ ] creation contrat immediat -> `ACTIVE` OK ;
+- [ ] reservation future visible dans Dashboard ;
+- [ ] activation automatique apres date de depart OK ;
+- [ ] chevauchement de reservation bloque ;
 - [ ] activation contrat OK ;
 - [ ] revenu cree une seule fois ;
 - [ ] fin contrat OK ;
 - [ ] PDF telechargeable pour contrat ACTIVE/COMPLETED ;
+- [ ] PDF affiche correctement les matricules avec lettre arabe ;
 - [ ] PDF bloque pour IN_PROGRESS ;
 - [ ] maintenance creation OK ;
 - [ ] depense creee ;
 - [ ] maintenance complete OK ;
 - [ ] dashboard stats correctes ;
+- [ ] graphique financier charge correctement ;
+- [ ] navigation Dashboard -> detail contrat OK ;
 - [ ] alertes assurance / visite / vidange correctes ;
+- [ ] alerte retour vehicule `RETURN` correcte ;
 - [ ] calendrier disponibilite correct ;
+- [ ] recherche calendrier correcte ;
 - [ ] erreurs 400/404 lisibles dans l'UI ou Swagger.
 
 ---
@@ -942,11 +1363,15 @@ Avant de considerer une version stable, verifier :
 ## 16. Notes importantes
 
 - Les statuts voiture sont principalement pilotes par les actions metier : contrat et maintenance.
-- Un contrat cree commence par `IN_PROGRESS`.
+- Un contrat futur commence par `IN_PROGRESS`.
+- Un contrat immediat ou dont la date de depart est deja atteinte peut passer directement `ACTIVE`.
+- Les contrats `IN_PROGRESS` sont auto-actives par une tache planifiee quand la date de depart arrive.
 - Le revenu est cree a l'activation du contrat, pas a la creation.
 - La depense est creee a partir de la maintenance.
-- Les alertes ne dependent pas des contrats.
+- Les alertes voiture dependent des dates assurance / visite / vidange.
+- Les alertes `RETURN` dependent des contrats `ACTIVE` et de leur retour prevu.
 - Les contrats sont supprimes logiquement.
 - Les clients peuvent etre purges automatiquement s'ils deviennent orphelins.
 - Les images sont stockees dans `bousselha-backend/src/main/resources/static/uploads/cars`.
 - Le PDF est genere par le backend avec PDFBox.
+- Les polices Cairo sont utilisees pour mieux supporter l'arabe et Unicode dans les PDF.
