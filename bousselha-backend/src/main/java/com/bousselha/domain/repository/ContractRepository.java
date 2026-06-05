@@ -22,6 +22,14 @@ public interface ContractRepository extends JpaRepository<Contract, Long> {
     boolean existsByClientIdAndDeletedFalseAndStatusIn(Long clientId, Collection<ContractStatus> statuses);
     boolean existsByCarIdAndDeletedFalseAndStatusIn(Long carId, Collection<ContractStatus> statuses);
 
+    @Query("""
+            select c from Contract c
+            join fetch c.client
+            join fetch c.car
+            where c.deleted = false and c.status = :status
+            """)
+    List<Contract> findDetailedByStatus(@Param("status") ContractStatus status);
+
     long countByDeletedFalseAndClientId(Long clientId);
 
     long countByClientId(Long clientId);

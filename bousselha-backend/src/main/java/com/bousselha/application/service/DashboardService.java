@@ -10,6 +10,7 @@ import com.bousselha.domain.model.Contract;
 import com.bousselha.domain.repository.CarRepository;
 import com.bousselha.domain.repository.ContractRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -18,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@Transactional
 public class DashboardService {
     private static final int INSURANCE_ALERT_DAYS = 30;
     private static final int INSPECTION_ALERT_DAYS = 30;
@@ -72,7 +74,7 @@ public class DashboardService {
         List<DashboardAlertResponse> alerts = new ArrayList<>();
 
         // 1. Alertes de retour pour les contrats ACTIVE
-        List<Contract> activeContracts = contractRepository.findByDeletedFalseAndStatus(ContractStatus.ACTIVE);
+        List<Contract> activeContracts = contractRepository.findDetailedByStatus(ContractStatus.ACTIVE);
         LocalDateTime limit24h = LocalDateTime.now().plusHours(24);
         for (Contract contract : activeContracts) {
             LocalDateTime returnTime = contract.getExpectedReturnDatetime();

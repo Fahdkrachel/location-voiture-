@@ -130,9 +130,8 @@ public class ContractService {
 
     public List<ContractResponse> findActive() {
         autoActivateContracts();
-        return contractRepository.findByDeletedFalseAndStatusIn(
-                EnumSet.of(ContractStatus.IN_PROGRESS, ContractStatus.ACTIVE)
-        ).stream().map(this::map).toList();
+        return contractRepository.findByDeletedFalseAndStatus(ContractStatus.ACTIVE)
+                .stream().map(this::map).toList();
     }
 
     public ContractResponse create(ContractRequest request) {
