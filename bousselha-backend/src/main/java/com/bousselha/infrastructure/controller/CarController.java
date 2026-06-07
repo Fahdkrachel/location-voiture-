@@ -46,6 +46,7 @@ public class CarController {
             @RequestParam String brand,
             @RequestParam FuelType fuelType,
             @RequestParam String matricule,
+            @RequestParam Long mileage,
             @RequestParam(required = false) String nextInspectionDate,
             @RequestParam(required = false) String lastOilChangeDate,
             @RequestParam(required = false) String insuranceExpiryDate,
@@ -59,6 +60,7 @@ public class CarController {
                 parseLocalDate(nextInspectionDate),
                 parseLocalDate(lastOilChangeDate),
                 parseLocalDate(insuranceExpiryDate),
+                mileage,
                 null,
                 status
         );
@@ -71,6 +73,7 @@ public class CarController {
             @RequestParam String brand,
             @RequestParam FuelType fuelType,
             @RequestParam String matricule,
+            @RequestParam Long mileage,
             @RequestParam(required = false) String nextInspectionDate,
             @RequestParam(required = false) String lastOilChangeDate,
             @RequestParam(required = false) String insuranceExpiryDate,
@@ -84,6 +87,7 @@ public class CarController {
                 parseLocalDate(nextInspectionDate),
                 parseLocalDate(lastOilChangeDate),
                 parseLocalDate(insuranceExpiryDate),
+                mileage,
                 null,
                 status
         );

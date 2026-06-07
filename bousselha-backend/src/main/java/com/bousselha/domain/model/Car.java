@@ -37,6 +37,12 @@ public class Car {
     @Column(name = "insurance_expiry_date")
     private LocalDate insuranceExpiryDate;
 
+    @Column(nullable = false)
+    private Long mileage = 0L;
+
+    @Column(name = "mileage_updated_at")
+    private LocalDateTime mileageUpdatedAt;
+
     @Column(name = "image_url", length = 300)
     private String imageUrl;
 

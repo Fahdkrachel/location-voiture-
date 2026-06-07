@@ -4,6 +4,7 @@ import com.bousselha.domain.enums.CarStatus;
 import com.bousselha.domain.enums.FuelType;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public record CarResponse(
         Long id,
@@ -13,6 +14,8 @@ public record CarResponse(
         LocalDate nextInspectionDate,
         LocalDate lastOilChangeDate,
         LocalDate insuranceExpiryDate,
+        Long mileage,
+        LocalDateTime mileageUpdatedAt,
         String imageUrl,
         CarStatus status
 ) {

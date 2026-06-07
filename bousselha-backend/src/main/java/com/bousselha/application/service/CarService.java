@@ -222,11 +222,29 @@ public class CarService {
         car.setNextInspectionDate(request.nextInspectionDate());
         car.setLastOilChangeDate(request.lastOilChangeDate());
         car.setInsuranceExpiryDate(request.insuranceExpiryDate());
+        applyMileage(car, request.mileage());
         if (image != null && !image.isEmpty()) {
             car.setImageUrl(storeImage(image));
         }
         if (allowStatusOnCreate) {
             car.setStatus(request.status() == null ? CarStatus.AVAILABLE : request.status());
+        }
+    }
+
+    private void applyMileage(Car car, Long requestedMileage) {
+        if (requestedMileage == null) {
+            throw new IllegalArgumentException("MILEAGE_REQUIRED");
+        }
+        if (requestedMileage < 0) {
+            throw new IllegalArgumentException("MILEAGE_MUST_BE_POSITIVE");
+        }
+        Long currentMileage = car.getMileage() == null ? 0L : car.getMileage();
+        if (car.getId() != null && requestedMileage < currentMileage) {
+            throw new IllegalArgumentException("MILEAGE_CANNOT_DECREASE");
+        }
+        if (car.getId() == null || car.getMileage() == null || !requestedMileage.equals(car.getMileage())) {
+            car.setMileage(requestedMileage);
+            car.setMileageUpdatedAt(LocalDateTime.now());
         }
     }
 
@@ -258,6 +276,8 @@ public class CarService {
                 car.getNextInspectionDate(),
                 car.getLastOilChangeDate(),
                 car.getInsuranceExpiryDate(),
+                car.getMileage(),
+                car.getMileageUpdatedAt(),
                 car.getImageUrl(),
                 car.getStatus()
         );

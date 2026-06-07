@@ -73,6 +73,21 @@ String _statusLabel(String status) {
   }
 }
 
+String _formatMileage(int mileage) {
+  final raw = mileage.toString();
+  return raw.replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (match) => ' ');
+}
+
+String _formatMileageUpdatedAt(String value) {
+  if (value.isEmpty) return '—';
+  final parsed = DateTime.tryParse(value);
+  if (parsed == null) return value;
+  final day = parsed.day.toString().padLeft(2, '0');
+  final month = parsed.month.toString().padLeft(2, '0');
+  final year = parsed.year.toString();
+  return '$day/$month/$year';
+}
+
 void _invalidateVehicleLists(WidgetRef ref) {
   invalidateAllBoushelhaProviders(ref);
 }
@@ -81,6 +96,7 @@ void _invalidateVehicleLists(WidgetRef ref) {
 Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? car}) async {
   final brandCtrl = TextEditingController(text: car?.brand ?? '');
   final matriculeCtrl = BidiMatriculeEditingController(text: car?.matricule ?? '');
+  final mileageCtrl = TextEditingController(text: car == null ? '' : car.mileage.toString());
   final inspectionCtrl = TextEditingController(text: car?.nextInspectionDate ?? '');
   final oilCtrl = TextEditingController(text: car?.lastOilChangeDate ?? '');
   final insuranceCtrl = TextEditingController(text: car?.insuranceExpiryDate ?? '');
@@ -105,6 +121,12 @@ Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? 
                   TextField(controller: brandCtrl, decoration: const InputDecoration(labelText: 'Marque *')),
                   const SizedBox(height: 8),
                   TextField(controller: matriculeCtrl, decoration: const InputDecoration(labelText: 'Matricule *')),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: mileageCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Kilométrage actuel *', suffixText: 'km'),
+                  ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     initialValue: fuelType,
@@ -243,6 +265,8 @@ Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? 
               onPressed: () async {
                 final brand = brandCtrl.text.trim();
                 final matricule = matriculeCtrl.cleanText.trim();
+                final mileageText = mileageCtrl.text.replaceAll(RegExp(r'\s+'), '').trim();
+                final mileage = int.tryParse(mileageText);
                 final nextInspectionDate = inspectionCtrl.text.trim();
                 final lastOilChangeDate = oilCtrl.text.trim();
                 final insuranceExpiryDate = insuranceCtrl.text.trim();
@@ -253,6 +277,18 @@ Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? 
                   );
                   return;
                 }
+                if (mileage == null || mileage < 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Le kilométrage actuel est obligatoire et doit être positif.')),
+                  );
+                  return;
+                }
+                if (car != null && mileage < car.mileage) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Le kilométrage ne peut pas diminuer.')),
+                  );
+                  return;
+                }
 
                 try {
                   if (car == null) {
@@ -260,6 +296,7 @@ Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? 
                           brand: brand,
                           fuelType: fuelType,
                           matricule: matricule,
+                          mileage: mileage,
                           nextInspectionDate: nextInspectionDate.isEmpty ? null : nextInspectionDate,
                           lastOilChangeDate: lastOilChangeDate.isEmpty ? null : lastOilChangeDate,
                           insuranceExpiryDate: insuranceExpiryDate.isEmpty ? null : insuranceExpiryDate,
@@ -272,6 +309,7 @@ Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? 
                           brand: brand,
                           fuelType: fuelType,
                           matricule: matricule,
+                          mileage: mileage,
                           nextInspectionDate: nextInspectionDate.isEmpty ? null : nextInspectionDate,
                           lastOilChangeDate: lastOilChangeDate.isEmpty ? null : lastOilChangeDate,
                           insuranceExpiryDate: insuranceExpiryDate.isEmpty ? null : insuranceExpiryDate,
@@ -643,6 +681,18 @@ class _HorizontalCarCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
+                      'Kilométrage: ${_formatMileage(car.mileage)} km',
+                      style: const TextStyle(fontSize: 12.5),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      'Mis à jour le: ${_formatMileageUpdatedAt(car.mileageUpdatedAt)}',
+                      style: const TextStyle(fontSize: 12.5),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
                       'Prochaine visite: ${car.nextInspectionDate.isEmpty ? '—' : car.nextInspectionDate}',
                       style: const TextStyle(fontSize: 12.5),
                       maxLines: 1,
@@ -941,6 +991,8 @@ class _CarDetailScreenState extends ConsumerState<CarDetailScreen> with SingleTi
                         (_iconLabel(Icons.directions_car_outlined, 'Marque'), _car.brand),
                         (_iconLabel(Icons.confirmation_number_outlined, 'Matricule'), preserveBidiOrder(_car.matricule)),
                         (_iconLabel(Icons.local_gas_station_rounded, 'Carburant'), _car.fuelType),
+                        (_iconLabel(Icons.speed_rounded, 'Kilométrage'), '${_formatMileage(_car.mileage)} km'),
+                        (_iconLabel(Icons.update_rounded, 'Mis à jour le'), _formatMileageUpdatedAt(_car.mileageUpdatedAt)),
                         (_iconLabel(Icons.event_available_rounded, 'Prochaine visite'), _dash(_car.nextInspectionDate)),
                         (_iconLabel(Icons.build_circle_outlined, 'Dernière vidange'), _dash(_car.lastOilChangeDate)),
                         (_iconLabel(Icons.health_and_safety_outlined, 'Expiration assurance'), _dash(_car.insuranceExpiryDate)),
