@@ -10,17 +10,29 @@ import '../../data/models/dashboard_stats_model.dart';
 import '../../data/models/maintenance_model.dart';
 import '../../data/models/expense_record_model.dart';
 import '../../data/models/income_record_model.dart';
+import '../../data/models/admin_model.dart';
 import '../../data/repositories/car_repository.dart';
 import '../../data/repositories/client_repository.dart';
 import '../../data/repositories/contract_repository.dart';
 import '../../data/repositories/dashboard_repository.dart';
 import '../../data/repositories/financial_repository.dart';
 import '../../data/repositories/maintenance_repository.dart';
+import '../../data/repositories/admin_repository.dart';
 
 final dioProvider = Provider<Dio>((ref) => DioClient.build());
+
+final adminRepositoryProvider = Provider<AdminRepository>((ref) {
+  return AdminRepository(ref.watch(dioProvider));
+});
+
+final adminsProvider = FutureProvider<List<AdminModel>>((ref) async {
+  return ref.watch(adminRepositoryProvider).getAdmins();
+});
+
 final carRepositoryProvider = Provider<CarRepository>((ref) {
   return CarRepository(ref.watch(dioProvider));
 });
+
 
 final carsProvider = FutureProvider<List<CarModel>>((ref) async {
   return ref.watch(carRepositoryProvider).getCars();
@@ -93,4 +105,5 @@ void invalidateAllBoushelhaProviders(dynamic ref) {
   ref.invalidate(dashboardFutureReservationsProvider);
   ref.invalidate(incomeProvider);
   ref.invalidate(expensesProvider);
+  ref.invalidate(adminsProvider);
 }

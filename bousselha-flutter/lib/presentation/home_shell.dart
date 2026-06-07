@@ -7,6 +7,8 @@ import '../shared/widgets/sidebar_nav.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'maintenance/maintenance_list_screen.dart';
 import 'calendar/calendar_screen.dart';
+import 'admins/admin_list_screen.dart';
+import 'profile/profile_screen.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -27,9 +29,20 @@ class _HomeShellState extends State<HomeShell> {
       const ContractListScreen(),
       const MaintenanceListScreen(),
       const CalendarScreen(),
+      const AdminListScreen(),
+      const ProfileScreen(),
     ];
 
-    final titles = <String>['Dashboard', 'Voitures', 'Clients', 'Contrats', 'Maintenance', 'Calendrier'];
+    final titles = <String>[
+      'Dashboard', 
+      'Voitures', 
+      'Clients', 
+      'Contrats', 
+      'Maintenance', 
+      'Calendrier', 
+      'Administrateurs', 
+      'Mon Profil'
+    ];
 
     final bodyRow = Row(
       children: [
@@ -57,3 +70,4 @@ class _HomeShellState extends State<HomeShell> {
     );
   }
 }
+
