@@ -1,6 +1,7 @@
 package com.bousselha.application.service;
 
 import com.bousselha.domain.enums.ContractStatus;
+import com.bousselha.domain.model.CompanySettings;
 import com.bousselha.domain.model.Contract;
 import com.bousselha.domain.repository.ContractRepository;
 import com.bousselha.infrastructure.exception.ResourceNotFoundException;
@@ -26,9 +27,11 @@ import java.time.format.DateTimeFormatter;
 @Service
 public class PdfService {
     private final ContractRepository contractRepository;
+    private final SettingsService settingsService;
 
-    public PdfService(ContractRepository contractRepository) {
+    public PdfService(ContractRepository contractRepository, SettingsService settingsService) {
         this.contractRepository = contractRepository;
+        this.settingsService = settingsService;
     }
 
     public byte[] generateContractPdf(Long id) throws IOException {
@@ -39,6 +42,9 @@ public class PdfService {
             throw new IllegalArgumentException(
                     "Le PDF est disponible uniquement après activation du contrat (statut ACTIVE ou termine)");
         }
+
+        // Charger les paramètres société dynamiques
+        CompanySettings settings = settingsService.getRawSettings();
 
         try (PDDocument doc = new PDDocument(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             PDPage page = new PDPage(PDRectangle.A4);
@@ -105,29 +111,42 @@ public class PdfService {
                 drawVerticalLine(cs, 200, 752, 822, 1f, darkBlue);
                 drawHorizontalLine(cs, 20, 575, 752, 1f, darkBlue);
 
-                // Check logo
-                File logoFile = new File("src/main/resources/static/images/logo.png");
-                if (!logoFile.exists()) {
-                    logoFile = new File("bousselha-backend/src/main/resources/static/images/logo.png");
+                // Check logo dynamique (depuis les paramètres société)
+                File logoFile = null;
+                if (settings.getLogoPath() != null && !settings.getLogoPath().isBlank()) {
+                    logoFile = new File(settings.getLogoPath());
+                    if (!logoFile.exists()) {
+                        logoFile = new File("bousselha-backend/" + settings.getLogoPath());
+                    }
                 }
-                if (logoFile.exists() && logoFile.isFile()) {
+                // Fallback vers le logo statique par défaut
+                if (logoFile == null || !logoFile.exists()) {
+                    File staticLogo = new File("src/main/resources/static/images/logo.png");
+                    if (!staticLogo.exists()) {
+                        staticLogo = new File("bousselha-backend/src/main/resources/static/images/logo.png");
+                    }
+                    if (staticLogo.exists()) logoFile = staticLogo;
+                }
+                if (logoFile != null && logoFile.exists() && logoFile.isFile()) {
                     try {
                         PDImageXObject pdImage = PDImageXObject.createFromFileByExtension(logoFile, doc);
-                        // Draw image scaled inside the left header box
                         cs.drawImage(pdImage, 25, 757, 170, 60);
                     } catch (Exception e) {
-                        // Fallback to text if error loading logo
-                        drawHeaderTextFallback(cs, bold, regular, darkBlue);
+                        drawHeaderTextFallback(cs, bold, regular, darkBlue, settings);
                     }
                 } else {
-                    drawHeaderTextFallback(cs, bold, regular, darkBlue);
+                    drawHeaderTextFallback(cs, bold, regular, darkBlue, settings);
                 }
 
-                // Right header box (Company contact info)
-                drawText(cs, "Branes 1, Rue Ibn Chahid N°11 - Tanger", 210, 804, bold, 9, textBlack);
-                drawText(cs, "Tél/Fax : 05 39 31 54 63", 210, 790, regular, 9, textBlack);
-                drawText(cs, "Gsm : 06 89 12 48 89 / 06 61 54 99 92", 210, 776, regular, 9, textBlack);
-                drawText(cs, "E-mail : bousselhaa@gmail.com", 210, 762, regular, 9, textBlack);
+                // Right header box (Company contact info — dynamique depuis company_settings)
+                String addr   = safe(settings.getAddress());
+                String telFax = buildTelFax(settings);
+                String gsmStr = settings.getGsm() != null ? "Gsm : " + settings.getGsm() : "";
+                String mailStr = settings.getEmail() != null ? "E-mail : " + settings.getEmail() : "";
+                drawText(cs, addr,   210, 804, bold,    9, textBlack);
+                drawText(cs, telFax, 210, 790, regular, 9, textBlack);
+                drawText(cs, gsmStr, 210, 776, regular, 9, textBlack);
+                drawText(cs, mailStr, 210, 762, regular, 9, textBlack);
 
 
                 // --- 2. BANNER (Y = 734 to 752) ---
@@ -473,14 +492,33 @@ public class PdfService {
         }
     }
 
-    private void drawHeaderTextFallback(PDPageContentStream cs, PDFont bold, PDFont regular, Color darkBlue) throws IOException {
+    private String safe(String s) { return s != null ? s : ""; }
+
+    private String buildTelFax(CompanySettings s) {
+        if (s.getPhone() != null && s.getFax() != null && s.getPhone().equals(s.getFax())) {
+            return "Tél/Fax : " + s.getPhone();
+        } else if (s.getPhone() != null && s.getFax() != null) {
+            return "Tél : " + s.getPhone() + "  Fax : " + s.getFax();
+        } else if (s.getPhone() != null) {
+            return "Tél : " + s.getPhone();
+        }
+        return "";
+    }
+
+    private void drawHeaderTextFallback(PDPageContentStream cs, PDFont bold, PDFont regular,
+                                        Color darkBlue, CompanySettings settings) throws IOException {
+        // Afficher le nom de la société (max 2 lignes)
+        String name = settings.getCompanyName() != null ? settings.getCompanyName() : "BOUSSELHA CARS";
+        String[] nameParts = name.split(" ", 2);
         cs.beginText();
-        cs.setFont(bold, 14);
+        cs.setFont(bold, 13);
         cs.setNonStrokingColor(darkBlue);
         cs.newLineAtOffset(25, 796);
-        cs.showText("BOUSSELHA");
-        cs.newLineAtOffset(18, -14);
-        cs.showText("CARS");
+        cs.showText(cleanToAscii(nameParts[0]));
+        if (nameParts.length > 1) {
+            cs.newLineAtOffset(0, -14);
+            cs.showText(cleanToAscii(nameParts[1]));
+        }
         cs.endText();
 
         cs.beginText();

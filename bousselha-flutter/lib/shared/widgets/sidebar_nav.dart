@@ -1,93 +1,162 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/auth_provider.dart';
 
 class SidebarNav extends ConsumerWidget {
   final int selected;
   final ValueChanged<int> onSelect;
+
   const SidebarNav({super.key, required this.selected, required this.onSelect});
+
+  static const _mainItems = [
+    _NavItem(icon: Icons.dashboard_outlined, activeIcon: Icons.dashboard, label: 'Dashboard'),
+    _NavItem(icon: Icons.directions_car_outlined, activeIcon: Icons.directions_car, label: 'Voitures'),
+    _NavItem(icon: Icons.person_pin_outlined, activeIcon: Icons.person_pin, label: 'Clients'),
+    _NavItem(icon: Icons.description_outlined, activeIcon: Icons.description, label: 'Contrats'),
+    _NavItem(icon: Icons.build_outlined, activeIcon: Icons.build, label: 'Maintenance'),
+    _NavItem(icon: Icons.calendar_month_outlined, activeIcon: Icons.calendar_month, label: 'Calendrier'),
+  ];
+
+  // index 6 = Paramètres
+  static const int _settingsIndex = 6;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final admin = ref.watch(authProvider).admin;
-    final initials = admin != null && admin['fullName'] != null && admin['fullName'].toString().isNotEmpty
-        ? admin['fullName'].toString().substring(0, 1).toUpperCase()
-        : 'A';
-
-    return NavigationRail(
-      selectedIndex: selected,
-      onDestinationSelected: onSelect,
-      labelType: NavigationRailLabelType.all,
-      leading: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20.0),
-        child: Column(
-          children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: const Color(0xFF1A2B4A),
-              child: Text(
-                initials,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              constraints: const BoxConstraints(maxWidth: 80),
-              child: Text(
-                admin?['fullName'] ?? 'Admin',
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ],
-        ),
+    return Container(
+      width: 80,
+      decoration: const BoxDecoration(
+        color: Color(0xFF1A2B4A),
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(2, 0))],
       ),
-      trailing: Expanded(
-        child: Align(
-          alignment: Alignment.bottomCenter,
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 20.0),
-            child: IconButton(
-              icon: const Icon(Icons.logout_rounded, color: Color(0xFFDC2626)),
-              tooltip: 'Déconnexion',
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Déconnexion'),
-                    content: const Text('Êtes-vous sûr de vouloir vous déconnecter ?'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Annuler'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          ref.read(authProvider.notifier).logout();
-                        },
-                        child: const Text('Déconnexion', style: TextStyle(color: Colors.red)),
-                      ),
-                    ],
+      child: Column(
+        children: [
+          // ── Logo / App Icon ──────────────────────────────────────────────
+          Container(
+            height: 64,
+            alignment: Alignment.center,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Center(
+                child: Text(
+                  'BC',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
                   ),
-                );
-              },
+                ),
+              ),
+            ),
+          ),
+
+          const Divider(height: 1, color: Colors.white12),
+          const SizedBox(height: 8),
+
+          // ── Main Navigation Items ────────────────────────────────────────
+          ...List.generate(_mainItems.length, (i) {
+            final item = _mainItems[i];
+            final isSelected = selected == i;
+            return _NavButton(
+              icon: isSelected ? item.activeIcon : item.icon,
+              label: item.label,
+              isSelected: isSelected,
+              onTap: () => onSelect(i),
+            );
+          }),
+
+          // ── Spacer + Separator ───────────────────────────────────────────
+          const Spacer(),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Divider(height: 1, color: Colors.white.withValues(alpha: 0.15)),
+          ),
+          const SizedBox(height: 8),
+
+          // ── Paramètres ───────────────────────────────────────────────────
+          _NavButton(
+            icon: selected == _settingsIndex ? Icons.settings : Icons.settings_outlined,
+            label: 'Paramètres',
+            isSelected: selected == _settingsIndex,
+            onTap: () => onSelect(_settingsIndex),
+          ),
+
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
+
+// ── NavButton Widget ─────────────────────────────────────────────────────────
+class _NavButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _NavButton({
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: Tooltip(
+        message: label,
+        preferBelow: false,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            decoration: BoxDecoration(
+              color: isSelected ? Colors.white.withValues(alpha: 0.15) : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+              border: isSelected
+                  ? Border.all(color: Colors.white.withValues(alpha: 0.2))
+                  : null,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  size: 22,
+                  color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.55),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.55),
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
         ),
       ),
-      destinations: const [
-        NavigationRailDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: Text('Dashboard')),
-        NavigationRailDestination(icon: Icon(Icons.directions_car_outlined), selectedIcon: Icon(Icons.directions_car), label: Text('Voitures')),
-        NavigationRailDestination(icon: Icon(Icons.person_pin_outlined), selectedIcon: Icon(Icons.person_pin), label: Text('Clients')),
-        NavigationRailDestination(icon: Icon(Icons.description_outlined), selectedIcon: Icon(Icons.description), label: Text('Contrats')),
-        NavigationRailDestination(icon: Icon(Icons.build_outlined), selectedIcon: Icon(Icons.build), label: Text('Maintenance')),
-        NavigationRailDestination(icon: Icon(Icons.calendar_month_outlined), selectedIcon: Icon(Icons.calendar_month), label: Text('Calendrier')),
-        NavigationRailDestination(icon: Icon(Icons.manage_accounts_outlined), selectedIcon: Icon(Icons.manage_accounts), label: Text('Admins')),
-        NavigationRailDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person), label: Text('Profil')),
-      ],
     );
   }
+}
+
+class _NavItem {
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  const _NavItem({required this.icon, required this.activeIcon, required this.label});
 }

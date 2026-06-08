@@ -8,6 +8,7 @@ C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\request\CreateAdminRequest.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\request\LoginRequest.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\request\MaintenanceRequest.java
+C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\request\SettingsRequest.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\request\UpdateAdminRequest.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\request\UpdatePasswordRequest.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\response\CarAvailabilityResponse.java
@@ -21,6 +22,7 @@ C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\response\IncomeRecordResponse.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\response\LoginResponse.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\response\MaintenanceResponse.java
+C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\response\SettingsResponse.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\service\AdminInitializer.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\service\AdminService.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\service\CarService.java
@@ -31,6 +33,7 @@ C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\service\MaintenanceService.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\service\OrphanClientService.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\service\PdfService.java
+C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\service\SettingsService.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\BousselhaApplication.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\config\CorsConfig.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\config\OpenApiConfig.java
@@ -44,6 +47,7 @@ C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\model\Admin.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\model\Car.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\model\Client.java
+C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\model\CompanySettings.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\model\Contract.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\model\ExpenseRecord.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\model\IncomeRecord.java
@@ -51,6 +55,7 @@ C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\repository\AdminRepository.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\repository\CarRepository.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\repository\ClientRepository.java
+C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\repository\CompanySettingsRepository.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\repository\ContractRepository.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\repository\ExpenseRecordRepository.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\repository\IncomeRecordRepository.java
@@ -60,6 +65,7 @@ C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\infrastructure\controller\ContractController.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\infrastructure\controller\DashboardController.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\infrastructure\controller\MaintenanceController.java
+C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\infrastructure\controller\SettingsController.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\infrastructure\exception\GlobalExceptionHandler.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\infrastructure\exception\ResourceNotFoundException.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\security\JwtAuthenticationFilter.java

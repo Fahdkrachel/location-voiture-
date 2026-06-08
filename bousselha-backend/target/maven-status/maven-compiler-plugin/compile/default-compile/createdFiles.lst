@@ -1,8 +1,11 @@
 com\bousselha\application\dto\response\DashboardResponse.class
 com\bousselha\application\service\ClientService.class
 com\bousselha\application\dto\response\CarResponse.class
+com\bousselha\application\dto\request\SettingsRequest.class
 com\bousselha\application\dto\request\CreateAdminRequest.class
+com\bousselha\application\dto\response\SettingsResponse.class
 com\bousselha\application\dto\response\ExpenseRecordResponse.class
+com\bousselha\infrastructure\controller\SettingsController.class
 com\bousselha\application\service\PdfService.class
 com\bousselha\domain\repository\IncomeRecordRepository.class
 com\bousselha\infrastructure\controller\DashboardController.class
@@ -39,6 +42,7 @@ com\bousselha\application\service\DashboardService.class
 com\bousselha\domain\repository\MaintenanceRepository.class
 com\bousselha\domain\model\Contract.class
 com\bousselha\infrastructure\controller\MaintenanceController.class
+com\bousselha\application\service\SettingsService.class
 com\bousselha\domain\model\Maintenance.class
 com\bousselha\application\dto\request\ContractStatusRequest.class
 com\bousselha\infrastructure\controller\ClientController.class
@@ -49,6 +53,7 @@ com\bousselha\application\dto\request\UpdateAdminRequest.class
 com\bousselha\security\JwtAuthenticationFilter.class
 com\bousselha\domain\model\IncomeRecord.class
 com\bousselha\domain\enums\ContractStatus.class
+com\bousselha\domain\model\CompanySettings.class
 com\bousselha\application\dto\request\MaintenanceRequest.class
 com\bousselha\domain\repository\AdminRepository.class
 com\bousselha\domain\repository\ClientRepository.class
@@ -64,4 +69,5 @@ com\bousselha\domain\enums\ExpenseSource.class
 com\bousselha\infrastructure\exception\GlobalExceptionHandler.class
 com\bousselha\application\controller\AuthController.class
 com\bousselha\application\controller\AdminController.class
+com\bousselha\domain\repository\CompanySettingsRepository.class
 com\bousselha\application\dto\response\ContractResponse.class

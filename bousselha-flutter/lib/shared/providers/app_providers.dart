@@ -18,6 +18,8 @@ import '../../data/repositories/dashboard_repository.dart';
 import '../../data/repositories/financial_repository.dart';
 import '../../data/repositories/maintenance_repository.dart';
 import '../../data/repositories/admin_repository.dart';
+import '../../data/models/settings_model.dart';
+import '../../data/repositories/settings_repository.dart';
 
 final dioProvider = Provider<Dio>((ref) => DioClient.build());
 
@@ -27,6 +29,14 @@ final adminRepositoryProvider = Provider<AdminRepository>((ref) {
 
 final adminsProvider = FutureProvider<List<AdminModel>>((ref) async {
   return ref.watch(adminRepositoryProvider).getAdmins();
+});
+
+final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
+  return SettingsRepository(ref.watch(dioProvider));
+});
+
+final settingsProvider = FutureProvider<SettingsModel>((ref) async {
+  return ref.watch(settingsRepositoryProvider).getSettings();
 });
 
 final carRepositoryProvider = Provider<CarRepository>((ref) {
