@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 
+import '../../core/utils/app_error_handler.dart';
 import '../../data/models/car_model.dart';
 import '../../data/models/contract_model.dart';
 import '../../shared/providers/app_providers.dart';
@@ -51,11 +52,7 @@ Future<bool> markCarAvailable(BuildContext context, WidgetRef ref, CarModel car)
     }
     return true;
   } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_carActionErrorMessage(e))),
-      );
-    }
+    if (context.mounted) AppErrorHandler.showError(context, e);
     return false;
   }
 }
@@ -328,9 +325,7 @@ Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? 
                     );
                   }
                 } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
-                  }
+                  if (context.mounted) AppErrorHandler.showError(context, e);
                 }
               },
               child: const Text('Enregistrer'),
@@ -554,7 +549,7 @@ class _CarListScreenState extends ConsumerState<CarListScreen> {
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, _) => Center(child: Text('Erreur voitures: $err')),
+            error: (err, _) => Center(child: Text(AppErrorHandler.getMessage(err))),
           ),
         ),
       ],
@@ -581,9 +576,7 @@ class _CarListScreenState extends ConsumerState<CarListScreen> {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Voiture supprimee.')));
       }
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur suppression: $e')));
-      }
+      if (context.mounted) AppErrorHandler.showError(context, e);
     }
   }
 
@@ -852,7 +845,7 @@ class _CarDetailScreenState extends ConsumerState<CarDetailScreen> with SingleTi
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur suppression: $e')));
+      AppErrorHandler.showError(context, e);
     }
   }
 

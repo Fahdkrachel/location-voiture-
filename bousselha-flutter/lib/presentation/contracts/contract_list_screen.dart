@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/utils/app_error_handler.dart';
 import '../../data/models/client_model.dart';
 import '../../data/models/contract_model.dart';
 import '../../shared/providers/app_providers.dart';
@@ -154,7 +155,7 @@ class ContractListScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Erreur contrats : $e', style: const TextStyle(color: Cc.danger))),
+        error: (e, _) => Center(child: Text(AppErrorHandler.getMessage(e), style: const TextStyle(color: Cc.danger))),
       ),
     );
   }
@@ -250,9 +251,7 @@ class _ContractDetailScreenState extends ConsumerState<ContractDetailScreen> {
       final c = await ref.read(contractRepositoryProvider).getContractById(widget.contractId);
       if (mounted) setState(() => _contract = c);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur chargement contrat : $e')));
-      }
+      if (mounted) AppErrorHandler.showError(context, e);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -289,9 +288,7 @@ class _ContractDetailScreenState extends ConsumerState<ContractDetailScreen> {
         );
       }
     } catch (e) {
-      if (scaffoldContext.mounted) {
-        messenger.showSnackBar(SnackBar(backgroundColor: Cc.danger, content: Text('$e')));
-      }
+      if (scaffoldContext.mounted) AppErrorHandler.showError(scaffoldContext, e);
     }
   }
 
@@ -349,9 +346,7 @@ class _ContractDetailScreenState extends ConsumerState<ContractDetailScreen> {
         ),
       );
     } catch (e) {
-      if (scaffoldContext.mounted) {
-        messenger.showSnackBar(SnackBar(content: Text('Erreur : $e')));
-      }
+      if (scaffoldContext.mounted) AppErrorHandler.showError(scaffoldContext, e);
     }
   }
 
@@ -412,9 +407,7 @@ class _ContractDetailScreenState extends ConsumerState<ContractDetailScreen> {
                       );
                     } catch (e) {
                       if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(backgroundColor: Cc.danger, content: Text('$e')),
-                      );
+                      AppErrorHandler.showError(context, e);
                     }
                   },
                   icon: const Icon(Icons.download_rounded, size: 18),
@@ -1394,9 +1387,7 @@ Future<Object?> _showUnifiedContractSheet(
                 Navigator.pop(context, true);
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Erreur enregistrement : $e')),
-                  );
+                  AppErrorHandler.showError(context, e);
                   setState(() => isSaving = false);
                 }
               }

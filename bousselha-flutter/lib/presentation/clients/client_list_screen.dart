@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
+import '../../core/utils/app_error_handler.dart';
 import '../../data/models/client_model.dart';
 import '../../shared/providers/app_providers.dart';
 
@@ -90,7 +92,7 @@ class ClientListScreen extends ConsumerWidget {
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, _) => Center(child: Text('Erreur clients: $err')),
+            error: (err, _) => Center(child: Text(AppErrorHandler.getMessage(err))),
           ),
         ),
       ],
@@ -246,11 +248,7 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
         setState(() => _client = client);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur chargement client: $e')),
-        );
-      }
+      if (mounted) AppErrorHandler.showError(context, e);
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -612,11 +610,7 @@ Future<bool?> _showClientFormDialog({
                   );
                 }
               } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Erreur ajout client: $e')),
-                  );
-                }
+                if (context.mounted) AppErrorHandler.showError(context, e);
               }
             },
             child: Text(submitLabel),

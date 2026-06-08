@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/utils/app_error_handler.dart';
 import '../../shared/providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -42,7 +43,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       // Riverpod automatically rebuilds the App's home parameter to HomeShell because token is now updated
     } catch (e) {
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = AppErrorHandler.getMessage(e);
       });
     } finally {
       if (mounted) {

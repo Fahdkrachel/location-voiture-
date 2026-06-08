@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/utils/app_error_handler.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../shared/providers/auth_provider.dart';
 import 'settings_section_header.dart';
@@ -51,12 +52,7 @@ class _SecurityPageState extends ConsumerState<SecurityPage> {
         ));
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Erreur : ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ));
-      }
+      if (mounted) AppErrorHandler.showError(context, e);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

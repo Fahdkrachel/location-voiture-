@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/utils/app_error_handler.dart';
 import '../../data/models/maintenance_model.dart';
 import '../../shared/providers/app_providers.dart';
 import '../../shared/widgets/matricule_text.dart';
@@ -80,7 +81,7 @@ class MaintenanceListScreen extends ConsumerWidget {
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, _) => Center(child: Text('Erreur maintenance: $err')),
+            error: (err, _) => Center(child: Text(AppErrorHandler.getMessage(err))),
           ),
         ),
       ],
@@ -182,11 +183,7 @@ class MaintenanceListScreen extends ConsumerWidget {
                     );
                   }
                 } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Erreur ajout maintenance: $e')),
-                    );
-                  }
+                  if (context.mounted) AppErrorHandler.showError(context, e);
                 }
               },
               child: const Text('Enregistrer'),
@@ -226,11 +223,7 @@ class MaintenanceListScreen extends ConsumerWidget {
         );
       }
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur : $e')),
-        );
-      }
+      if (context.mounted) AppErrorHandler.showError(context, e);
     }
   }
 
@@ -267,11 +260,7 @@ class MaintenanceListScreen extends ConsumerWidget {
         );
       }
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur suppression : $e')),
-        );
-      }
+      if (context.mounted) AppErrorHandler.showError(context, e);
     }
   }
 
@@ -382,11 +371,7 @@ class MaintenanceListScreen extends ConsumerWidget {
                     );
                   }
                 } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Erreur modification: $e')),
-                    );
-                  }
+                  if (context.mounted) AppErrorHandler.showError(context, e);
                 }
               },
               child: const Text('Enregistrer'),

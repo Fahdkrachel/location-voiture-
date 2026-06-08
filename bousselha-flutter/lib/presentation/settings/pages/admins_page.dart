@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../core/utils/app_error_handler.dart';
 import '../../../data/models/admin_model.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../shared/providers/auth_provider.dart';
@@ -37,12 +38,7 @@ class _AdminsPageState extends ConsumerState<AdminsPage> {
       await ref.read(adminRepositoryProvider).toggleStatus(admin.id, newStatus);
       ref.invalidate(adminsProvider);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Erreur : ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ));
-      }
+      if (mounted) AppErrorHandler.showError(context, e);
     }
   }
 
@@ -158,7 +154,7 @@ class _AdminsPageState extends ConsumerState<AdminsPage> {
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Erreur : $e')),
+              error: (e, _) => Center(child: Text(AppErrorHandler.getMessage(e))),
             ),
           ),
         ],
@@ -198,7 +194,7 @@ class _AddAdminDialogState extends ConsumerState<_AddAdminDialog> {
       ref.invalidate(adminsProvider);
       if (mounted) { Navigator.of(context).pop(); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Administrateur créé.'), backgroundColor: Colors.green)); }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur : $e'), backgroundColor: Colors.red));
+      if (mounted) AppErrorHandler.showError(context, e);
     } finally { if (mounted) setState(() => _loading = false); }
   }
 
@@ -249,7 +245,7 @@ class _EditAdminDialogState extends ConsumerState<_EditAdminDialog> {
       ref.invalidate(adminsProvider);
       if (mounted) { Navigator.of(context).pop(); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Administrateur mis à jour.'), backgroundColor: Colors.green)); }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur : $e'), backgroundColor: Colors.red));
+      if (mounted) AppErrorHandler.showError(context, e);
     } finally { if (mounted) setState(() => _loading = false); }
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/utils/app_error_handler.dart';
 import '../../../data/models/settings_model.dart';
 import '../../../shared/providers/app_providers.dart';
 import 'settings_section_header.dart';
@@ -63,12 +64,7 @@ class _CompanyInfoPageState extends ConsumerState<CompanyInfoPage> {
         ));
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Erreur : ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ));
-      }
+      if (mounted) AppErrorHandler.showError(context, e);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -84,7 +80,7 @@ class _CompanyInfoPageState extends ConsumerState<CompanyInfoPage> {
         return _buildForm();
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Erreur : $e')),
+      error: (e, _) => Center(child: Text(AppErrorHandler.getMessage(e))),
     );
   }
 

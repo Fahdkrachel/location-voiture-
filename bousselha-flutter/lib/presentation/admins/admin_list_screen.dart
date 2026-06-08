@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/utils/app_error_handler.dart';
 import '../../data/models/admin_model.dart';
 import '../../shared/providers/app_providers.dart';
 import '../../shared/providers/auth_provider.dart';
@@ -65,14 +66,7 @@ class _AdminListScreenState extends ConsumerState<AdminListScreen> {
         );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (mounted) AppErrorHandler.showError(context, e);
     }
   }
 
@@ -263,7 +257,7 @@ class _AdminListScreenState extends ConsumerState<AdminListScreen> {
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Center(
-                  child: Text('Une erreur s\'est produite lors du chargement : ${e.toString()}'),
+                  child: Text(AppErrorHandler.getMessage(e)),
                 ),
               ),
             ),
@@ -327,14 +321,7 @@ class _AddAdminDialogState extends ConsumerState<_AddAdminDialog> {
         );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (mounted) AppErrorHandler.showError(context, e);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -505,14 +492,7 @@ class _EditAdminDialogState extends ConsumerState<_EditAdminDialog> {
         );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (mounted) AppErrorHandler.showError(context, e);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

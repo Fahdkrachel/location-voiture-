@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/utils/app_error_handler.dart';
 import '../../data/models/car_availability_model.dart';
 import '../cars/car_list_screen.dart' show toPublicCarImageUrl;
 import '../../shared/providers/app_providers.dart';
@@ -51,7 +52,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _loading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur : $e')));
+        AppErrorHandler.showError(context, e);
       }
     }
   }

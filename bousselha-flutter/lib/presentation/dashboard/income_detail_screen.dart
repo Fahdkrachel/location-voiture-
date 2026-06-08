@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/utils/app_error_handler.dart';
 import '../../data/models/income_record_model.dart';
 import '../../shared/providers/app_providers.dart';
 
@@ -28,9 +29,7 @@ class _IncomeDetailScreenState extends ConsumerState<IncomeDetailScreen> {
       final items = await ref.read(financialRepositoryProvider).getIncome();
       if (mounted) setState(() => _items = items);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
-      }
+      if (mounted) AppErrorHandler.showError(context, e);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
