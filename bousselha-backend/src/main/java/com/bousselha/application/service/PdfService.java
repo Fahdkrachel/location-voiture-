@@ -140,7 +140,7 @@ public class PdfService {
                 float curY = 810f;
                 drawText(cs, safe(settings.getCompanyName()), rX, curY, bold, 9, Color.BLACK);
                 curY -= 11;
-                drawText(cs, truncateText(safe(settings.getAddress()), 35), rX, curY, regular, 7, Color.BLACK);
+                drawText(cs, safe(settings.getAddress()), rX, curY, regular, 7, Color.BLACK);
                 curY -= 11;
                 drawText(cs, buildTelFax(settings), rX, curY, regular, 7, Color.BLACK);
                 curY -= 11;
