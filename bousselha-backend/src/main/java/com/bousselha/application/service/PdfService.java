@@ -23,6 +23,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.ArrayList;
 
 @Service
 public class PdfService {
@@ -96,22 +98,13 @@ public class PdfService {
                 italic = new PDType1Font(Standard14Fonts.FontName.HELVETICA_OBLIQUE);
             }
 
-            Color darkBlue = new Color(11, 59, 140);
-            Color lightBlue = new Color(208, 225, 253);
-            Color borderGrey = new Color(127, 127, 127);
             Color textBlack = Color.BLACK;
 
             try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
-                // Outer Border of the entire document grid area
-                // Width = 555 (from 20 to 575), Height = 692 (from 130 to 822)
-                drawRect(cs, 20, 130, 555, 692, 1f, darkBlue);
+                // --- PAGE 1: CONTRAT DE LOCATION ---
 
-                // --- 1. HEADER (Y = 752 to 822) ---
-                // Left header box (Logo space): X = 20 to 200 (width = 180)
-                drawVerticalLine(cs, 200, 752, 822, 1f, darkBlue);
-                drawHorizontalLine(cs, 20, 575, 752, 1f, darkBlue);
-
-                // Check logo dynamique (depuis les paramètres société)
+                // 1. EN-TETE
+                // Logo centré
                 File logoFile = null;
                 if (settings.getLogoPath() != null && !settings.getLogoPath().isBlank()) {
                     logoFile = new File(settings.getLogoPath());
@@ -119,7 +112,6 @@ public class PdfService {
                         logoFile = new File("bousselha-backend/" + settings.getLogoPath());
                     }
                 }
-                // Fallback vers le logo statique par défaut
                 if (logoFile == null || !logoFile.exists()) {
                     File staticLogo = new File("src/main/resources/static/images/logo.png");
                     if (!staticLogo.exists()) {
@@ -127,364 +119,396 @@ public class PdfService {
                     }
                     if (staticLogo.exists()) logoFile = staticLogo;
                 }
+
                 if (logoFile != null && logoFile.exists() && logoFile.isFile()) {
                     try {
                         PDImageXObject pdImage = PDImageXObject.createFromFileByExtension(logoFile, doc);
-                        cs.drawImage(pdImage, 25, 757, 170, 60);
+                        cs.drawImage(pdImage, 237.5f, 755, 120, 45);
                     } catch (Exception e) {
-                        drawHeaderTextFallback(cs, bold, regular, darkBlue, settings);
+                        drawTextAligned(cs, settings.getCompanyName() != null ? settings.getCompanyName() : "BOUSSELHA CARS", 20, 775, bold, 13, Color.BLACK, "center", 555);
                     }
                 } else {
-                    drawHeaderTextFallback(cs, bold, regular, darkBlue, settings);
+                    drawTextAligned(cs, settings.getCompanyName() != null ? settings.getCompanyName() : "BOUSSELHA CARS", 20, 775, bold, 13, Color.BLACK, "center", 555);
                 }
 
-                // Right header box (Company contact info — dynamique depuis company_settings)
-                String addr   = safe(settings.getAddress());
-                String telFax = buildTelFax(settings);
-                String gsmStr = settings.getGsm() != null ? "Gsm : " + settings.getGsm() : "";
-                String mailStr = settings.getEmail() != null ? "E-mail : " + settings.getEmail() : "";
-                drawText(cs, addr,   210, 804, bold,    9, textBlack);
-                drawText(cs, telFax, 210, 790, regular, 9, textBlack);
-                drawText(cs, gsmStr, 210, 776, regular, 9, textBlack);
-                drawText(cs, mailStr, 210, 762, regular, 9, textBlack);
+                // Left header text
+                drawText(cs, "LOCATION DE VOITURE", 20, 790, bold, 12, Color.BLACK);
+                drawText(cs, "GSM: " + safe(settings.getGsm()), 20, 775, regular, 9, Color.BLACK);
 
+                // Right header text
+                float rX = 390f;
+                float curY = 810f;
+                drawText(cs, safe(settings.getCompanyName()), rX, curY, bold, 9, Color.BLACK);
+                curY -= 11;
+                drawText(cs, truncateText(safe(settings.getAddress()), 35), rX, curY, regular, 7, Color.BLACK);
+                curY -= 11;
+                drawText(cs, buildTelFax(settings), rX, curY, regular, 7, Color.BLACK);
+                curY -= 11;
+                drawText(cs, "GSM: " + safe(settings.getGsm()), rX, curY, regular, 7, Color.BLACK);
+                curY -= 11;
+                drawText(cs, "Email: " + safe(settings.getEmail()), rX, curY, regular, 7, Color.BLACK);
 
-                // --- 2. BANNER (Y = 734 to 752) ---
-                fillRect(cs, 20, 734, 555, 18, darkBlue);
-                drawTextAligned(cs, "CONTRAT DE LOCATION", 30, 739, bold, 10, Color.WHITE, "left", 305);
-                drawTextAligned(cs, "Contrat de Location de Voiture", 340, 739, regular, 9, Color.WHITE, "left", 230);
+                // Title centered
+                drawTextAligned(cs, "Contrat de Location N° : " + contract.getId(), 20, 725, bold, 12, Color.BLACK, "center", 555);
+                drawHorizontalLine(cs, 20, 575, 718, 0.5f, Color.LIGHT_GRAY);
 
+                // Columns
+                // Left Column: X = 20 to 292.5 (width = 272.5)
+                // Right Column: X = 302.5 to 575 (width = 272.5)
 
-                // --- 3. VEHICLE & DATES SECTION (Y = 644 to 734) ---
-                drawHorizontalLine(cs, 20, 575, 644, 1f, darkBlue);
-                drawVerticalLine(cs, 335, 644, 734, 1f, darkBlue);
+                // 2. SECTION VEHICULE (cadre)
+                drawRect(cs, 20, 620, 272.5f, 85, 0.75f, Color.BLACK);
+                fillRect(cs, 20, 690, 272.5f, 15, new Color(240, 240, 240));
+                drawHorizontalLine(cs, 20, 292.5f, 690, 0.5f, Color.BLACK);
+                drawTextAligned(cs, "VEHICULE", 20, 694, bold, 8, Color.BLACK, "center", 272.5f);
 
-                // Left Column: Vehicle details
-                float rowH = 22.5f;
-                // Vertical split inside left column for label vs value
-                drawVerticalLine(cs, 130, 644, 734, 0.5f, borderGrey);
-                for (int i = 1; i <= 3; i++) {
-                    drawHorizontalLine(cs, 20, 335, 734 - i * rowH, 0.5f, borderGrey);
-                }
-                
-                // Labels
-                drawText(cs, "Marque", 25, 720, bold, 9, darkBlue);
-                drawText(cs, "N° Immatriculation", 25, 697.5f, bold, 9, darkBlue);
-                drawText(cs, "Lieu de Livraison", 25, 675, bold, 9, darkBlue);
-                drawText(cs, "Lieu de Reprise", 25, 652.5f, bold, 9, darkBlue);
-
-                // Values
-                if (contract.getCar() != null) {
-                    drawText(cs, contract.getCar().getBrand(), 135, 720, regular, 9, textBlack);
-                    drawText(cs, contract.getCar().getMatricule(), 135, 697.5f, regular, 9, textBlack);
-                }
-                drawText(cs, contract.getDeparturePlace(), 135, 675, regular, 9, textBlack);
-                drawText(cs, contract.getReturnPlace(), 135, 652.5f, regular, 9, textBlack);
-
-                // Right Column: Date table
-                // Header (dark blue background)
-                fillRect(cs, 335, 711.5f, 240, 22.5f, darkBlue);
-                drawVerticalLine(cs, 430, 644, 734, 0.5f, borderGrey);
-                drawVerticalLine(cs, 465, 644, 734, 0.5f, borderGrey);
-                drawVerticalLine(cs, 500, 644, 734, 0.5f, borderGrey);
-                drawVerticalLine(cs, 535, 644, 734, 0.5f, borderGrey);
-                drawVerticalLine(cs, 555, 644, 734, 0.5f, borderGrey);
-
-                drawTextAligned(cs, "J", 430, 719, bold, 9, Color.WHITE, "center", 35);
-                drawTextAligned(cs, "M", 465, 719, bold, 9, Color.WHITE, "center", 35);
-                drawTextAligned(cs, "A", 500, 719, bold, 9, Color.WHITE, "center", 35);
-                drawTextAligned(cs, "H", 535, 719, bold, 9, Color.WHITE, "center", 20);
-                drawTextAligned(cs, "mn", 555, 719, bold, 9, Color.WHITE, "center", 20);
-
-                for (int i = 1; i <= 3; i++) {
-                    drawHorizontalLine(cs, 335, 575, 734 - i * rowH, 0.5f, borderGrey);
+                drawVerticalLine(cs, 135, 620, 690, 0.5f, Color.BLACK);
+                for (int i = 1; i <= 4; i++) {
+                    drawHorizontalLine(cs, 20, 292.5f, 690 - i * 14, 0.5f, Color.BLACK);
                 }
 
-                // Row labels
-                drawText(cs, "Départ", 340, 697.5f, bold, 9, textBlack);
-                drawText(cs, "Retour Prévu", 340, 675, bold, 9, textBlack);
-                drawText(cs, "Retour Définitif", 340, 652.5f, bold, 9, textBlack);
-                drawText(cs, "Durée", 340, 630, bold, 9, textBlack); // Note: Y = 620 to 644 is Durée
+                drawText(cs, "Marque", 25, 679, bold, 7.5f, Color.BLACK);
+                drawText(cs, "Immatriculation", 25, 665, bold, 7.5f, Color.BLACK);
+                drawText(cs, "Carburant", 25, 651, bold, 7.5f, Color.BLACK);
+                drawText(cs, "Lieu de départ", 25, 637, bold, 7.5f, Color.BLACK);
+                drawText(cs, "Lieu de retour", 25, 623, bold, 7.5f, Color.BLACK);
 
-                // Fill Date Departure
+                drawText(cs, contract.getCar() != null ? contract.getCar().getBrand() : "", 140, 679, regular, 7.5f, Color.BLACK);
+                drawText(cs, contract.getCar() != null ? contract.getCar().getMatricule() : "", 140, 665, regular, 7.5f, Color.BLACK);
+                drawText(cs, "Diesel", 140, 651, regular, 7.5f, Color.BLACK);
+                drawText(cs, contract.getDeparturePlace(), 140, 637, regular, 7.5f, Color.BLACK);
+                drawText(cs, contract.getReturnPlace(), 140, 623, regular, 7.5f, Color.BLACK);
+
+                // 3. SECTION LOCATAIRE (cadre)
+                drawRect(cs, 20, 483, 272.5f, 127, 0.75f, Color.BLACK);
+                fillRect(cs, 20, 595, 272.5f, 15, new Color(240, 240, 240));
+                drawHorizontalLine(cs, 20, 292.5f, 595, 0.5f, Color.BLACK);
+                drawTextAligned(cs, "LOCATAIRE", 20, 599, bold, 8, Color.BLACK, "center", 272.5f);
+
+                drawVerticalLine(cs, 135, 483, 595, 0.5f, Color.BLACK);
+                for (int i = 1; i <= 7; i++) {
+                    drawHorizontalLine(cs, 20, 292.5f, 595 - i * 14, 0.5f, Color.BLACK);
+                }
+
+                drawText(cs, "Nom et Prénom", 25, 584, bold, 7.5f, Color.BLACK);
+                drawText(cs, "Date de naissance", 25, 570, bold, 7.5f, Color.BLACK);
+                drawText(cs, "N° CIN", 25, 556, bold, 7.5f, Color.BLACK);
+                drawText(cs, "Nationalité", 25, 542, bold, 7.5f, Color.BLACK);
+                drawText(cs, "Permis de conduire N°", 25, 528, bold, 7.5f, Color.BLACK);
+                drawText(cs, "Délivré le", 25, 514, bold, 7.5f, Color.BLACK);
+                drawText(cs, "Téléphone", 25, 500, bold, 7.5f, Color.BLACK);
+                drawText(cs, "Adresse", 25, 486, bold, 7.5f, Color.BLACK);
+
+                drawText(cs, contract.getClient() != null ? contract.getClient().getFullName() : "", 140, 584, regular, 7.5f, Color.BLACK);
+                drawText(cs, contract.getClient() != null ? formatDate(contract.getClient().getBirthDate()) : "", 140, 570, regular, 7.5f, Color.BLACK);
+                drawText(cs, contract.getClient() != null ? contract.getClient().getCinNumber() : "", 140, 556, regular, 7.5f, Color.BLACK);
+                drawText(cs, "", 140, 542, regular, 7.5f, Color.BLACK); // Nationalité
+                drawText(cs, contract.getClient() != null ? contract.getClient().getDrivingLicenseNumber() : "", 140, 528, regular, 7.5f, Color.BLACK);
+                drawText(cs, contract.getClient() != null ? contract.getClient().getDrivingLicenseIssuedAt() : "", 140, 514, regular, 7.5f, Color.BLACK);
+                drawText(cs, contract.getClient() != null ? contract.getClient().getPhone() : "", 140, 500, regular, 7.5f, Color.BLACK);
+                drawText(cs, contract.getClient() != null ? truncateText(contract.getClient().getAddressMorocco(), 30) : "", 140, 486, regular, 7.5f, Color.BLACK);
+
+                // 4. SECTION CONDUCTEUR SUPPLEMENTAIRE (cadre)
+                drawRect(cs, 20, 416, 272.5f, 57, 0.75f, Color.BLACK);
+                fillRect(cs, 20, 458, 272.5f, 15, new Color(240, 240, 240));
+                drawHorizontalLine(cs, 20, 292.5f, 458, 0.5f, Color.BLACK);
+                drawTextAligned(cs, "CONDUCTEUR SUPPLEMENTAIRE", 20, 462, bold, 8, Color.BLACK, "center", 272.5f);
+
+                drawVerticalLine(cs, 135, 416, 458, 0.5f, Color.BLACK);
+                for (int i = 1; i <= 2; i++) {
+                    drawHorizontalLine(cs, 20, 292.5f, 458 - i * 14, 0.5f, Color.BLACK);
+                }
+
+                drawText(cs, "Nom et Prénom", 25, 447, bold, 7.5f, Color.BLACK);
+                drawText(cs, "N° CIN", 25, 433, bold, 7.5f, Color.BLACK);
+                drawText(cs, "Permis de conduire N°", 25, 419, bold, 7.5f, Color.BLACK);
+
+                drawText(cs, contract.getAdditionalDriverName(), 140, 447, regular, 7.5f, Color.BLACK);
+                drawText(cs, contract.getAdditionalDriverPassport() != null ? contract.getAdditionalDriverPassport() : "", 140, 433, regular, 7.5f, Color.BLACK);
+                drawText(cs, contract.getAdditionalDriverLicense(), 140, 419, regular, 7.5f, Color.BLACK);
+
+                // 5. TABLEAU DATES (4 colonnes)
+                drawRect(cs, 302.5f, 642, 272.5f, 63, 0.75f, Color.BLACK);
+                fillRect(cs, 302.5f, 690, 272.5f, 15, new Color(240, 240, 240));
+                drawHorizontalLine(cs, 302.5f, 575, 690, 0.5f, Color.BLACK);
+
+                drawVerticalLine(cs, 412.5f, 642, 705, 0.5f, Color.BLACK);
+                drawVerticalLine(cs, 447.5f, 642, 705, 0.5f, Color.BLACK);
+                drawVerticalLine(cs, 482.5f, 642, 705, 0.5f, Color.BLACK);
+                drawVerticalLine(cs, 532.5f, 642, 705, 0.5f, Color.BLACK);
+
+                drawTextAligned(cs, "JJ", 412.5f, 694, bold, 7.5f, Color.BLACK, "center", 35);
+                drawTextAligned(cs, "MM", 447.5f, 694, bold, 7.5f, Color.BLACK, "center", 35);
+                drawTextAligned(cs, "AAAA", 482.5f, 694, bold, 7.5f, Color.BLACK, "center", 50);
+                drawTextAligned(cs, "H:m", 532.5f, 694, bold, 7.5f, Color.BLACK, "center", 42.5f);
+
+                drawHorizontalLine(cs, 302.5f, 575, 674, 0.5f, Color.BLACK);
+                drawHorizontalLine(cs, 302.5f, 575, 658, 0.5f, Color.BLACK);
+
+                drawText(cs, "DEPART", 307.5f, 677, bold, 7.5f, Color.BLACK);
+                drawText(cs, "RETOUR PREVU", 307.5f, 661, bold, 7.5f, Color.BLACK);
+                drawText(cs, "RETOUR DEFINITIF", 307.5f, 645, bold, 7.5f, Color.BLACK);
+
                 LocalDateTime dep = contract.getDepartureDatetime();
                 if (dep != null) {
-                    drawTextAligned(cs, String.format("%02d", dep.getDayOfMonth()), 430, 697.5f, regular, 9, textBlack, "center", 35);
-                    drawTextAligned(cs, String.format("%02d", dep.getMonthValue()), 465, 697.5f, regular, 9, textBlack, "center", 35);
-                    drawTextAligned(cs, String.valueOf(dep.getYear()), 500, 697.5f, regular, 9, textBlack, "center", 35);
-                    drawTextAligned(cs, String.format("%02d", dep.getHour()), 535, 697.5f, regular, 9, textBlack, "center", 20);
-                    drawTextAligned(cs, String.format("%02d", dep.getMinute()), 555, 697.5f, regular, 9, textBlack, "center", 20);
+                    drawTextAligned(cs, String.format("%02d", dep.getDayOfMonth()), 412.5f, 677, regular, 7.5f, Color.BLACK, "center", 35);
+                    drawTextAligned(cs, String.format("%02d", dep.getMonthValue()), 447.5f, 677, regular, 7.5f, Color.BLACK, "center", 35);
+                    drawTextAligned(cs, String.valueOf(dep.getYear()), 482.5f, 677, regular, 7.5f, Color.BLACK, "center", 50);
+                    drawTextAligned(cs, String.format("%02d:%02d", dep.getHour(), dep.getMinute()), 532.5f, 677, regular, 7.5f, Color.BLACK, "center", 42.5f);
+                }
+                LocalDateTime exp = contract.getExpectedReturnDatetime();
+                if (exp != null) {
+                    drawTextAligned(cs, String.format("%02d", exp.getDayOfMonth()), 412.5f, 661, regular, 7.5f, Color.BLACK, "center", 35);
+                    drawTextAligned(cs, String.format("%02d", exp.getMonthValue()), 447.5f, 661, regular, 7.5f, Color.BLACK, "center", 35);
+                    drawTextAligned(cs, String.valueOf(exp.getYear()), 482.5f, 661, regular, 7.5f, Color.BLACK, "center", 50);
+                    drawTextAligned(cs, String.format("%02d:%02d", exp.getHour(), exp.getMinute()), 532.5f, 661, regular, 7.5f, Color.BLACK, "center", 42.5f);
+                }
+                LocalDateTime act = contract.getActualReturnDatetime();
+                if (act != null) {
+                    drawTextAligned(cs, String.format("%02d", act.getDayOfMonth()), 412.5f, 645, regular, 7.5f, Color.BLACK, "center", 35);
+                    drawTextAligned(cs, String.format("%02d", act.getMonthValue()), 447.5f, 645, regular, 7.5f, Color.BLACK, "center", 35);
+                    drawTextAligned(cs, String.valueOf(act.getYear()), 482.5f, 645, regular, 7.5f, Color.BLACK, "center", 50);
+                    drawTextAligned(cs, String.format("%02d:%02d", act.getHour(), act.getMinute()), 532.5f, 645, regular, 7.5f, Color.BLACK, "center", 42.5f);
+                } else {
+                    drawTextAligned(cs, "______", 412.5f, 645, regular, 7.5f, Color.BLACK, "center", 35);
+                    drawTextAligned(cs, "______", 447.5f, 645, regular, 7.5f, Color.BLACK, "center", 35);
+                    drawTextAligned(cs, "________", 482.5f, 645, regular, 7.5f, Color.BLACK, "center", 50);
+                    drawTextAligned(cs, "______", 532.5f, 645, regular, 7.5f, Color.BLACK, "center", 42.5f);
                 }
 
-                // Fill Date Expected Return
-                LocalDateTime ret = contract.getExpectedReturnDatetime();
-                if (ret != null) {
-                    drawTextAligned(cs, String.format("%02d", ret.getDayOfMonth()), 430, 675, regular, 9, textBlack, "center", 35);
-                    drawTextAligned(cs, String.format("%02d", ret.getMonthValue()), 465, 675, regular, 9, textBlack, "center", 35);
-                    drawTextAligned(cs, String.valueOf(ret.getYear()), 500, 675, regular, 9, textBlack, "center", 35);
-                    drawTextAligned(cs, String.format("%02d", ret.getHour()), 535, 675, regular, 9, textBlack, "center", 20);
-                    drawTextAligned(cs, String.format("%02d", ret.getMinute()), 555, 675, regular, 9, textBlack, "center", 20);
+                // 6. GRILLE TARIFAIRE
+                drawRect(cs, 302.5f, 505, 272.5f, 127, 0.75f, Color.BLACK);
+                fillRect(cs, 302.5f, 617, 272.5f, 15, new Color(240, 240, 240));
+                drawHorizontalLine(cs, 302.5f, 575, 617, 0.5f, Color.BLACK);
+
+                drawVerticalLine(cs, 412.5f, 505, 632, 0.5f, Color.BLACK);
+                drawVerticalLine(cs, 452.5f, 505, 632, 0.5f, Color.BLACK);
+                drawVerticalLine(cs, 512.5f, 505, 632, 0.5f, Color.BLACK);
+
+                drawTextAligned(cs, "Q", 412.5f, 621, bold, 7.5f, Color.BLACK, "center", 40);
+                drawTextAligned(cs, "Prix", 452.5f, 621, bold, 7.5f, Color.BLACK, "center", 60);
+                drawTextAligned(cs, "Total", 512.5f, 621, bold, 7.5f, Color.BLACK, "center", 62.5f);
+
+                for (int i = 1; i <= 7; i++) {
+                    drawHorizontalLine(cs, 302.5f, 575, 617 - i * 14, 0.5f, Color.BLACK);
                 }
 
-                // Duration Days (placed in 'J' column of Durée row)
-                if (contract.getDurationDays() != null) {
-                    drawTextAligned(cs, String.valueOf(contract.getDurationDays()), 430, 630, regular, 9, textBlack, "center", 35);
+                drawText(cs, "Heures", 307.5f, 606, bold, 7.5f, Color.BLACK);
+                drawText(cs, "Jours", 307.5f, 592, bold, 7.5f, Color.BLACK);
+                drawText(cs, "Semaines", 307.5f, 578, bold, 7.5f, Color.BLACK);
+                drawText(cs, "Mois", 307.5f, 564, bold, 7.5f, Color.BLACK);
+                drawText(cs, "Avec Assurance", 307.5f, 550, bold, 7.5f, Color.BLACK);
+                drawText(cs, "TOTAL", 307.5f, 536, bold, 7.5f, Color.BLACK);
+                drawText(cs, "Supplément", 307.5f, 522, bold, 7.5f, Color.BLACK);
+                drawText(cs, "TOTAL Général", 307.5f, 508, bold, 7.5f, Color.BLACK);
+
+                BigDecimal hPrice = contract.getPricePerHour();
+                if (hPrice != null && hPrice.compareTo(BigDecimal.ZERO) > 0) {
+                    drawTextAligned(cs, hPrice.toString() + " DH", 452.5f, 606, regular, 7.5f, Color.BLACK, "center", 60);
+                    drawTextAligned(cs, hPrice.toString() + " DH", 512.5f, 606, regular, 7.5f, Color.BLACK, "center", 62.5f);
                 }
-
-
-                // --- 4. LOCATAIRE & PRICING SECTION (Y = 410 to 644) ---
-                drawHorizontalLine(cs, 20, 575, 410, 1f, darkBlue);
-                drawVerticalLine(cs, 335, 410, 644, 1f, darkBlue);
-
-                // Left Column: Customer Details (Locataire)
-                // Customer Header (light blue background)
-                fillRect(cs, 20, 628, 315, 16, lightBlue);
-                drawText(cs, "Locataire", 25, 632, bold, 9, darkBlue);
-
-                float custRowH = 19.8f;
-                drawVerticalLine(cs, 130, 410, 628, 0.5f, borderGrey);
-                for (int i = 1; i <= 10; i++) {
-                    drawHorizontalLine(cs, 20, 335, 628 - i * custRowH, 0.5f, borderGrey);
+                BigDecimal dPrice = contract.getPricePerDay();
+                Integer days = contract.getDurationDays();
+                if (days != null) {
+                    drawTextAligned(cs, days.toString(), 412.5f, 592, regular, 7.5f, Color.BLACK, "center", 40);
                 }
-
-                // Labels
-                drawText(cs, "Nom & Prénom", 25, 613, bold, 8, darkBlue);
-                drawText(cs, "Date de naissance", 25, 593, bold, 8, darkBlue);
-                drawText(cs, "Adresse au Maroc", 25, 573, bold, 8, darkBlue);
-                drawText(cs, "Adresse à l'Étranger", 25, 553, bold, 8, darkBlue);
-                drawText(cs, "Profession", 25, 533, bold, 8, darkBlue);
-                drawText(cs, "Permis de Conduire N°", 25, 513, bold, 8, darkBlue);
-                drawText(cs, "Délivré à", 25, 493, bold, 8, darkBlue);
-                drawText(cs, "C.I.N. N°", 25, 473, bold, 8, darkBlue);
-                drawText(cs, "Passeport N°", 25, 453, bold, 8, darkBlue);
-                drawText(cs, "Délivré Le", 25, 433, bold, 8, darkBlue);
-                drawText(cs, "Tél", 25, 413, bold, 8, darkBlue);
-
-                // Values
-                if (contract.getClient() != null) {
-                    drawText(cs, contract.getClient().getFullName(), 135, 613, regular, 8, textBlack);
-                    drawText(cs, formatDate(contract.getClient().getBirthDate()), 135, 593, regular, 8, textBlack);
-                    drawText(cs, contract.getClient().getAddressMorocco(), 135, 573, regular, 8, textBlack);
-                    drawText(cs, contract.getClient().getAddressAbroad(), 135, 553, regular, 8, textBlack);
-                    drawText(cs, contract.getClient().getProfession(), 135, 533, regular, 8, textBlack);
-                    drawText(cs, contract.getClient().getDrivingLicenseNumber(), 135, 513, regular, 8, textBlack);
-                    drawText(cs, contract.getClient().getDrivingLicenseIssuedAt(), 135, 493, regular, 8, textBlack);
-                    drawText(cs, contract.getClient().getCinNumber(), 135, 473, regular, 8, textBlack);
-                    drawText(cs, contract.getClient().getPassportNumber(), 135, 453, regular, 8, textBlack);
-                    drawText(cs, formatDate(contract.getClient().getPassportIssuedAt()), 135, 433, regular, 8, textBlack);
-                    drawText(cs, contract.getClient().getPhone(), 135, 413, regular, 8, textBlack);
-                }
-
-                // Right Column: Pricing details
-                // Pricing Header
-                fillRect(cs, 335, 628, 240, 16, darkBlue);
-                drawTextAligned(cs, "Q", 465, 632, bold, 8, Color.WHITE, "center", 30);
-                drawTextAligned(cs, "Prix", 495, 632, bold, 8, Color.WHITE, "center", 40);
-                drawTextAligned(cs, "Prix Total", 535, 632, bold, 8, Color.WHITE, "center", 40);
-
-                // Vertical lines in price table
-                drawVerticalLine(cs, 465, 410, 628, 0.5f, borderGrey);
-                drawVerticalLine(cs, 495, 410, 628, 0.5f, borderGrey);
-                drawVerticalLine(cs, 535, 410, 628, 0.5f, borderGrey);
-
-                float priceRowH = 24.2f;
-                for (int i = 1; i <= 8; i++) {
-                    // Highlight backgrounds for TOTAL rows
-                    if (i == 6 || i == 8) {
-                        fillRect(cs, 335, 628 - i * priceRowH, 240, priceRowH, lightBlue);
+                if (dPrice != null && dPrice.compareTo(BigDecimal.ZERO) > 0) {
+                    drawTextAligned(cs, dPrice.toString() + " DH", 452.5f, 592, regular, 7.5f, Color.BLACK, "center", 60);
+                    if (days != null) {
+                        BigDecimal dTotal = dPrice.multiply(new BigDecimal(days));
+                        drawTextAligned(cs, dTotal.toString() + " DH", 512.5f, 592, regular, 7.5f, Color.BLACK, "center", 62.5f);
                     }
-                    drawHorizontalLine(cs, 335, 575, 628 - i * priceRowH, 0.5f, borderGrey);
+                }
+                BigDecimal wPrice = contract.getPricePerWeek();
+                if (wPrice != null && wPrice.compareTo(BigDecimal.ZERO) > 0) {
+                    drawTextAligned(cs, wPrice.toString() + " DH", 452.5f, 578, regular, 7.5f, Color.BLACK, "center", 60);
+                    drawTextAligned(cs, wPrice.toString() + " DH", 512.5f, 578, regular, 7.5f, Color.BLACK, "center", 62.5f);
+                }
+                BigDecimal mPrice = contract.getPricePerMonth();
+                if (mPrice != null && mPrice.compareTo(BigDecimal.ZERO) > 0) {
+                    drawTextAligned(cs, mPrice.toString() + " DH", 452.5f, 564, regular, 7.5f, Color.BLACK, "center", 60);
+                    drawTextAligned(cs, mPrice.toString() + " DH", 512.5f, 564, regular, 7.5f, Color.BLACK, "center", 62.5f);
+                }
+                Boolean ins = contract.getWithInsurance();
+                drawTextAligned(cs, (ins != null && ins) ? "Oui" : "Non", 452.5f, 550, regular, 7.5f, Color.BLACK, "center", 60);
+
+                BigDecimal tPrice = contract.getTotalPrice();
+                if (tPrice != null) {
+                    drawTextAligned(cs, tPrice.toString() + " DH", 512.5f, 536, regular, 7.5f, Color.BLACK, "center", 62.5f);
+                }
+                BigDecimal supp = contract.getSupplement();
+                if (supp != null) {
+                    drawTextAligned(cs, supp.toString() + " DH", 512.5f, 522, regular, 7.5f, Color.BLACK, "center", 62.5f);
+                }
+                BigDecimal tg = contract.getTotalGeneral();
+                if (tg != null) {
+                    drawTextAligned(cs, tg.toString() + " DH", 512.5f, 508, bold, 7.5f, Color.BLACK, "center", 62.5f);
                 }
 
-                // Pricing Row Labels
-                drawText(cs, "Heures", 340, 613, bold, 8, textBlack);
-                drawText(cs, "Jours", 340, 589, bold, 8, textBlack);
-                drawText(cs, "Semaines", 340, 565, bold, 8, textBlack);
-                drawText(cs, "Mois", 340, 541, bold, 8, textBlack);
-                drawText(cs, "Avec Assurance", 340, 517, bold, 8, textBlack);
-                drawText(cs, "TOTAL", 340, 493, bold, 8, textBlack);
-                drawText(cs, "Supplément", 340, 468, bold, 8, textBlack);
-                drawText(cs, "TOTAL Général (Au Retour)", 340, 444, bold, 8, textBlack);
+                // 7. PAIEMENT
+                drawRect(cs, 302.5f, 438, 272.5f, 57, 0.75f, Color.BLACK);
+                fillRect(cs, 302.5f, 480, 272.5f, 15, new Color(240, 240, 240));
+                drawHorizontalLine(cs, 302.5f, 575, 480, 0.5f, Color.BLACK);
+                drawTextAligned(cs, "PAIEMENT", 302.5f, 484, bold, 8, Color.BLACK, "center", 272.5f);
 
-                // Pricing fields must be empty but print DH in Prix Total column
-                for (int i = 1; i <= 8; i++) {
-                    drawTextAligned(cs, "DH", 535, 628 - i * priceRowH + 6, bold, 8, textBlack, "right", 35);
-                }
-
-
-                // --- 5. ADDITIONAL DRIVER & PAYMENT (Y = 320 to 410) ---
-                drawHorizontalLine(cs, 20, 575, 320, 1f, darkBlue);
-                drawVerticalLine(cs, 335, 320, 410, 1f, darkBlue);
-
-                // Left Column: Additional Driver
-                fillRect(cs, 20, 394, 315, 16, lightBlue);
-                drawText(cs, "Le Conducteur Supplémentaire", 25, 398, bold, 9, darkBlue);
-
-                float addRowH = 18.5f;
-                drawVerticalLine(cs, 130, 320, 394, 0.5f, borderGrey);
-                for (int i = 1; i <= 3; i++) {
-                    drawHorizontalLine(cs, 20, 335, 394 - i * addRowH, 0.5f, borderGrey);
-                }
-
-                // Labels
-                drawText(cs, "Nom & Prénom", 25, 381, bold, 8, darkBlue);
-                drawText(cs, "Permis de Conduire N°", 25, 362.5f, bold, 8, darkBlue);
-                drawText(cs, "Délivré le", 25, 344, bold, 8, darkBlue);
-                drawText(cs, "Passeport N°", 25, 325.5f, bold, 8, darkBlue);
-
-                // Fill Values if additional driver exists
-                if (contract.getAdditionalDriverName() != null && !contract.getAdditionalDriverName().trim().isEmpty()) {
-                    drawText(cs, contract.getAdditionalDriverName(), 135, 381, regular, 8, textBlack);
-                    drawText(cs, contract.getAdditionalDriverLicense(), 135, 362.5f, regular, 8, textBlack);
-                    if (contract.getClient() != null) {
-                        drawText(cs, formatDate(contract.getClient().getAdditionalDriverDrivingLicenseIssuedAt()), 135, 344, regular, 8, textBlack);
-                    }
-                    drawText(cs, contract.getAdditionalDriverPassport(), 135, 325.5f, regular, 8, textBlack);
-                }
-
-                // Right Column: Payment
-                fillRect(cs, 335, 394, 240, 16, darkBlue);
-                drawText(cs, "Paiement", 340, 398, bold, 9, Color.WHITE);
-
-                float payRowH = 24.6f;
-                for (int i = 1; i <= 2; i++) {
-                    drawHorizontalLine(cs, 335, 575, 394 - i * payRowH, 0.5f, borderGrey);
-                }
-
-                // Labels
-                drawText(cs, "Espèces :", 340, 380, bold, 8, textBlack);
-                drawText(cs, "Chèque :", 340, 355, bold, 8, textBlack);
-                drawText(cs, "Caution :", 340, 330, bold, 8, textBlack);
-
-                // Values (with DH if non-null and greater than 0)
+                int payCount = 0;
                 if (contract.getPaymentCash() != null && contract.getPaymentCash().compareTo(BigDecimal.ZERO) > 0) {
-                    drawText(cs, contract.getPaymentCash().toString() + " DH", 450, 380, regular, 8, textBlack);
+                    drawText(cs, "Espèces : " + contract.getPaymentCash() + " DH", 312.5f, 466 - payCount * 13, regular, 7.5f, Color.BLACK);
+                    payCount++;
                 }
                 if (contract.getPaymentCheck() != null && contract.getPaymentCheck().compareTo(BigDecimal.ZERO) > 0) {
-                    drawText(cs, contract.getPaymentCheck().toString() + " DH", 450, 355, regular, 8, textBlack);
+                    drawText(cs, "Chèque : " + contract.getPaymentCheck() + " DH", 312.5f, 466 - payCount * 13, regular, 7.5f, Color.BLACK);
+                    payCount++;
                 }
                 if (contract.getPaymentDeposit() != null && contract.getPaymentDeposit().compareTo(BigDecimal.ZERO) > 0) {
-                    drawText(cs, contract.getPaymentDeposit().toString() + " DH", 450, 330, regular, 8, textBlack);
+                    drawText(cs, "Caution : " + contract.getPaymentDeposit() + " DH", 312.5f, 466 - payCount * 13, regular, 7.5f, Color.BLACK);
+                    payCount++;
                 }
 
+                // 8. FRANCHISE ET ASSURANCE
+                drawRect(cs, 302.5f, 398, 272.5f, 30, 0.75f, Color.BLACK);
+                drawVerticalLine(cs, 438.75f, 398, 428, 0.5f, Color.BLACK);
+                drawText(cs, "FRANCHISE : ", 307.5f, 410, bold, 7.5f, Color.BLACK);
+                String insVal = (contract.getWithInsurance() != null && contract.getWithInsurance()) ? "OUI" : "NON";
+                drawText(cs, "ASSURANCE TOUT RISQUE : " + insVal, 443.75f, 410, bold, 7.5f, Color.BLACK);
 
-                // --- 6. DEPART, DOMMAGES, RETOUR (Y = 130 to 320) ---
-                drawVerticalLine(cs, 205, 130, 320, 1f, darkBlue);
-                drawVerticalLine(cs, 390, 130, 320, 1f, darkBlue);
-
-                // Column A: DEPART
-                fillRect(cs, 20, 304, 185, 16, darkBlue);
-                drawTextAligned(cs, "DEPART", 20, 308, bold, 9, Color.WHITE, "center", 185);
-
-                drawText(cs, "Véhicule En parfait état", 25, 290, bold, 8, textBlack);
-                drawText(cs, "(rayer la mention inutile)", 115, 290, italic, 7, Color.GRAY);
-
-                // Draw Checkboxes [ ] Oui   [ ] Non
-                drawRect(cs, 30, 274, 10, 10, 0.5f, textBlack);
-                drawText(cs, "Oui", 45, 275, regular, 8, textBlack);
-
-                drawRect(cs, 75, 274, 10, 10, 0.5f, textBlack);
-                drawText(cs, "Non", 90, 275, regular, 8, textBlack);
-
-                // Pre-check if value matches
-                String depCondition = contract.getVehicleConditionDeparture();
-                if (depCondition != null) {
-                    if ("oui".equalsIgnoreCase(depCondition.trim()) || depCondition.toLowerCase().contains("parfait")) {
-                        drawText(cs, "X", 32, 275, bold, 8, textBlack);
-                    } else if ("non".equalsIgnoreCase(depCondition.trim()) || depCondition.toLowerCase().contains("mauvais")) {
-                        drawText(cs, "X", 77, 275, bold, 8, textBlack);
+                // 9. ETAT VEHICULE DEPART ET RETOUR & 10. ZONE SCHEMAS VOITURE
+                boolean depOui = false;
+                boolean depNon = false;
+                String depCond = contract.getVehicleConditionDeparture();
+                if (depCond != null) {
+                    String lower = depCond.toLowerCase();
+                    if (lower.contains("parfait") || lower.contains("oui")) {
+                        depOui = true;
+                    } else if (lower.contains("mauvais") || lower.contains("non")) {
+                        depNon = true;
                     }
                 }
 
-                drawText(cs, "Commentaires :", 25, 258, bold, 8, textBlack);
-                // Draw 5 comment lines
-                float lineY = 242;
-                for (int i = 0; i < 5; i++) {
-                    drawHorizontalLine(cs, 25, 200, lineY - i * 18, 0.5f, borderGrey);
-                    drawText(cs, (i + 1) + ".", 25, lineY - i * 18 + 2, regular, 8, Color.GRAY);
-                }
-                // Pre-fill comments if they are not just "Oui" or "Non"
-                if (depCondition != null && !depCondition.equalsIgnoreCase("Oui") && !depCondition.equalsIgnoreCase("Non")) {
-                    drawText(cs, truncateText(depCondition, 30), 40, lineY + 2, regular, 8, textBlack);
-                }
-
-
-                // Column B: DOMMAGES IDENTIFIES ET ACCEPTES
-                fillRect(cs, 205, 304, 185, 16, darkBlue);
-                drawTextAligned(cs, "DOMMAGES IDENTIFIES ET ACCEPTES", 205, 308, bold, 8, Color.WHITE, "center", 185);
-
-                drawText(cs, "// Eraflure", 215, 290, bold, 8, textBlack);
-                drawText(cs, "X Bosse", 280, 290, bold, 8, textBlack);
-                drawRect(cs, 335, 288, 10, 10, 0.5f, textBlack);
-                drawText(cs, "Manque", 350, 289, bold, 8, textBlack);
-
-                // Check damages from data to cross the checkbox
-                String damages = contract.getDamagesIdentified();
-                if (damages != null && damages.toLowerCase().contains("manque")) {
-                    drawText(cs, "X", 337, 289, bold, 8, textBlack);
+                boolean retOui = false;
+                boolean retNon = false;
+                String retCond = contract.getVehicleConditionReturn();
+                if (retCond != null) {
+                    String lower = retCond.toLowerCase();
+                    if (lower.contains("parfait") || lower.contains("oui")) {
+                        retOui = true;
+                    } else if (lower.contains("mauvais") || lower.contains("non")) {
+                        retNon = true;
+                    }
                 }
 
-                // Table Nombre / Paraphe client
-                fillRect(cs, 205, 256, 185, 16, lightBlue);
-                drawHorizontalLine(cs, 205, 390, 256, 0.5f, borderGrey);
-                drawHorizontalLine(cs, 205, 390, 272, 0.5f, borderGrey);
-                drawVerticalLine(cs, 297.5f, 130, 272, 0.5f, borderGrey);
+                // Col 1 (Schema Départ)
+                drawRect(cs, 20, 250, 120, 120, 0.75f, Color.BLACK);
+                drawTextAligned(cs, "Départ", 20, 355, bold, 8, Color.BLACK, "center", 120);
 
-                drawTextAligned(cs, "Nombre", 205, 260, bold, 8, darkBlue, "center", 92.5f);
-                drawTextAligned(cs, "Paraphe client", 297.5f, 260, bold, 8, darkBlue, "center", 92.5f);
+                // Col 2 (Etat Départ checklist)
+                drawRect(cs, 150, 250, 142.5f, 120, 0.75f, Color.BLACK);
+                fillRect(cs, 150, 355, 142.5f, 15, Color.BLACK);
+                drawTextAligned(cs, "Départ", 150, 359, bold, 8, Color.WHITE, "center", 142.5f);
+                drawTextAligned(cs, "Véhicule En parfait état", 150, 344, bold, 7, Color.BLACK, "center", 142.5f);
+                
+                drawRect(cs, 165, 328, 25, 11, 0.5f, Color.BLACK);
+                drawTextAligned(cs, "OUI", 165, 330, bold, 6.5f, Color.BLACK, "center", 25);
+                if (depOui) drawTextAligned(cs, "X", 165, 330, bold, 6.5f, Color.BLACK, "center", 25);
 
-                // Draw 5 blank table rows
-                float damRowH = 22f;
+                drawRect(cs, 205, 328, 25, 11, 0.5f, Color.BLACK);
+                drawTextAligned(cs, "NON", 205, 330, bold, 6.5f, Color.BLACK, "center", 25);
+                if (depNon) drawTextAligned(cs, "X", 205, 330, bold, 6.5f, Color.BLACK, "center", 25);
+
                 for (int i = 1; i <= 5; i++) {
-                    drawHorizontalLine(cs, 205, 390, 272 - 16 - i * damRowH, 0.5f, borderGrey);
+                    drawHorizontalLine(cs, 150, 292.5f, 325 - i * 12.5f, 0.5f, Color.LIGHT_GRAY);
                 }
-                // Pre-fill damages if they exist
-                if (damages != null && !damages.trim().isEmpty()) {
-                    drawText(cs, truncateText(damages, 16), 210, 240, regular, 8, textBlack);
+                drawText(cs, "1. CARTE GRISE", 155, 314, regular, 6.5f, Color.BLACK);
+                drawText(cs, "2. VIGNETTE", 155, 301.5f, regular, 6.5f, Color.BLACK);
+                drawText(cs, "3. ASSURANCE", 155, 289, regular, 6.5f, Color.BLACK);
+                drawText(cs, "4. VISITE TECHNIQUE", 155, 276.5f, regular, 6.5f, Color.BLACK);
+                drawText(cs, "5. AUTORISATION", 155, 264, regular, 6.5f, Color.BLACK);
+                drawText(cs, "6. CARTE VERTE", 155, 251.5f, regular, 6.5f, Color.BLACK);
+
+                // Col 3 (Etat Retour checklist)
+                drawRect(cs, 302.5f, 250, 142.5f, 120, 0.75f, Color.BLACK);
+                fillRect(cs, 302.5f, 355, 142.5f, 15, Color.BLACK);
+                drawTextAligned(cs, "Retour", 302.5f, 359, bold, 8, Color.WHITE, "center", 142.5f);
+                drawTextAligned(cs, "Véhicule En parfait état", 302.5f, 344, bold, 7, Color.BLACK, "center", 142.5f);
+
+                drawRect(cs, 317.5f, 328, 25, 11, 0.5f, Color.BLACK);
+                drawTextAligned(cs, "OUI", 317.5f, 330, bold, 6.5f, Color.BLACK, "center", 25);
+                if (retOui) drawTextAligned(cs, "X", 317.5f, 330, bold, 6.5f, Color.BLACK, "center", 25);
+
+                drawRect(cs, 357.5f, 328, 25, 11, 0.5f, Color.BLACK);
+                drawTextAligned(cs, "NON", 357.5f, 330, bold, 6.5f, Color.BLACK, "center", 25);
+                if (retNon) drawTextAligned(cs, "X", 357.5f, 330, bold, 6.5f, Color.BLACK, "center", 25);
+
+                for (int i = 1; i <= 5; i++) {
+                    drawHorizontalLine(cs, 302.5f, 445, 325 - i * 12.5f, 0.5f, Color.LIGHT_GRAY);
                 }
+                drawText(cs, "1. CARTE GRISE", 307.5f, 314, regular, 6.5f, Color.BLACK);
+                drawText(cs, "2. VIGNETTE", 307.5f, 301.5f, regular, 6.5f, Color.BLACK);
+                drawText(cs, "3. ASSURANCE", 307.5f, 289, regular, 6.5f, Color.BLACK);
+                drawText(cs, "4. VISITE TECHNIQUE", 307.5f, 276.5f, regular, 6.5f, Color.BLACK);
+                drawText(cs, "5. AUTORISATION", 307.5f, 264, regular, 6.5f, Color.BLACK);
+                drawText(cs, "6. CARTE VERTE", 307.5f, 251.5f, regular, 6.5f, Color.BLACK);
 
+                // Col 4 (Schema Retour)
+                drawRect(cs, 455, 250, 120, 120, 0.75f, Color.BLACK);
+                drawTextAligned(cs, "Retour", 455, 355, bold, 8, Color.BLACK, "center", 120);
 
-                // Column C: RETOUR
-                fillRect(cs, 390, 304, 185, 16, darkBlue);
-                drawTextAligned(cs, "RETOUR", 390, 308, bold, 9, Color.WHITE, "center", 185);
-
-                drawText(cs, "Véhicule En parfait état", 395, 290, bold, 8, textBlack);
-                drawText(cs, "(rayer la mention inutile)", 485, 290, italic, 7, Color.GRAY);
-
-                // Checkboxes
-                drawRect(cs, 400, 274, 10, 10, 0.5f, textBlack);
-                drawText(cs, "Oui", 415, 275, regular, 8, textBlack);
-
-                drawRect(cs, 445, 274, 10, 10, 0.5f, textBlack);
-                drawText(cs, "Non", 460, 275, regular, 8, textBlack);
-
-                String retCondition = contract.getVehicleConditionReturn();
-                if (retCondition != null) {
-                    if ("oui".equalsIgnoreCase(retCondition.trim()) || retCondition.toLowerCase().contains("parfait")) {
-                        drawText(cs, "X", 402, 275, bold, 8, textBlack);
-                    } else if ("non".equalsIgnoreCase(retCondition.trim()) || retCondition.toLowerCase().contains("mauvais")) {
-                        drawText(cs, "X", 447, 275, bold, 8, textBlack);
-                    }
-                }
-
-                drawText(cs, "Commentaires :", 395, 258, bold, 8, textBlack);
-                for (int i = 0; i < 5; i++) {
-                    drawHorizontalLine(cs, 395, 570, lineY - i * 18, 0.5f, borderGrey);
-                    drawText(cs, (i + 1) + ".", 395, lineY - i * 18 + 2, regular, 8, Color.GRAY);
-                }
-                if (retCondition != null && !retCondition.equalsIgnoreCase("Oui") && !retCondition.equalsIgnoreCase("Non")) {
-                    drawText(cs, truncateText(retCondition, 30), 410, lineY + 2, regular, 8, textBlack);
-                }
-
-
-                // --- 7. FOOTER / SIGNATURES (Y = 20 to 130) ---
-                drawText(cs, "Observation : En cas d'accident ou de vol, je m'engage à régler la valeur totale de la voiture.", 25, 115, italic, 8, textBlack);
-                drawText(cs, "SIGNATURE CLIENT", 25, 95, bold, 9, darkBlue);
-                // Underline SIGNATURE CLIENT
-                drawHorizontalLine(cs, 25, 120, 92, 1f, darkBlue);
-
+                // 11. PIED DE PAGE
                 String dateString = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-                drawText(cs, "Fait à Tanger, le " + dateString, 300, 95, regular, 9, textBlack);
+                drawText(cs, "Fait à Tanger, le " + dateString, 25, 210, regular, 9, Color.BLACK);
+                drawText(cs, "En cas d'accident contacter immédiatement l'agence : " + safe(settings.getGsm()), 25, 190, bold, 8.5f, new Color(200, 0, 0));
+                
+                drawText(cs, "VISEE PAR " + safe(settings.getCompanyName()).toUpperCase(), 25, 140, bold, 9, Color.BLACK);
+                drawText(cs, "SIGNATURE CLIENT", 450, 140, bold, 9, Color.BLACK);
+                drawText(cs, "(\" Je reconnais avoir pris connaissance des Présentes conditions générales (recto verso) que je m'engage à respecter. \")", 20, 110, italic, 7.5f, Color.GRAY);
+            }
+
+            // --- PAGE 2: CONDITIONS GENERALES ---
+            PDPage page2 = new PDPage(PDRectangle.A4);
+            doc.addPage(page2);
+            try (PDPageContentStream cs2 = new PDPageContentStream(doc, page2)) {
+                // Background color (light green legal paper style)
+                cs2.setNonStrokingColor(new Color(242, 249, 242));
+                cs2.addRect(0, 0, 595, 842);
+                cs2.fill();
+
+                // Title centered
+                drawTextAligned(cs2, "CONDITIONS GENERALES DE LOCATION", 20, 800, bold, 12, Color.BLACK, "center", 555);
+
+                float leftColX = 20;
+                float rightColX = 307.5f;
+                float colWidth = 267.5f;
+                float startY = 775;
+                float lineSpacing = 8.5f;
+
+                String leftText = "Art. 1 - UTILISATION DE LA VOITURE\n" +
+                        "Le locataire s'engage à ne pas laisser conduire la voiture par d'autres personnes que lui même ou celles agréées par le loueur et dont il se porte garant, et à réutiliser le véhicule que pour ses besoins personnels. Il est interdit de participer à toute compétition, quelle qu'elle soit, et d'utiliser le véhicule aux fins illicites ou des transports de marchandises. Le locataire s'engage à ne pas solliciter directement des documents douaniers. Il est interdit au locataire de surcharger le véhicule loué en transportant un nombre de passagers supérieur à celui porté sur le contrat, sous peine d'être déchu de l'Assurance. Le locataire ne doit jamais faire circuler le véhicule ailleurs qu'au Maroc et en dehors des routes asphaltées, seules les routes carrossables goudronnées doivent être empruntées.\n\n" +
+                        "Art. 2 - ETAT DE LA VOITURE\n" +
+                        "La voiture est livrée en parfait état de marche et de propreté. Les compteurs et leurs prises sont plombés, et les plombs ne pourront être enlevés ou volés sous peine de devoir payer la location sur la base de 500 Kilomètres par jour. La voiture sera rendue dans le même état de propreté, à défaut le locataire devra acquitter les frais de nettoyages et remises en état les 5 pneus sont en bon état sans coupures, l'usure est normale. En cas de détérioration de l'un d'eux pour une cause autre que l'usure normale. Le locataire s'engage à le remplacer immédiatement par un pneu neuf de mêmes dimensions ou d'en payer le Montant.\n\n" +
+                        "Art. 3 - ESSENCE ET HUILE\n" +
+                        "L'essence est à la charge du client. Le locataire doit vérifier en permanence les niveaux d'huile et d'eau, et vérifier les niveaux de la boite de vitesse et du pont arrière tous les 1000 Kilomètres. Il justifiera ces travaux par des factures correspondantes (qui lui seront remboursées) sous peine d'avoir à payer une indemnité pour usure anormale.\n\n" +
+                        "Art. 4 - ENTRETIEN ET REPARATION\n" +
+                        "L'usure mécanique normale est à la charge du loueur. Toutes les réparations provenants, soit d'une usure anormale, soit d'une négligence de la part du locataire ou d'un accident accidentel, sont à sa charge et exécutées par nos soins. Dans le cas ou le véhicule serait immobilisé en dehors de la région, les réparations qu'elles soient dues à l'usure normale ou à une cause accidentelle, ne seront exécutées qu'après accord télégraphique du loueur ou par l'Agent régional de la marque du véhicule. Elles devront faire l'objet d'une facture acquittée et très détaillée. Les pièces défectueuses remplacées devront être présentées avec la facture acquittée. En aucun cas et en aucune circonstance, le locataire ne pourra réclamer des dommages et intérêts, soit pour retard de la remise de la voiture, ou annulation de la location, soit pour immobilisation dans le cas de réparation nécessités par une usure normale et exécutées au cours de la location. La responsabilité du loueur ne pourra jamais être invoquée, même en cas d'accidents de personnes ou de choses ayant pu résulter de vices ou de défauts de construction ou de réparations antérieures.\n\n" +
+                        "Art. 5 - ASSURANCE\n" +
+                        "Le locataire est garanti pour les risques suivants: En cas d'accidents fortuit ou fautif le locataire est entièrement responsable des dommages causés au véhicule en conséquence il est tenu de nous régler le montant total des réparations. Le Locataire est le seul conducteur du véhicule et s'engage à ne pas céder à autrui à moins d'une stipulation sur le présent contrat. Les frais de rapatriement et d'immobilisation reste toujours à la charge du locataire, quelle que soit la formule d'assurance contractées. ASSURANCE-Assure tiers illimitée vol et incendie est inclus dans le prix de location assure complémentaire de 35 dhs par jour en cas d'accident fautif 30% et fortuite 50% restent à la charge du client. Assure des personnes transportées peut être souscrite pour 15 dhs par jour. La voiture n'est assurée que pour la durée de la location. Passé ce délai, le loueur décline toute responsabilité pour les accidents que le locataire aurait pu causer et dont il devra faire son affaire personnelle. Enfin, il n'y a pas Assurance pour tout conducteur non muni d'un permis en état de validité ou d'un permis datant de moins de 1 an. Le Loueur décline toute responsabilité pour les accidents aux tiers ou dégâts à la voiture que le locataire pourrait causer pendant la période de location si le locataire a délibérément fourni au loueur des informations fausses concernant son identité, son adresse ou la validité de son permis de conduire.";
+
+                String rightText = "Art. 6 - LOCATION, CAUTION, PROLONGATION\n" +
+                        "Les prix de la location, ainsi que la caution, sont payables d'avance. La caution ne pourra servir, en aucun cas au loueur, faire parvenir le montant de la location en cours, sous peine d'éviter toute contestation et pour le cas où le locataire voudrait conserver la voiture pour un temps supérieur à celui indiqué sur le contrat, il devra après avoir obtenu l'accord de s'exposer à des poursuites pour détournement de voiture ou abus de confiance. La journée de location compte de 0 heures à 24 heures et toute journée commencée est due en entier.\n\n" +
+                        "Art. 7 - RAPATRIEMENT DE LA VOITURE\n" +
+                        "Le locataire s'interdit formellement d'abandonner le véhicule. En cas d'impossibilité matérielle, celle-ci sera rapatriée aux frais et par les soins du locataire, la location restant due jusqu'à retour du véhicule.\n\n" +
+                        "Art. 8 - PAPIERS DE LA VOITURE\n" +
+                        "Le locataire remettra dès la fin de la location et à la rentrée de la voiture, la carte grise et tous les papiers nécessaires à sa circulation, faute de quoi, ces pièces étant indispensables à de nouvelles locations, la location continuera à courir aux frais du locataire initial jusqu'à leur remise à la société. En cas de perte de ces papiers le locataire devra acquitter le montant des frais de duplicata, ainsi que de l'immobilisation.\n\n" +
+                        "Art. 9 - RESPONSABILITE\n" +
+                        "Le locataire demeure seul responsable des amendes, contraventions et procès-verbaux établis contre lui.\n\n" +
+                        "Art. 10 - COMPETENCE\n" +
+                        "De convention expresse et en cas de contestation quelconque, le tribunal de Tanger sera seul compétent, les frais de timbres et d'enregistrement restant à la charge du locataire.";
+
+                drawParagraphJustified(cs2, leftText, leftColX, startY, colWidth, lineSpacing, regular, 6.5f, Color.BLACK);
+                drawParagraphJustified(cs2, rightText, rightColX, startY, colWidth, lineSpacing, regular, 6.5f, Color.BLACK);
+
+                // Bottom Page 2 elements
+                drawText(cs2, "je reconnais avoir pris connaissance des présentes conditions générales (recto et verso) Que je m'engage à les respecter.", 20, 80, italic, 7.5f, Color.BLACK);
+                drawText(cs2, "Signature Client", 450, 60, bold, 9, Color.BLACK);
             }
 
             doc.save(out);
@@ -503,32 +527,6 @@ public class PdfService {
             return "Tél : " + s.getPhone();
         }
         return "";
-    }
-
-    private void drawHeaderTextFallback(PDPageContentStream cs, PDFont bold, PDFont regular,
-                                        Color darkBlue, CompanySettings settings) throws IOException {
-        // Afficher le nom de la société (max 2 lignes)
-        String name = settings.getCompanyName() != null ? settings.getCompanyName() : "BOUSSELHA CARS";
-        String[] nameParts = name.split(" ", 2);
-        cs.beginText();
-        cs.setFont(bold, 13);
-        cs.setNonStrokingColor(darkBlue);
-        cs.newLineAtOffset(25, 796);
-        cs.showText(cleanToAscii(nameParts[0]));
-        if (nameParts.length > 1) {
-            cs.newLineAtOffset(0, -14);
-            cs.showText(cleanToAscii(nameParts[1]));
-        }
-        cs.endText();
-
-        cs.beginText();
-        cs.setFont(regular, 7);
-        cs.setNonStrokingColor(darkBlue);
-        cs.newLineAtOffset(35, 770);
-        cs.showText("Location de Voitures");
-        cs.newLineAtOffset(12, -8);
-        cs.showText("Tanger - Maroc");
-        cs.endText();
     }
 
     private void drawText(PDPageContentStream cs, String text, float x, float y, PDFont font, float fontSize, Color color) throws IOException {
@@ -572,9 +570,89 @@ public class PdfService {
         }
     }
 
+    private void drawParagraphJustified(PDPageContentStream cs, String text, float x, float yStart, float width, float lineSpacing, PDFont font, float fontSize, Color color) throws IOException {
+        String[] paragraphs = text.split("\n");
+        float currentY = yStart;
+        
+        for (String para : paragraphs) {
+            if (para.trim().isEmpty()) {
+                currentY -= lineSpacing;
+                continue;
+            }
+            
+            String[] rawWords = para.split("\\s+");
+            List<String> words = new ArrayList<>();
+            for (String w : rawWords) {
+                if (w != null && !w.trim().isEmpty()) {
+                    words.add(w);
+                }
+            }
+            if (words.isEmpty()) continue;
+            
+            List<String> currentLineWords = new ArrayList<>();
+            float currentLineWidth = 0;
+            float spaceWidth = getStringWidth(" ", font, fontSize);
+            
+            for (String word : words) {
+                String sanitizedWord = sanitize(word);
+                float wordWidth = getStringWidth(sanitizedWord, font, fontSize);
+                float spacingNeeded = currentLineWords.isEmpty() ? 0 : spaceWidth;
+                
+                if (currentLineWidth + spacingNeeded + wordWidth <= width) {
+                    currentLineWords.add(sanitizedWord);
+                    currentLineWidth += spacingNeeded + wordWidth;
+                } else {
+                    drawLineJustified(cs, currentLineWords, x, currentY, width, font, fontSize, color);
+                    currentY -= lineSpacing;
+                    
+                    currentLineWords.clear();
+                    currentLineWords.add(sanitizedWord);
+                    currentLineWidth = wordWidth;
+                }
+            }
+            
+            if (!currentLineWords.isEmpty()) {
+                drawLineLeftAligned(cs, currentLineWords, x, currentY, font, fontSize, color);
+                currentY -= lineSpacing;
+            }
+            
+            currentY -= lineSpacing * 0.4f;
+        }
+    }
+
+    private void drawLineJustified(PDPageContentStream cs, List<String> words, float x, float y, float width, PDFont font, float fontSize, Color color) throws IOException {
+        if (words.isEmpty()) return;
+        if (words.size() == 1) {
+            drawText(cs, words.get(0), x, y, font, fontSize, color);
+            return;
+        }
+        
+        float totalWordsWidth = 0;
+        for (String word : words) {
+            totalWordsWidth += getStringWidth(word, font, fontSize);
+        }
+        
+        float totalSpaceWidth = width - totalWordsWidth;
+        float spaceBetweenWords = totalSpaceWidth / (words.size() - 1);
+        
+        float currentX = x;
+        for (String word : words) {
+            drawText(cs, word, currentX, y, font, fontSize, color);
+            currentX += getStringWidth(word, font, fontSize) + spaceBetweenWords;
+        }
+    }
+
+    private void drawLineLeftAligned(PDPageContentStream cs, List<String> words, float x, float y, PDFont font, float fontSize, Color color) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < words.size(); i++) {
+            sb.append(words.get(i));
+            if (i < words.size() - 1) sb.append(" ");
+        }
+        drawText(cs, sb.toString(), x, y, font, fontSize, color);
+    }
+
     private String sanitize(String text) {
         if (text == null) return "";
-        // Supprimer les caractères de contrôle bidirectionnels LRO (\u202D) et PDF (\u202C)
         String cleaned = text.replaceAll("\u202D", "").replaceAll("\u202C", "");
         StringBuilder sb = new StringBuilder();
         for (char c : cleaned.toCharArray()) {
