@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.MailException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestControllerAdvice
@@ -50,9 +52,25 @@ public class GlobalExceptionHandler {
     // ──────────────────────────────────────────────────────────────────
     @ExceptionHandler({ConstraintViolationException.class, IllegalArgumentException.class})
     public ResponseEntity<Map<String, String>> handleBadRequest(Exception ex) {
-        log.warn("Erreur métier : {}", ex.getMessage());
-        return ResponseEntity.badRequest()
-                .body(Map.of("error", translateMessage(ex.getMessage())));
+        String raw = ex.getMessage();
+        log.warn("Erreur métier : {}", raw);
+        Map<String, String> body = new LinkedHashMap<>();
+        body.put("error", translateMessage(raw));
+        if (raw != null) body.put("code", raw);
+        return ResponseEntity.badRequest().body(body);
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // Erreur d'envoi d'e-mail (SMTP)
+    // ──────────────────────────────────────────────────────────────────
+    @ExceptionHandler(MailException.class)
+    public ResponseEntity<Map<String, String>> handleMailException(MailException ex) {
+        log.error("Échec d'envoi du mail : {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of(
+                        "error", "L'envoi de l'e-mail a échoué. Vérifiez votre connexion ou réessayez dans quelques instants.",
+                        "code", "MAIL_SEND_FAILED"
+                ));
     }
 
     // ──────────────────────────────────────────────────────────────────
@@ -140,6 +158,20 @@ public class GlobalExceptionHandler {
             // ── Paramètres ──
             case "Format non supporté. Utilisez JPG ou PNG."
                     -> "Format de logo non supporté. Veuillez utiliser un fichier JPG ou PNG.";
+            case "RESET_REQUEST_LIMIT_REACHED"
+                    -> "Trop de demandes de réinitialisation. Veuillez réessayer dans une heure.";
+            case "INVALID_RESET_CODE"
+                    -> "Code de vérification invalide.";
+            case "RESET_CODE_ALREADY_USED"
+                    -> "Ce code a déjà été utilisé. Demandez un nouveau code.";
+            case "RESET_CODE_EXPIRED"
+                    -> "Ce code a expiré. Demandez un nouveau code.";
+            case "RESET_CODE_BLOCKED"
+                    -> "Trop de tentatives incorrectes. Demandez un nouveau code.";
+            case "PASSWORD_CONFIRMATION_MISMATCH"
+                    -> "Le nouveau mot de passe et sa confirmation ne correspondent pas.";
+            case "WEAK_PASSWORD"
+                    -> "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial.";
             default -> {
                 // Messages déjà en français (contenant des espaces/caractères accentués)
                 if (raw.contains("est déjà réservée") || raw.contains("réservée ou louée"))

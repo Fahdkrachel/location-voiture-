@@ -18,6 +18,7 @@ import '../../data/repositories/dashboard_repository.dart';
 import '../../data/repositories/financial_repository.dart';
 import '../../data/repositories/maintenance_repository.dart';
 import '../../data/repositories/admin_repository.dart';
+import '../../data/repositories/password_reset_repository.dart';
 import '../../data/models/settings_model.dart';
 import '../../data/repositories/settings_repository.dart';
 
@@ -25,6 +26,11 @@ final dioProvider = Provider<Dio>((ref) => DioClient.build());
 
 final adminRepositoryProvider = Provider<AdminRepository>((ref) {
   return AdminRepository(ref.watch(dioProvider));
+});
+
+final passwordResetRepositoryProvider =
+    Provider<PasswordResetRepository>((ref) {
+  return PasswordResetRepository(ref.watch(dioProvider));
 });
 
 final adminsProvider = FutureProvider<List<AdminModel>>((ref) async {
@@ -42,7 +48,6 @@ final settingsProvider = FutureProvider<SettingsModel>((ref) async {
 final carRepositoryProvider = Provider<CarRepository>((ref) {
   return CarRepository(ref.watch(dioProvider));
 });
-
 
 final carsProvider = FutureProvider<List<CarModel>>((ref) async {
   return ref.watch(carRepositoryProvider).getCars();
@@ -84,15 +89,18 @@ final dashboardStatsProvider = FutureProvider<DashboardStatsModel>((ref) async {
   return ref.watch(dashboardRepositoryProvider).getStats();
 });
 
-final dashboardCalendarProvider = FutureProvider<List<ContractModel>>((ref) async {
+final dashboardCalendarProvider =
+    FutureProvider<List<ContractModel>>((ref) async {
   return ref.watch(dashboardRepositoryProvider).getCalendar();
 });
 
-final dashboardAlertsProvider = FutureProvider<List<DashboardAlertModel>>((ref) async {
+final dashboardAlertsProvider =
+    FutureProvider<List<DashboardAlertModel>>((ref) async {
   return ref.watch(dashboardRepositoryProvider).getAlerts();
 });
 
-final dashboardFutureReservationsProvider = FutureProvider<List<ContractModel>>((ref) async {
+final dashboardFutureReservationsProvider =
+    FutureProvider<List<ContractModel>>((ref) async {
   return ref.watch(dashboardRepositoryProvider).getFutureReservations();
 });
 

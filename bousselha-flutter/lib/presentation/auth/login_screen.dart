@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/utils/app_error_handler.dart';
 import '../../shared/providers/auth_provider.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -15,7 +16,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  
+
   bool _obscurePassword = true;
   bool _isLoading = false;
   String? _errorMessage;
@@ -37,9 +38,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       await ref.read(authProvider.notifier).login(
-        _emailController.text.trim(),
-        _passwordController.text,
-      );
+            _emailController.text.trim(),
+            _passwordController.text,
+          );
       // Riverpod automatically rebuilds the App's home parameter to HomeShell because token is now updated
     } catch (e) {
       setState(() {
@@ -69,7 +70,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (!isDesktop) ...[
-              const Icon(Icons.directions_car_rounded, size: 48, color: Color(0xFF1A2B4A)),
+              const Icon(Icons.directions_car_rounded,
+                  size: 48, color: Color(0xFF1A2B4A)),
               const SizedBox(height: 10),
               const Text(
                 'BOUSSELHA CARS',
@@ -102,7 +104,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             const SizedBox(height: 32),
             if (_errorMessage != null) ...[
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: const Color(0xFFfef2f2),
                   borderRadius: BorderRadius.circular(8),
@@ -110,7 +113,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline_rounded, color: Color(0xFFdc2626), size: 20),
+                    const Icon(Icons.error_outline_rounded,
+                        color: Color(0xFFdc2626), size: 20),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -142,8 +146,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               textInputAction: TextInputAction.next,
               decoration: InputDecoration(
                 hintText: 'admin@bousselha.ma',
-                prefixIcon: const Icon(Icons.mail_outline_rounded, color: Color(0xFF64748b), size: 20),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                prefixIcon: const Icon(Icons.mail_outline_rounded,
+                    color: Color(0xFF64748b), size: 20),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: const BorderSide(color: Color(0xFFcbd5e1)),
@@ -154,7 +160,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Color(0xFF1A2B4A), width: 1.5),
+                  borderSide:
+                      const BorderSide(color: Color(0xFF1A2B4A), width: 1.5),
                 ),
                 errorBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -188,10 +195,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               onFieldSubmitted: (_) => _handleLogin(),
               decoration: InputDecoration(
                 hintText: '••••••••',
-                prefixIcon: const Icon(Icons.lock_open_outlined, color: Color(0xFF64748b), size: 20),
+                prefixIcon: const Icon(Icons.lock_open_outlined,
+                    color: Color(0xFF64748b), size: 20),
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    _obscurePassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
                     color: const Color(0xFF64748b),
                     size: 20,
                   ),
@@ -201,7 +211,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     });
                   },
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: const BorderSide(color: Color(0xFFcbd5e1)),
@@ -212,7 +223,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Color(0xFF1A2B4A), width: 1.5),
+                  borderSide:
+                      const BorderSide(color: Color(0xFF1A2B4A), width: 1.5),
                 ),
                 errorBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -228,6 +240,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 }
                 return null;
               },
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: _isLoading
+                    ? null
+                    : () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const ForgotPasswordScreen(),
+                          ),
+                        );
+                      },
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF1A2B4A),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                  textStyle: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w700),
+                ),
+                child: const Text('Mot de passe oublié ?'),
+              ),
             ),
             const SizedBox(height: 32),
             ElevatedButton(
@@ -252,7 +287,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     )
                   : const Text(
                       'Se connecter',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
             ),
           ],
@@ -281,7 +317,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.directions_car_rounded, size: 72, color: Colors.white),
+                      Icon(Icons.directions_car_rounded,
+                          size: 72, color: Colors.white),
                       SizedBox(height: 24),
                       Text(
                         'BOUSSELHA CARS',

@@ -1,6 +1,7 @@
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\controller\AdminController.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\controller\AuthController.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\controller\FinancialController.java
+C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\controller\PasswordResetController.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\request\CarRequest.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\request\ClientRequest.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\request\ContractRequest.java
@@ -8,6 +9,9 @@ C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\request\CreateAdminRequest.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\request\LoginRequest.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\request\MaintenanceRequest.java
+C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\request\PasswordResetConfirmRequest.java
+C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\request\PasswordResetRequest.java
+C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\request\PasswordResetVerifyRequest.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\request\SettingsRequest.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\request\UpdateAdminRequest.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\dto\request\UpdatePasswordRequest.java
@@ -29,9 +33,11 @@ C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\service\ClientService.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\service\ContractService.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\service\DashboardService.java
+C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\service\EmailService.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\service\FinancialService.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\service\MaintenanceService.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\service\OrphanClientService.java
+C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\service\PasswordResetService.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\service\PdfService.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\application\service\SettingsService.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\BousselhaApplication.java
@@ -52,6 +58,7 @@ C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\model\ExpenseRecord.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\model\IncomeRecord.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\model\Maintenance.java
+C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\model\PasswordResetToken.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\repository\AdminRepository.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\repository\CarRepository.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\repository\ClientRepository.java
@@ -60,6 +67,7 @@ C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\repository\ExpenseRecordRepository.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\repository\IncomeRecordRepository.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\repository\MaintenanceRepository.java
+C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\domain\repository\PasswordResetTokenRepository.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\infrastructure\controller\CarController.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\infrastructure\controller\ClientController.java
 C:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-backend\src\main\java\com\bousselha\infrastructure\controller\ContractController.java
