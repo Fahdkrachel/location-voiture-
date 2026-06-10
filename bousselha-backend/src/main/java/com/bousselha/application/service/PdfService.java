@@ -99,6 +99,7 @@ public class PdfService {
             }
 
             Color textBlack = Color.BLACK;
+            Color dataColor = new Color(30, 40, 80); // Bleu marine foncé pour les données
 
             try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
                 // --- PAGE 1: CONTRAT DE LOCATION ---
@@ -173,11 +174,11 @@ public class PdfService {
                 drawText(cs, "Lieu de départ", 25, 637, bold, 7.5f, Color.BLACK);
                 drawText(cs, "Lieu de retour", 25, 623, bold, 7.5f, Color.BLACK);
 
-                drawText(cs, contract.getCar() != null ? contract.getCar().getBrand() : "", 140, 679, regular, 7.5f, Color.BLACK);
-                drawText(cs, contract.getCar() != null ? contract.getCar().getMatricule() : "", 140, 665, regular, 7.5f, Color.BLACK);
-                drawText(cs, "Diesel", 140, 651, regular, 7.5f, Color.BLACK);
-                drawText(cs, contract.getDeparturePlace(), 140, 637, regular, 7.5f, Color.BLACK);
-                drawText(cs, contract.getReturnPlace(), 140, 623, regular, 7.5f, Color.BLACK);
+                drawText(cs, contract.getCar() != null ? contract.getCar().getBrand() : "", 140, 679, bold, 8f, dataColor);
+                drawText(cs, contract.getCar() != null ? contract.getCar().getMatricule() : "", 140, 665, bold, 8f, dataColor);
+                drawText(cs, "Diesel", 140, 651, regular, 7.5f, dataColor);
+                drawText(cs, safe(contract.getDeparturePlace()), 140, 637, regular, 7.5f, dataColor);
+                drawText(cs, safe(contract.getReturnPlace()), 140, 623, regular, 7.5f, dataColor);
 
                 // 3. SECTION LOCATAIRE (cadre) - Ajout Passeport N° et Profession, affichage adresse complet
                 drawRect(cs, 20, 455, 272.5f, 155, 0.75f, Color.BLACK);
@@ -201,17 +202,17 @@ public class PdfService {
                 drawText(cs, "Passeport N°", 25, 473, bold, 7.5f, Color.BLACK);
                 drawText(cs, "Profession", 25, 459, bold, 7.5f, Color.BLACK);
 
-                drawText(cs, contract.getClient() != null ? contract.getClient().getFullName() : "", 140, 585, regular, 7.5f, Color.BLACK);
-                drawText(cs, contract.getClient() != null ? formatDate(contract.getClient().getBirthDate()) : "", 140, 571, regular, 7.5f, Color.BLACK);
-                drawText(cs, contract.getClient() != null ? contract.getClient().getCinNumber() : "", 140, 557, regular, 7.5f, Color.BLACK);
-                drawText(cs, "", 140, 543, regular, 7.5f, Color.BLACK); // Nationalité (vide)
-                drawText(cs, contract.getClient() != null ? contract.getClient().getDrivingLicenseNumber() : "", 140, 529, regular, 7.5f, Color.BLACK);
-                drawText(cs, contract.getClient() != null ? contract.getClient().getDrivingLicenseIssuedAt() : "", 140, 515, regular, 7.5f, Color.BLACK);
-                drawText(cs, contract.getClient() != null ? contract.getClient().getPhone() : "", 140, 501, regular, 7.5f, Color.BLACK);
+                drawText(cs, contract.getClient() != null ? contract.getClient().getFullName() : "", 140, 585, bold, 8f, dataColor);
+                drawText(cs, contract.getClient() != null ? formatDate(contract.getClient().getBirthDate()) : "", 140, 571, regular, 7.5f, dataColor);
+                drawText(cs, contract.getClient() != null ? contract.getClient().getCinNumber() : "", 140, 557, bold, 8f, dataColor);
+                drawText(cs, "", 140, 543, regular, 7.5f, dataColor); // Nationalité (vide)
+                drawText(cs, contract.getClient() != null ? contract.getClient().getDrivingLicenseNumber() : "", 140, 529, bold, 8f, dataColor);
+                drawText(cs, contract.getClient() != null ? contract.getClient().getDrivingLicenseIssuedAt() : "", 140, 515, regular, 7.5f, dataColor);
+                drawText(cs, contract.getClient() != null ? contract.getClient().getPhone() : "", 140, 501, regular, 7.5f, dataColor);
                 // Adresse complète (pas de truncate)
-                drawText(cs, contract.getClient() != null ? safe(contract.getClient().getAddressMorocco()) : "", 140, 487, regular, 7f, Color.BLACK);
-                drawText(cs, contract.getClient() != null ? safe(contract.getClient().getPassportNumber()) : "", 140, 473, regular, 7.5f, Color.BLACK);
-                drawText(cs, contract.getClient() != null ? safe(contract.getClient().getProfession()) : "", 140, 459, regular, 7.5f, Color.BLACK);
+                drawText(cs, contract.getClient() != null ? safe(contract.getClient().getAddressMorocco()) : "", 140, 487, regular, 7f, dataColor);
+                drawText(cs, contract.getClient() != null ? safe(contract.getClient().getPassportNumber()) : "", 140, 473, regular, 7.5f, dataColor);
+                drawText(cs, contract.getClient() != null ? safe(contract.getClient().getProfession()) : "", 140, 459, regular, 7.5f, dataColor);
 
                 // 4. SECTION CONDUCTEUR SUPPLEMENTAIRE (cadre) - Ajout Passeport N°
                 drawRect(cs, 20, 374, 272.5f, 71, 0.75f, Color.BLACK);
@@ -229,10 +230,10 @@ public class PdfService {
                 drawText(cs, "Permis de conduire N°", 25, 391, bold, 7.5f, Color.BLACK);
                 drawText(cs, "Passeport N°", 25, 377, bold, 7.5f, Color.BLACK);
 
-                drawText(cs, contract.getAdditionalDriverName(), 140, 419, regular, 7.5f, Color.BLACK);
-                drawText(cs, "", 140, 405, regular, 7.5f, Color.BLACK); // CIN vide
-                drawText(cs, contract.getAdditionalDriverLicense(), 140, 391, regular, 7.5f, Color.BLACK);
-                drawText(cs, contract.getAdditionalDriverPassport() != null ? contract.getAdditionalDriverPassport() : "", 140, 377, regular, 7.5f, Color.BLACK);
+                drawText(cs, safe(contract.getAdditionalDriverName()), 140, 419, bold, 8f, dataColor);
+                drawText(cs, "", 140, 405, regular, 7.5f, dataColor); // CIN vide
+                drawText(cs, safe(contract.getAdditionalDriverLicense()), 140, 391, bold, 8f, dataColor);
+                drawText(cs, contract.getAdditionalDriverPassport() != null ? contract.getAdditionalDriverPassport() : "", 140, 377, regular, 7.5f, dataColor);
 
                 // 5. TABLEAU DATES (4 colonnes)
                 drawRect(cs, 302.5f, 642, 272.5f, 63, 0.75f, Color.BLACK);
@@ -283,34 +284,26 @@ public class PdfService {
                     drawTextAligned(cs, "______", 532.5f, 645, regular, 7.5f, Color.BLACK, "center", 42.5f);
                 }
 
-                // 6. GRILLE TARIFAIRE - Suppression "Avec Assurance" et tous les champs de calculs sont vides
-                drawRect(cs, 302.5f, 519, 272.5f, 113, 0.75f, Color.BLACK);
-                fillRect(cs, 302.5f, 604, 272.5f, 15, new Color(240, 240, 240));
-                drawHorizontalLine(cs, 302.5f, 575, 604, 0.5f, Color.BLACK);
+                // 6. ENCADRÉ "FAIT À TANGER" (remplace la table de prix)
+                String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                // Fond gris très clair
+                fillRect(cs, 302.5f, 558, 272.5f, 80, new Color(248, 248, 248));
+                drawRect(cs, 302.5f, 558, 272.5f, 80, 1.5f, new Color(30, 40, 80));
+                // Ligne décorative horizontale
+                drawHorizontalLine(cs, 312.5f, 565, 620, 0.5f, new Color(30, 40, 80));
+                drawHorizontalLine(cs, 312.5f, 565, 576, 0.5f, new Color(30, 40, 80));
+                drawTextAligned(cs, "Fait a Tanger, le", 302.5f, 613, bold, 9f, new Color(30, 40, 80), "center", 272.5f);
+                drawTextAligned(cs, dateStr, 302.5f, 595, bold, 14f, new Color(30, 40, 80), "center", 272.5f);
+                drawTextAligned(cs, "SIGNATURE CLIENT", 302.5f, 568, bold, 8f, new Color(30, 40, 80), "center", 272.5f);
 
-                drawVerticalLine(cs, 412.5f, 519, 619, 0.5f, Color.BLACK);
-                drawVerticalLine(cs, 452.5f, 519, 619, 0.5f, Color.BLACK);
-                drawVerticalLine(cs, 512.5f, 519, 619, 0.5f, Color.BLACK);
+                // 7. ENCADRÉ URGENCE ACCIDENT (en dessous de l'encadré date)
+                fillRect(cs, 302.5f, 505, 272.5f, 45, new Color(255, 245, 245));
+                drawRect(cs, 302.5f, 505, 272.5f, 45, 1.5f, new Color(180, 20, 20));
+                drawTextAligned(cs, "EN CAS D'ACCIDENT : CONTACTER", 302.5f, 537, bold, 8f, new Color(180, 20, 20), "center", 272.5f);
+                drawTextAligned(cs, "IMMEDIATEMENT L'AGENCE", 302.5f, 524, bold, 8f, new Color(180, 20, 20), "center", 272.5f);
+                drawTextAligned(cs, safe(settings.getGsm()), 302.5f, 511, bold, 10f, new Color(180, 20, 20), "center", 272.5f);
 
-                drawTextAligned(cs, "Q", 412.5f, 608, bold, 7.5f, Color.BLACK, "center", 40);
-                drawTextAligned(cs, "Prix", 452.5f, 608, bold, 7.5f, Color.BLACK, "center", 60);
-                drawTextAligned(cs, "Total", 512.5f, 608, bold, 7.5f, Color.BLACK, "center", 62.5f);
-
-                for (int i = 1; i <= 5; i++) {
-                    drawHorizontalLine(cs, 302.5f, 575, 604 - i * 14, 0.5f, Color.BLACK);
-                }
-
-                drawText(cs, "Heures", 307.5f, 591, bold, 7.5f, Color.BLACK);
-                drawText(cs, "Jours", 307.5f, 577, bold, 7.5f, Color.BLACK);
-                drawText(cs, "Semaines", 307.5f, 563, bold, 7.5f, Color.BLACK);
-                drawText(cs, "Mois", 307.5f, 549, bold, 7.5f, Color.BLACK);
-                drawText(cs, "TOTAL", 307.5f, 535, bold, 7.5f, Color.BLACK);
-                drawText(cs, "Supplément", 307.5f, 521, bold, 7.5f, Color.BLACK);
-                drawText(cs, "TOTAL Général", 307.5f, 507, bold, 7.5f, Color.BLACK);
-
-                // Note: Q, Prix, et Total restent vides comme demandé.
-
-                // Note: 7. PAIEMENT et 8. FRANCHISE ET ASSURANCE ont été supprimés complètement.
+                // Note: PAIEMENT et FRANCHISE ET ASSURANCE ont été supprimés complètement.
 
                 // 9. ETAT VEHICULE DEPART ET RETOUR & 10. ZONE SCHEMAS VOITURE
                 boolean depOui = false;
@@ -445,16 +438,15 @@ public class PdfService {
                 drawText(cs, "Commentaires: Positionner les numéros à l'endroit précis du dommage, sur la matrice à gauche.", 20, 236, bold, 7.2f, Color.BLACK);
 
                 // 11. PIED DE PAGE
-                String dateString = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-                drawText(cs, "Fait à Tanger, le " + dateString, 25, 210, regular, 9, Color.BLACK);
-                drawText(cs, "En cas d'accident contacter immédiatement l'agence : " + safe(settings.getGsm()), 25, 190, bold, 8.5f, new Color(200, 0, 0));
-                
                 drawText(cs, "VISEE PAR " + safe(settings.getCompanyName()).toUpperCase(), 25, 140, bold, 9, Color.BLACK);
-                drawText(cs, "SIGNATURE CLIENT", 450, 140, bold, 9, Color.BLACK);
+                drawText(cs, "SIGNATURE CLIENT", 400, 140, bold, 9, Color.BLACK);
 
                 // Phrase en bas de signature client
-                drawTextAligned(cs, "Je reconnais avoir pris connaissance des Présentes conditions générales", 300, 95, italic, 7f, Color.BLACK, "center", 250);
-                drawTextAligned(cs, "(recto verso) que je m'engage à respecter.", 300, 83, italic, 7f, Color.BLACK, "center", 250);
+                drawTextAligned(cs, "Je reconnais avoir pris connaissance des Présentes conditions generales", 330, 100, italic, 7f, new Color(60, 60, 60), "center", 235);
+                drawTextAligned(cs, "(recto verso) que je m'engage a respecter.", 330, 88, italic, 7f, new Color(60, 60, 60), "center", 235);
+
+                // Observation en bas
+                drawText(cs, "Observation : en cas d'accident ou de vol, je m'engage a regler la valeur totale de la voiture.", 20, 70, italic, 7.5f, new Color(100, 0, 0));
             }
 
             // --- PAGE 2: CONDITIONS GENERALES ---
@@ -468,41 +460,48 @@ public class PdfService {
 
                 // Title centered
                 drawTextAligned(cs2, "CONDITIONS GENERALES DE LOCATION", 20, 800, bold, 12, Color.BLACK, "center", 555);
+                drawHorizontalLine(cs2, 20, 575, 792, 1f, new Color(30, 40, 80));
 
                 float leftColX = 20;
                 float rightColX = 307.5f;
                 float colWidth = 267.5f;
-                float startY = 775;
-                float lineSpacing = 8.5f;
+                float startY = 780;
+                float lineSpacing = 8.2f;
 
+                // Art 1-6 colonne gauche
                 String leftText = "Art. 1 - UTILISATION DE LA VOITURE\n" +
-                        "Le locataire s'engage à ne pas laisser conduire la voiture par d'autres personnes que lui même ou celles agréées par le loueur et dont il se porte garant, et à réutiliser le véhicule que pour ses besoins personnels. Il est interdit de participer à toute compétition, quelle qu'elle soit, et d'utiliser le véhicule aux fins illicites ou des transports de marchandises. Le locataire s'engage à ne pas solliciter directement des documents douaniers. Il est interdit au locataire de surcharger le véhicule loué en transportant un nombre de passagers supérieur à celui porté sur le contrat, sous peine d'être déchu de l'Assurance. Le locataire ne doit jamais faire circuler le véhicule ailleurs qu'au Maroc et en dehors des routes asphaltées, seules les routes carrossables goudronnées doivent être empruntées.\n\n" +
+                        "Le locataire s'engage a ne pas laisser conduire la voiture par d'autres personnes que lui meme ou celles agreees par le loueur et dont il se porte garant, et a reutiliser le vehicule que pour ses besoins personnels. Il est interdit de participer a toute competition, quelle qu'elle soit, et d'utiliser le vehicule aux fins illicites ou des transports de marchandises. Le locataire s'engage a ne pas solliciter directement des documents douaniers. Il est interdit au locataire de surcharger le vehicule loue en transportant un nombre de passagers superieur a celui porte sur le contrat, sous peine d'etre dechu de l'Assurance. Le locataire ne doit jamais faire circuler le vehicule ailleurs qu'au Maroc et en dehors des routes asphaltes, seules les routes carrossables goudronnees doivent etre empruntees.\n\n" +
                         "Art. 2 - ETAT DE LA VOITURE\n" +
-                        "La voiture est livrée en parfait état de marche et de propreté. Les compteurs et leurs prises sont plombés, et les plombs ne pourront être enlevés ou volés sous peine de devoir payer la location sur la base de 500 Kilomètres par jour. La voiture sera rendue dans le même état de propreté, à défaut le locataire devra acquitter les frais de nettoyages et remises en état les 5 pneus sont en bon état sans coupures, l'usure est normale. En cas de détérioration de l'un d'eux pour une cause autre que l'usure normale. Le locataire s'engage à le remplacer immédiatement par un pneu neuf de mêmes dimensions ou d'en payer le Montant.\n\n" +
+                        "La voiture est livree en parfait etat de marche et de proprete. Les compteurs et leurs prises sont plombes, et les plombs ne pourront etre enleves ou voles sous peine de devoir payer la location sur la base de 500 Kilometres par jour. La voiture sera rendue dans le meme etat de proprete, a defaut le locataire devra acquitter les frais de nettoyages et remises en etat les 5 pneus sont en bon etat sans coupures, l'usure est normale. En cas de deterioration de l'un d'eux pour une cause autre que l'usure normale. Le locataire s'engage a le remplacer immediatement par un pneu neuf de memes dimensions ou d'en payer le Montant.\n\n" +
                         "Art. 3 - ESSENCE ET HUILE\n" +
-                        "L'essence est à la charge du client. Le locataire doit vérifier en permanence les niveaux d'huile et d'eau, et vérifier les niveaux de la boite de vitesse et du pont arrière tous les 1000 Kilomètres. Il justifiera ces travaux par des factures correspondantes (qui lui seront remboursées) sous peine d'avoir à payer une indemnité pour usure anormale.\n\n" +
+                        "L'essence est a la charge du client. Le locataire doit verifier en permanence les niveaux d'huile et d'eau, et verifier les niveaux de la boite de vitesse et du pont arriere tous les 1000 Kilometres. Il justifiera ces travaux par des factures correspondantes (qui lui seront remboursees) sous peine d'avoir a payer une indemnite pour usure anormale.\n\n" +
                         "Art. 4 - ENTRETIEN ET REPARATION\n" +
-                        "L'usure mécanique normale est à la charge du loueur. Toutes les réparations provenants, soit d'une usure anormale, soit d'une négligence de la part du locataire ou d'un accident accidentel, sont à sa charge et exécutées par nos soins. Dans le cas ou le véhicule serait immobilisé en dehors de la région, les réparations qu'elles soient dues à l'usure normale ou à une cause accidentelle, ne seront exécutées qu'après accord télégraphique du loueur ou par l'Agent régional de la marque du véhicule. Elles devront faire l'objet d'une facture acquittée et très détaillée. Les pièces défectueuses remplacées devront être présentées avec la facture acquittée. En aucun cas et en aucune circonstance, le locataire ne pourra réclamer des dommages et intérêts, soit pour retard de la remise de la voiture, ou annulation de la location, soit pour immobilisation dans le cas de réparation nécessités par une usure normale et exécutées au cours de la location. La responsabilité du loueur ne pourra jamais être invoquée, même en cas d'accidents de personnes ou de choses ayant pu résulter de vices ou de défauts de construction ou de réparations antérieures.\n\n" +
+                        "L'usure mecanique normale est a la charge du loueur. Toutes les reparations provenants, soit d'une usure anormale, soit d'une negligence de la part du locataire ou d'un accident accidentel, sont a sa charge et executees par nos soins. Dans le cas ou le vehicule serait immobilise en dehors de la region, les reparations qu'elles soient dues a l'usure normale ou a une cause accidentelle, ne seront executees qu'apres accord telegraphique du loueur ou par l'Agent regional de la marque du vehicule. Elles devront faire l'objet d'une facture acquittee et tres detaillee. Les pieces defectueuses remplacees devront etre presentees avec la facture acquittee. En aucun cas et en aucune circonstance, le locataire ne pourra reclamer des dommages et interets, soit pour retard de la remise de la voiture, ou annulation de la location, soit pour immobilisation dans le cas de reparation necessites par une usure normale et executees au cours de la location. La responsabilite du loueur ne pourra jamais etre invoquee, meme en cas d'accidents de personnes ou de choses ayant pu resulter de vices ou de defauts de construction ou de reparations anterieures.\n\n" +
                         "Art. 5 - ASSURANCE\n" +
-                        "Le locataire est garanti pour les risques suivants: En cas d'accidents fortuit ou fautif le locataire est entièrement responsable des dommages causés au véhicule en conséquence il est tenu de nous régler le montant total des réparations. Le Locataire est le seul conducteur du véhicule et s'engage à ne pas céder à autrui à moins d'une stipulation sur le présent contrat. Les frais de rapatriement et d'immobilisation reste toujours à la charge du locataire, quelle que soit la formule d'assurance contractées. ASSURANCE-Assure tiers illimitée vol et incendie est inclus dans le prix de location assure complémentaire de 35 dhs par jour en cas d'accident fautif 30% et fortuite 50% restent à la charge du client. Assure des personnes transportées peut être souscrite pour 15 dhs par jour. La voiture n'est assurée que pour la durée de la location. Passé ce délai, le loueur décline toute responsabilité pour les accidents que le locataire aurait pu causer et dont il devra faire son affaire personnelle. Enfin, il n'y a pas Assurance pour tout conducteur non muni d'un permis en état de validité ou d'un permis datant de moins de 1 an. Le Loueur décline toute responsabilité pour les accidents aux tiers ou dégâts à la voiture que le locataire pourrait causer pendant la période de location si le locataire a délibérément fourni au loueur des informations fausses concernant son identité, son adresse ou la validité de son permis de conduire.";
+                        "Le locataire est garanti pour les risques suivants: En cas d'accidents fortuit ou fautif le locataire est entierement responsable des dommages causes au vehicule en consequence il est tenu de nous regler le montant total des reparations. Le Locataire est le seul conducteur du vehicule et s'engage a ne pas ceder a autrui a moins d'une stipulation sur le present contrat. Les frais de rapatriement et d'immobilisation reste toujours a la charge du locataire, quelle que soit la formule d'assurance contractees. ASSURANCE : tiers illimitee vol et incendie inclus dans le prix de location. Assurance complementaire de 35 dhs/jour ; en cas d'accident fautif 30% et fortuite 50% restent a la charge du client. Assurance des personnes transportees peut etre souscrite pour 15 dhs/jour. La voiture n'est assuree que pour la duree de la location. Passe ce delai, le loueur decline toute responsabilite.\n\n" +
+                        "Art. 6 - LOCATION, CAUTION, PROLONGATION\n" +
+                        "Les prix de la location, ainsi que la caution, sont payables d'avance. La caution ne pourra servir au paiement de la location en cours. Pour conserver la voiture au-dela de la duree prevue, le locataire devra obtenir l'accord du loueur, faute de quoi il s'expose a des poursuites pour detournement de vehicule ou abus de confiance. La journee de location compte de 0 heures a 24 heures et toute journee commencee est due en entier.";
 
-                String rightText = "Art. 6 - LOCATION, CAUTION, PROLONGATION\n" +
-                        "Les prix de la location, ainsi que la caution, sont payables d'avance. La caution ne pourra servir, en aucun cas au loueur, faire parvenir le montant de la location en cours, sous peine d'éviter toute contestation et pour le cas où le locataire voudrait conserver la voiture pour un temps supérieur à celui indiqué sur le contrat, il devra après avoir obtenu l'accord de s'exposer à des poursuites pour détournement de voiture ou abus de confiance. La journée de location compte de 0 heures à 24 heures et toute journée commencée est due en entier.\n\n" +
-                        "Art. 7 - RAPATRIEMENT DE LA VOITURE\n" +
-                        "Le locataire s'interdit formellement d'abandonner le véhicule. En cas d'impossibilité matérielle, celle-ci sera rapatriée aux frais et par les soins du locataire, la location restant due jusqu'à retour du véhicule.\n\n" +
+                // Art 7-12 colonne droite
+                String rightText = "Art. 7 - RAPATRIEMENT DE LA VOITURE\n" +
+                        "Le locataire s'interdit formellement d'abandonner le vehicule. En cas d'impossibilite materielle, celui-ci sera rapatrie aux frais et par les soins du locataire, la location restant due jusqu'au retour du vehicule.\n\n" +
                         "Art. 8 - PAPIERS DE LA VOITURE\n" +
-                        "Le locataire remettra dès la fin de la location et à la rentrée de la voiture, la carte grise et tous les papiers nécessaires à sa circulation, faute de quoi, ces pièces étant indispensables à de nouvelles locations, la location continuera à courir aux frais du locataire initial jusqu'à leur remise à la société. En cas de perte de ces papiers le locataire devra acquitter le montant des frais de duplicata, ainsi que de l'immobilisation.\n\n" +
+                        "Le locataire remettra des la fin de la location et a la rentree de la voiture, la carte grise et tous les papiers necessaires a sa circulation, faute de quoi, ces pieces etant indispensables a de nouvelles locations, la location continuera a courir aux frais du locataire initial jusqu'a leur remise a la societe. En cas de perte de ces papiers le locataire devra acquitter le montant des frais de duplicata, ainsi que de l'immobilisation.\n\n" +
                         "Art. 9 - RESPONSABILITE\n" +
-                        "Le locataire demeure seul responsable des amendes, contraventions et procès-verbaux établis contre lui.\n\n" +
+                        "Le locataire demeure seul responsable des amendes, contraventions et proces-verbaux etablis contre lui.\n\n" +
                         "Art. 10 - COMPETENCE\n" +
-                        "De convention expresse et en cas de contestation quelconque, le tribunal de Tanger sera seul compétent, les frais de timbres et d'enregistrement restant à la charge du locataire.";
+                        "De convention expresse et en cas de contestation quelconque, le tribunal de Tanger sera seul competent, les frais de timbres et d'enregistrement restant a la charge du locataire.\n\n" +
+                        "Art. 11 - INFRACTIONS ET CONTRAVENTIONS\n" +
+                        "Le locataire demeure seul responsable des infractions au Code de la Route commises pendant la duree de location. Toutes les amendes, penalites, frais de mise en fourriere et autres sanctions administratives restent a sa charge, meme apres restitution du vehicule.\n\n" +
+                        "Art. 12 - UTILISATIONS INTERDITES\n" +
+                        "Il est interdit d'utiliser le vehicule pour : l'apprentissage de la conduite ; le transport remunere de personnes ; le remorquage ; les competitions sportives ; le transport de matieres dangereuses ; toute activite illicite ou contraire a la reglementation en vigueur.";
 
                 drawParagraphJustified(cs2, leftText, leftColX, startY, colWidth, lineSpacing, regular, 6.5f, Color.BLACK);
                 drawParagraphJustified(cs2, rightText, rightColX, startY, colWidth, lineSpacing, regular, 6.5f, Color.BLACK);
 
-                // Bottom Page 2 elements
-                drawText(cs2, "je reconnais avoir pris connaissance des présentes conditions générales (recto et verso) Que je m'engage à les respecter.", 20, 80, italic, 7.5f, Color.BLACK);
-                drawText(cs2, "Signature Client", 450, 60, bold, 9, Color.BLACK);
+                // Bottom Page 2 - signature uniquement, pas de "Signature Client"
+                drawHorizontalLine(cs2, 20, 575, 75, 0.5f, new Color(180, 180, 180));
+                drawText(cs2, "je reconnais avoir pris connaissance des presentes conditions generales (recto et verso) que je m'engage a les respecter.", 20, 62, italic, 7.5f, new Color(60, 60, 60));
             }
 
             doc.save(out);
