@@ -308,9 +308,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(60.0),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const Spacer(),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                         decoration: BoxDecoration(
@@ -347,6 +347,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           fontSize: 15,
                           color: Colors.white70,
                           height: 1.6,
+                        ),
+                      ),
+                      const Spacer(),
+                      const Text(
+                        'Developed by KRACHEL FAHD',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.white38,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ],

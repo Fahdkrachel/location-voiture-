@@ -26,6 +26,16 @@ abstract final class Cc {
   static const double actionButtonHeight = 52;
 }
 
+String _contractStatusLabel(String status) {
+  switch (status) {
+    case 'IN_PROGRESS': return 'En préparation';
+    case 'ACTIVE': return 'En location';
+    case 'COMPLETED': return 'Terminé';
+    case 'CANCELLED': return 'Annulé';
+    default: return status;
+  }
+}
+
 Widget _contractStatusBadge(String status) {
   Color bg;
   Color fg;
@@ -61,7 +71,7 @@ Widget _contractStatusBadge(String status) {
       border: Border.all(color: br),
     ),
     child: Text(
-      status,
+      _contractStatusLabel(status),
       style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: fg, letterSpacing: 0.2),
     ),
   );
@@ -426,29 +436,60 @@ class _ContractDetailScreenState extends ConsumerState<ContractDetailScreen> {
     return Scaffold(
       backgroundColor: Cc.bgGrey,
       appBar: AppBar(
-        backgroundColor: Cc.navy,
-        foregroundColor: Colors.white,
-        elevation: 2,
-        titleSpacing: 8,
+        backgroundColor: Colors.white,
+        foregroundColor: Cc.navy,
+        elevation: 0,
+        surfaceTintColor: Colors.white,
+        titleSpacing: 16,
         title: Row(
           children: [
-            Flexible(
-              child: Text(
-                'Contrat #${c.id}',
-                style: const TextStyle(fontWeight: FontWeight.w600, letterSpacing: 0.15),
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: Cc.navy.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
               ),
+              child: const Icon(Icons.article_rounded, color: Cc.navy, size: 20),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Contrat #${c.id}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                    color: Cc.navy,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${_dash(c.clientName)} — ${_dash(c.carBrand)}',
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    color: Cc.textMuted,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 12),
             _contractStatusBadge(c.status),
           ],
+        ),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: Color(0xFFE2E8F0)),
         ),
         actions: [
           if (canDownloadPdf)
             Padding(
-              padding: const EdgeInsets.only(right: 10),
+              padding: const EdgeInsets.only(right: 12),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10),
-                child: OutlinedButton.icon(
+                child: ElevatedButton.icon(
                   onPressed: () async {
                     try {
                       final path = await repo.downloadContractPdf(c.id);
@@ -463,10 +504,12 @@ class _ContractDetailScreenState extends ConsumerState<ContractDetailScreen> {
                   },
                   icon: const Icon(Icons.download_rounded, size: 18),
                   label: const Text('Télécharger PDF', style: TextStyle(fontWeight: FontWeight.w600)),
-                  style: OutlinedButton.styleFrom(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Cc.navy,
                     foregroundColor: Colors.white,
-                    side: BorderSide(color: Colors.white.withValues(alpha: 0.75)),
+                    elevation: 0,
                     visualDensity: VisualDensity.compact,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                 ),
               ),
@@ -896,7 +939,7 @@ class _ContractFooterActions extends StatelessWidget {
           height: Cc.actionButtonHeight,
           child: FilledButton.icon(
             onPressed: null,
-            icon: const Text('✅', style: TextStyle(fontSize: 16)),
+            icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
             label: Text(
               contract.status == 'COMPLETED' ? 'Contrat terminé' : 'Contrat clos',
               style: const TextStyle(fontWeight: FontWeight.w700),
@@ -914,7 +957,7 @@ class _ContractFooterActions extends StatelessWidget {
           height: Cc.actionButtonHeight,
           child: FilledButton.icon(
             onPressed: onActivate,
-            icon: const Text('🚗', style: TextStyle(fontSize: 16)),
+            icon: const Icon(Icons.directions_car_rounded, size: 18),
             label: const Text('Activer (livraison)', style: TextStyle(fontWeight: FontWeight.w700)),
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFFF59E0B),
@@ -929,8 +972,8 @@ class _ContractFooterActions extends StatelessWidget {
           height: Cc.actionButtonHeight,
           child: FilledButton.icon(
             onPressed: onComplete,
-            icon: const Text('✅', style: TextStyle(fontSize: 16)),
-            label: const Text('Terminer', style: TextStyle(fontWeight: FontWeight.w700)),
+            icon: const Icon(Icons.task_alt_rounded, size: 18),
+            label: const Text('Terminer le contrat', style: TextStyle(fontWeight: FontWeight.w700)),
             style: FilledButton.styleFrom(
               backgroundColor: Cc.success,
               foregroundColor: Colors.white,
@@ -944,13 +987,13 @@ class _ContractFooterActions extends StatelessWidget {
 
     return Material(
       color: Colors.white,
-      elevation: 12,
-      shadowColor: Colors.black26,
+      elevation: 8,
+      shadowColor: Colors.black12,
       child: SafeArea(
         top: false,
         minimum: EdgeInsets.zero,
         child: Padding(
-          padding: EdgeInsets.only(left: 16, right: 16, top: 14, bottom: 16 + MediaQuery.paddingOf(context).bottom),
+          padding: EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 14 + MediaQuery.paddingOf(context).bottom),
           child: Row(
             children: [
               Expanded(child: statusActionBtn()),
@@ -960,11 +1003,13 @@ class _ContractFooterActions extends StatelessWidget {
                   height: Cc.actionButtonHeight,
                   child: FilledButton.icon(
                     onPressed: (contract.status == 'ACTIVE' || contract.status == 'COMPLETED') ? null : onEdit,
-                    icon: const Text('✏️', style: TextStyle(fontSize: 15)),
+                    icon: const Icon(Icons.edit_rounded, size: 17),
                     label: const Text('Modifier', style: TextStyle(fontWeight: FontWeight.w700)),
                     style: FilledButton.styleFrom(
                       backgroundColor: Cc.navy,
                       foregroundColor: Colors.white,
+                      disabledBackgroundColor: const Color(0xFFE5E8EE),
+                      disabledForegroundColor: Cc.textMuted,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
@@ -976,9 +1021,9 @@ class _ContractFooterActions extends StatelessWidget {
                   height: Cc.actionButtonHeight,
                   child: OutlinedButton.icon(
                     onPressed: contract.status == 'ACTIVE' ? null : onDelete,
-                    icon: Text(
-                      contract.status == 'IN_PROGRESS' ? '✕' : '🗑️',
-                      style: const TextStyle(fontSize: 14),
+                    icon: Icon(
+                      contract.status == 'IN_PROGRESS' ? Icons.cancel_outlined : Icons.delete_outline_rounded,
+                      size: 17,
                     ),
                     label: Text(
                       contract.status == 'IN_PROGRESS' ? 'Annuler' : 'Supprimer',
@@ -989,6 +1034,7 @@ class _ContractFooterActions extends StatelessWidget {
                       backgroundColor: Colors.white,
                       side: const BorderSide(color: Cc.danger, width: 1.25),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      disabledForegroundColor: Cc.textMuted,
                     ),
                   ),
                 ),
