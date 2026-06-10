@@ -286,15 +286,20 @@ public class PdfService {
 
                 // 6. ENCADRÉ "FAIT À TANGER" (remplace la table de prix)
                 String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-                // Fond gris très clair
-                fillRect(cs, 302.5f, 558, 272.5f, 80, new Color(248, 248, 248));
-                drawRect(cs, 302.5f, 558, 272.5f, 80, 1.5f, new Color(30, 40, 80));
-                // Ligne décorative horizontale
-                drawHorizontalLine(cs, 312.5f, 565, 620, 0.5f, new Color(30, 40, 80));
-                drawHorizontalLine(cs, 312.5f, 565, 576, 0.5f, new Color(30, 40, 80));
-                drawTextAligned(cs, "Fait a Tanger, le", 302.5f, 613, bold, 9f, new Color(30, 40, 80), "center", 272.5f);
-                drawTextAligned(cs, dateStr, 302.5f, 595, bold, 14f, new Color(30, 40, 80), "center", 272.5f);
-                drawTextAligned(cs, "SIGNATURE CLIENT", 302.5f, 568, bold, 8f, new Color(30, 40, 80), "center", 272.5f);
+                String companyName = safe(settings.getCompanyName()).toUpperCase();
+                if (companyName.isBlank()) companyName = "BOUSSELHA CARS";
+                // Fond gris très clair - hauteur augmentée pour contenir les 3 lignes
+                fillRect(cs, 302.5f, 554, 272.5f, 84, new Color(248, 248, 248));
+                drawRect(cs, 302.5f, 554, 272.5f, 84, 2f, new Color(30, 40, 80));
+                // Lignes décoratives horizontales haut et bas
+                drawHorizontalLine(cs, 312.5f, 565, 628, 0.7f, new Color(30, 40, 80));
+                drawHorizontalLine(cs, 312.5f, 565, 562, 0.7f, new Color(30, 40, 80));
+                // Ligne 1 : "Fait à Tanger, le"
+                drawTextAligned(cs, "Fait a Tanger, le", 302.5f, 617, bold, 9f, new Color(60, 70, 100), "center", 272.5f);
+                // Ligne 2 : date en grand
+                drawTextAligned(cs, dateStr, 302.5f, 598, bold, 15f, new Color(30, 40, 80), "center", 272.5f);
+                // Ligne 3 : "Par : NOM SOCIETE"
+                drawTextAligned(cs, "Par : " + companyName, 302.5f, 571, bold, 9f, new Color(30, 40, 80), "center", 272.5f);
 
                 // 7. ENCADRÉ URGENCE ACCIDENT (en dessous de l'encadré date)
                 fillRect(cs, 302.5f, 505, 272.5f, 45, new Color(255, 245, 245));
@@ -439,14 +444,13 @@ public class PdfService {
 
                 // 11. PIED DE PAGE
                 drawText(cs, "VISEE PAR " + safe(settings.getCompanyName()).toUpperCase(), 25, 140, bold, 9, Color.BLACK);
-                drawText(cs, "SIGNATURE CLIENT", 400, 140, bold, 9, Color.BLACK);
 
-                // Phrase en bas de signature client
-                drawTextAligned(cs, "Je reconnais avoir pris connaissance des Présentes conditions generales", 330, 100, italic, 7f, new Color(60, 60, 60), "center", 235);
-                drawTextAligned(cs, "(recto verso) que je m'engage a respecter.", 330, 88, italic, 7f, new Color(60, 60, 60), "center", 235);
+                // Phrase sous signature client (côté droit)
+                drawTextAligned(cs, "Je reconnais avoir pris connaissance des Presentes conditions generales", 320, 115, italic, 7f, new Color(60, 60, 60), "center", 250);
+                drawTextAligned(cs, "(recto verso) que je m'engage a respecter.", 320, 103, italic, 7f, new Color(60, 60, 60), "center", 250);
 
-                // Observation en bas
-                drawText(cs, "Observation : en cas d'accident ou de vol, je m'engage a regler la valeur totale de la voiture.", 20, 70, italic, 7.5f, new Color(100, 0, 0));
+                // Observation en rouge sombre juste en dessous
+                drawTextAligned(cs, "Observation : en cas d'accident ou de vol, je m'engage a regler la valeur totale de la voiture.", 320, 88, italic, 7.5f, new Color(150, 0, 0), "center", 255);
             }
 
             // --- PAGE 2: CONDITIONS GENERALES ---
