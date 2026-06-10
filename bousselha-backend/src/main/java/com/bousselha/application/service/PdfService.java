@@ -284,29 +284,34 @@ public class PdfService {
                     drawTextAligned(cs, "______", 532.5f, 645, regular, 7.5f, Color.BLACK, "center", 42.5f);
                 }
 
-                // 6. ENCADRÉ "FAIT À TANGER" (remplace la table de prix)
+                // 6. BLOC "FAIT A TANGER" + URGENCE ACCIDENT
                 String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
                 String companyName = safe(settings.getCompanyName()).toUpperCase();
                 if (companyName.isBlank()) companyName = "BOUSSELHA CARS";
-                // Fond gris très clair - hauteur augmentée pour contenir les 3 lignes
-                fillRect(cs, 302.5f, 554, 272.5f, 84, new Color(248, 248, 248));
-                drawRect(cs, 302.5f, 554, 272.5f, 84, 2f, new Color(30, 40, 80));
-                // Lignes décoratives horizontales haut et bas
-                drawHorizontalLine(cs, 312.5f, 565, 628, 0.7f, new Color(30, 40, 80));
-                drawHorizontalLine(cs, 312.5f, 565, 562, 0.7f, new Color(30, 40, 80));
-                // Ligne 1 : "Fait à Tanger, le"
-                drawTextAligned(cs, "Fait a Tanger, le", 302.5f, 617, bold, 9f, new Color(60, 70, 100), "center", 272.5f);
-                // Ligne 2 : date en grand
-                drawTextAligned(cs, dateStr, 302.5f, 598, bold, 15f, new Color(30, 40, 80), "center", 272.5f);
-                // Ligne 3 : "Par : NOM SOCIETE"
-                drawTextAligned(cs, "Par : " + companyName, 302.5f, 571, bold, 9f, new Color(30, 40, 80), "center", 272.5f);
+                Color darkDateBlue = new Color(0, 51, 102);
+                Color darkGrey = new Color(102, 102, 102);
+                Color accidentRed = new Color(204, 0, 0);
+                float centerBlockX = 302.5f;
+                float centerBlockW = 272.5f;
+                float separatorW = centerBlockW * 0.60f;
+                float separatorX1 = centerBlockX + (centerBlockW - separatorW) / 2f;
+                float separatorX2 = separatorX1 + separatorW;
 
-                // 7. ENCADRÉ URGENCE ACCIDENT (en dessous de l'encadré date)
-                fillRect(cs, 302.5f, 505, 272.5f, 45, new Color(255, 245, 245));
-                drawRect(cs, 302.5f, 505, 272.5f, 45, 1.5f, new Color(180, 20, 20));
-                drawTextAligned(cs, "EN CAS D'ACCIDENT : CONTACTER", 302.5f, 537, bold, 8f, new Color(180, 20, 20), "center", 272.5f);
-                drawTextAligned(cs, "IMMEDIATEMENT L'AGENCE", 302.5f, 524, bold, 8f, new Color(180, 20, 20), "center", 272.5f);
-                drawTextAligned(cs, safe(settings.getGsm()), 302.5f, 511, bold, 10f, new Color(180, 20, 20), "center", 272.5f);
+                drawTextAligned(cs, "Fait a Tanger, le", centerBlockX, 622, regular, 8f, darkGrey, "center", centerBlockW);
+                drawTextAligned(cs, dateStr, centerBlockX, 600, bold, 14f, darkDateBlue, "center", centerBlockW);
+                drawHorizontalLine(cs, separatorX1, separatorX2, 592, 0.5f, darkDateBlue);
+                drawTextAligned(cs, "Par : " + companyName, centerBlockX, 579, bold, 9f, darkDateBlue, "center", centerBlockW);
+
+                float accidentX = centerBlockX + 18f;
+                float accidentY = 518f;
+                float accidentW = centerBlockW - 36f;
+                float accidentH = 53f;
+                fillRoundedRect(cs, accidentX, accidentY, accidentW, accidentH, 5f, new Color(255, 240, 240));
+                drawRoundedRect(cs, accidentX, accidentY, accidentW, accidentH, 5f, 1.2f, accidentRed);
+                String accidentPrefix = supportsText(bold, "\u26A0") ? "\u26A0 " : "! ";
+                drawTextAligned(cs, accidentPrefix + "EN CAS D'ACCIDENT : CONTACTER", accidentX + 6, 553, bold, 7.5f, accidentRed, "center", accidentW - 12);
+                drawTextAligned(cs, "IMMEDIATEMENT L'AGENCE", accidentX + 6, 542, bold, 7.5f, accidentRed, "center", accidentW - 12);
+                drawTextAligned(cs, safe(settings.getGsm()), accidentX + 6, 525, bold, 11f, accidentRed, "center", accidentW - 12);
 
                 // Note: PAIEMENT et FRANCHISE ET ASSURANCE ont été supprimés complètement.
 
@@ -442,15 +447,27 @@ public class PdfService {
                 // Phrase Commentaires sous le tableau
                 drawText(cs, "Commentaires: Positionner les numéros à l'endroit précis du dommage, sur la matrice à gauche.", 20, 236, bold, 7.2f, Color.BLACK);
 
-                // 11. PIED DE PAGE
-                drawText(cs, "VISEE PAR " + safe(settings.getCompanyName()).toUpperCase(), 25, 140, bold, 9, Color.BLACK);
+                // 11. SIGNATURES EN BAS DE PAGE
+                float signatureY = 145f;
+                float signatureH = 50f;
+                float signatureGap = 10f;
+                float signatureW = (555f - signatureGap) / 2f;
+                float leftSignatureX = 20f;
+                float rightSignatureX = leftSignatureX + signatureW + signatureGap;
+                Color signatureBorder = new Color(90, 90, 90);
+                Color signatureText = new Color(60, 60, 60);
+                Color observationRed = new Color(150, 0, 0);
 
-                // Phrase sous signature client (côté droit)
-                drawTextAligned(cs, "Je reconnais avoir pris connaissance des Presentes conditions generales", 320, 115, italic, 7f, new Color(60, 60, 60), "center", 250);
-                drawTextAligned(cs, "(recto verso) que je m'engage a respecter.", 320, 103, italic, 7f, new Color(60, 60, 60), "center", 250);
+                drawRect(cs, leftSignatureX, signatureY, signatureW, signatureH, 0.5f, signatureBorder);
+                drawTextAligned(cs, "VISEE PAR BOUSSELHA CARS", leftSignatureX, signatureY + 36, bold, 8.5f, Color.BLACK, "center", signatureW);
+                drawRect(cs, leftSignatureX + 8, signatureY + 4, signatureW - 16, 45, 0.35f, new Color(180, 180, 180));
 
-                // Observation en rouge sombre juste en dessous
-                drawTextAligned(cs, "Observation : en cas d'accident ou de vol, je m'engage a regler la valeur totale de la voiture.", 320, 88, italic, 7.5f, new Color(150, 0, 0), "center", 255);
+                drawRect(cs, rightSignatureX, signatureY, signatureW, signatureH, 0.5f, signatureBorder);
+                drawTextAligned(cs, "SIGNATURE CLIENT", rightSignatureX, signatureY + 39, bold, 8.5f, Color.BLACK, "center", signatureW);
+                drawTextAligned(cs, "Je reconnais avoir pris connaissance des Presentes conditions", rightSignatureX + 7, signatureY + 28, italic, 6.3f, signatureText, "center", signatureW - 14);
+                drawTextAligned(cs, "generales (recto verso) que je m'engage a respecter.", rightSignatureX + 7, signatureY + 19, italic, 6.3f, signatureText, "center", signatureW - 14);
+                drawTextAligned(cs, "Observation : en cas d'accident ou de vol, je m'engage a regler", rightSignatureX + 7, signatureY + 10, italic, 6.1f, observationRed, "center", signatureW - 14);
+                drawTextAligned(cs, "la valeur totale de la voiture.", rightSignatureX + 7, signatureY + 2.5f, italic, 6.1f, observationRed, "center", signatureW - 14);
             }
 
             // --- PAGE 2: CONDITIONS GENERALES ---
@@ -564,6 +581,16 @@ public class PdfService {
             } catch (Exception ex) {
                 return 0;
             }
+        }
+    }
+
+    private boolean supportsText(PDFont font, String text) {
+        if (font == null || text == null || text.isEmpty()) return false;
+        try {
+            font.getStringWidth(text);
+            return true;
+        } catch (Exception e) {
+            return false;
         }
     }
 
@@ -724,9 +751,46 @@ public class PdfService {
         cs.stroke();
     }
 
+    private void drawRoundedRect(PDPageContentStream cs, float x, float y, float w, float h, float r, float lineWidth, Color color) throws IOException {
+        addRoundedRectPath(cs, x, y, w, h, r);
+        cs.setStrokingColor(color);
+        cs.setLineWidth(lineWidth);
+        cs.stroke();
+    }
+
     private void fillRect(PDPageContentStream cs, float x, float y, float w, float h, Color color) throws IOException {
         cs.setNonStrokingColor(color);
         cs.addRect(x, y, w, h);
         cs.fill();
+    }
+
+    private void fillRoundedRect(PDPageContentStream cs, float x, float y, float w, float h, float r, Color color) throws IOException {
+        addRoundedRectPath(cs, x, y, w, h, r);
+        cs.setNonStrokingColor(color);
+        cs.fill();
+    }
+
+    private void addRoundedRectPath(PDPageContentStream cs, float x, float y, float w, float h, float r) throws IOException {
+        float radius = Math.max(0, Math.min(r, Math.min(w, h) / 2f));
+        if (radius == 0) {
+            cs.addRect(x, y, w, h);
+            return;
+        }
+
+        float k = 0.55228475f;
+        float c = radius * k;
+        float right = x + w;
+        float top = y + h;
+
+        cs.moveTo(x + radius, y);
+        cs.lineTo(right - radius, y);
+        cs.curveTo(right - radius + c, y, right, y + radius - c, right, y + radius);
+        cs.lineTo(right, top - radius);
+        cs.curveTo(right, top - radius + c, right - radius + c, top, right - radius, top);
+        cs.lineTo(x + radius, top);
+        cs.curveTo(x + radius - c, top, x, top - radius + c, x, top - radius);
+        cs.lineTo(x, y + radius);
+        cs.curveTo(x, y + radius - c, x + radius - c, y, x + radius, y);
+        cs.closePath();
     }
 }
