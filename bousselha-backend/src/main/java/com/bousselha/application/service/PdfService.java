@@ -16,6 +16,11 @@ import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.springframework.stereotype.Service;
 
 import java.awt.Color;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -25,6 +30,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.ArrayList;
+import javax.imageio.ImageIO;
 
 @Service
 public class PdfService {
@@ -175,7 +181,7 @@ public class PdfService {
                 drawText(cs, "Lieu de retour", 25, 623, bold, 7.5f, Color.BLACK);
 
                 drawText(cs, contract.getCar() != null ? contract.getCar().getBrand() : "", 140, 679, bold, 8f, dataColor);
-                drawText(cs, contract.getCar() != null ? contract.getCar().getMatricule() : "", 140, 665, bold, 8f, dataColor);
+                drawMatriculeText(doc, cs, contract.getCar() != null ? contract.getCar().getMatricule() : "", 140, 665, bold, regular, 8f, dataColor);
                 drawText(cs, "Diesel", 140, 651, regular, 7.5f, dataColor);
                 drawText(cs, safe(contract.getDeparturePlace()), 140, 637, regular, 7.5f, dataColor);
                 drawText(cs, safe(contract.getReturnPlace()), 140, 623, regular, 7.5f, dataColor);
@@ -558,6 +564,124 @@ public class PdfService {
         cs.endText();
     }
 
+    private void drawMatriculeText(PDDocument doc, PDPageContentStream cs, String text, float x, float y, PDFont primaryFont, PDFont arabicFont, float fontSize, Color color) throws IOException {
+        if (text == null || text.isBlank()) return;
+
+        String clean = stripBidiControls(text);
+        try {
+            BufferedImage image = renderMatriculeImage(clean, color);
+            if (image != null) {
+                ByteArrayOutputStream imageOut = new ByteArrayOutputStream();
+                ImageIO.write(image, "png", imageOut);
+                PDImageXObject matriculeImage = PDImageXObject.createFromByteArray(doc, imageOut.toByteArray(), "matricule");
+                float targetHeight = 11.5f;
+                float targetWidth = image.getWidth() * targetHeight / image.getHeight();
+                if (targetWidth > 145f) {
+                    targetWidth = 145f;
+                    targetHeight = image.getHeight() * targetWidth / image.getWidth();
+                }
+                cs.drawImage(matriculeImage, x, y - 3f, targetWidth, targetHeight);
+                return;
+            }
+        } catch (Exception e) {
+            // Fallback to PDF text drawing below.
+        }
+
+        float currentX = x;
+        for (int offset = 0; offset < clean.length(); ) {
+            int codePoint = clean.codePointAt(offset);
+            String glyph = new String(Character.toChars(codePoint));
+            PDFont font = chooseFontForGlyph(glyph, primaryFont, arabicFont);
+
+            try {
+                drawText(cs, glyph, currentX, y, font, fontSize, color);
+                currentX += getStringWidth(glyph, font, fontSize);
+            } catch (Exception e) {
+                drawText(cs, "?", currentX, y, primaryFont, fontSize, color);
+                currentX += getStringWidth("?", primaryFont, fontSize);
+            }
+
+            offset += Character.charCount(codePoint);
+        }
+    }
+
+    private BufferedImage renderMatriculeImage(String text, Color color) {
+        if (text == null || text.isBlank()) return null;
+
+        Font baseFont = findMatriculeFont(text, Font.BOLD, 38);
+        BufferedImage probe = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D pg = probe.createGraphics();
+        pg.setFont(baseFont);
+        FontMetrics metrics = pg.getFontMetrics();
+
+        int width = 0;
+        for (int offset = 0; offset < text.length(); ) {
+            int codePoint = text.codePointAt(offset);
+            String glyph = new String(Character.toChars(codePoint));
+            Font glyphFont = baseFont.canDisplay(codePoint) ? baseFont : findMatriculeFont(glyph, Font.BOLD, 38);
+            pg.setFont(glyphFont);
+            width += Math.max(1, pg.getFontMetrics().stringWidth(glyph));
+            offset += Character.charCount(codePoint);
+        }
+        int height = metrics.getHeight() + 10;
+        pg.dispose();
+
+        BufferedImage image = new BufferedImage(Math.max(width + 8, 12), height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setColor(color);
+
+        int cursorX = 4;
+        int baseline = Math.max(metrics.getAscent() + 4, height - 12);
+        for (int offset = 0; offset < text.length(); ) {
+            int codePoint = text.codePointAt(offset);
+            String glyph = new String(Character.toChars(codePoint));
+            Font glyphFont = baseFont.canDisplay(codePoint) ? baseFont : findMatriculeFont(glyph, Font.BOLD, 38);
+            g.setFont(glyphFont);
+            g.drawString(glyph, cursorX, baseline);
+            cursorX += Math.max(1, g.getFontMetrics().stringWidth(glyph));
+            offset += Character.charCount(codePoint);
+        }
+        g.dispose();
+        return image;
+    }
+
+    private Font findMatriculeFont(String text, int style, int size) {
+        String[] candidates = {"Arial", "Tahoma", "Segoe UI", "Arial Unicode MS", "SansSerif"};
+        for (String name : candidates) {
+            Font font = new Font(name, style, size);
+            if (canDisplayAll(font, text)) return font;
+        }
+        return new Font("SansSerif", style, size);
+    }
+
+    private boolean canDisplayAll(Font font, String text) {
+        if (font == null || text == null) return false;
+        for (int offset = 0; offset < text.length(); ) {
+            int codePoint = text.codePointAt(offset);
+            if (!font.canDisplay(codePoint)) return false;
+            offset += Character.charCount(codePoint);
+        }
+        return true;
+    }
+
+    private PDFont chooseFontForGlyph(String glyph, PDFont primaryFont, PDFont fallbackFont) {
+        if (fontSupports(primaryFont, glyph)) return primaryFont;
+        if (fontSupports(fallbackFont, glyph)) return fallbackFont;
+        return primaryFont;
+    }
+
+    private boolean fontSupports(PDFont font, String text) {
+        if (font == null || text == null || text.isEmpty()) return false;
+        try {
+            font.encode(sanitize(text));
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     private void drawTextAligned(PDPageContentStream cs, String text, float x, float y, PDFont font, float fontSize, Color color, String alignment, float width) throws IOException {
         if (text == null || text.trim().isEmpty()) return;
         float textWidth = getStringWidth(text, font, fontSize);
@@ -677,7 +801,7 @@ public class PdfService {
 
     private String sanitize(String text) {
         if (text == null) return "";
-        String cleaned = text.replaceAll("\u202D", "").replaceAll("\u202C", "");
+        String cleaned = stripBidiControls(text);
         StringBuilder sb = new StringBuilder();
         for (char c : cleaned.toCharArray()) {
             if (c >= 32 && c <= 126) {
@@ -685,7 +809,7 @@ public class PdfService {
             } else if (c == '\n' || c == '\r' || c == '\t') {
                 sb.append(' ');
             } else {
-                if ((c >= 160 && c <= 255) || c == 'œ' || c == 'Œ' || c == '€' 
+                if ((c >= 160 && c <= 255) || c == 'œ' || c == 'Œ' || c == '€' || c == '\u26A0'
                         || (c >= 0x0600 && c <= 0x06FF) || (c >= 0xFE70 && c <= 0xFEFF)) {
                     sb.append(c);
                 } else {
@@ -694,6 +818,18 @@ public class PdfService {
             }
         }
         return sb.toString();
+    }
+
+    private String stripBidiControls(String text) {
+        if (text == null) return "";
+        return text
+                .replace("\u202A", "")
+                .replace("\u202B", "")
+                .replace("\u202C", "")
+                .replace("\u202D", "")
+                .replace("\u202E", "")
+                .replace("\u200E", "")
+                .replace("\u200F", "");
     }
 
     private String cleanToAscii(String text) {
