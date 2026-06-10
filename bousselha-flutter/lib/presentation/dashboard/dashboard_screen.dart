@@ -84,13 +84,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             // Cartes d'indicateurs de statistiques globales
             stats.when(
               data: (data) => Wrap(
-                spacing: 12,
-                runSpacing: 12,
+                spacing: 16,
+                runSpacing: 16,
                 children: [
-                  _card(context, 'Total voitures', data.totalCars.toString(), Colors.blue),
-                  _card(context, 'Disponibles', data.available.toString(), Colors.green),
-                  _card(context, 'Louées', data.rented.toString(), Colors.orange),
-                  _card(context, 'Maintenance', data.maintenance.toString(), Colors.red),
+                  _card(context, 'Total voitures', data.totalCars.toString(), const Color(0xFF1A2B4A)),
+                  _card(context, 'Disponibles', data.available.toString(), const Color(0xFF10B981)),
+                  _card(context, 'Louées', data.rented.toString(), const Color(0xFFF97316)),
+                  _card(context, 'Maintenance', data.maintenance.toString(), const Color(0xFFEF4444)),
                   _card(
                     context,
                     'Revenus (Income)',
@@ -171,26 +171,44 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
+  String _fmtDate(String iso) {
+    if (iso.isEmpty) return '—';
+    try {
+      final parsed = DateTime.tryParse(iso);
+      if (parsed == null) return iso;
+      final day = parsed.day.toString().padLeft(2, '0');
+      final month = parsed.month.toString().padLeft(2, '0');
+      final year = parsed.year.toString();
+      return '$day/$month/$year';
+    } catch (_) {
+      return iso;
+    }
+  }
+
   Widget _buildCalendar(AsyncValue<List<ContractModel>> calendar, AsyncValue<List<CarModel>> carsAsync) {
     final cars = carsAsync.value ?? [];
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
         child: calendar.when(
           data: (items) {
             if (items.isEmpty) {
               return const Center(
                 child: Text(
                   'Aucune location active.',
-                  style: TextStyle(color: Colors.black54, fontWeight: FontWeight.w500),
+                  style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500),
                 ),
               );
             }
             return ListView.separated(
+              padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: items.length,
-              separatorBuilder: (_, __) => const Divider(),
+              separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
               itemBuilder: (context, index) {
                 final item = items[index];
 
@@ -202,7 +220,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 }
 
                 return ListTile(
-                  dense: true,
+                  hoverColor: const Color(0xFFF8FAFC),
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
@@ -212,40 +230,70 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       invalidateAllBoushelhaProviders(ref);
                     });
                   },
-                  leading: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: imageUrl.isEmpty
-                        ? Container(
-                            width: 52,
-                            height: 52,
-                            color: const Color(0xFFE8EEF7),
-                            child: const Icon(Icons.directions_car, color: Color(0xFF173A63), size: 24),
-                          )
-                        : Image.network(
-                            toPublicCarImageUrl(imageUrl),
-                            width: 52,
-                            height: 52,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              width: 52,
-                              height: 52,
-                              color: const Color(0xFFE8EEF7),
-                              child: const Icon(Icons.directions_car, color: Color(0xFF173A63), size: 24),
+                  leading: Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(7),
+                      child: imageUrl.isEmpty
+                          ? Container(
+                              color: const Color(0xFFF1F5F9),
+                              child: const Icon(Icons.directions_car_rounded, color: Color(0xFF1A2B4A), size: 24),
+                            )
+                          : Image.network(
+                              toPublicCarImageUrl(imageUrl),
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                color: const Color(0xFFF1F5F9),
+                                child: const Icon(Icons.directions_car_rounded, color: Color(0xFF1A2B4A), size: 24),
+                              ),
                             ),
-                          ),
+                    ),
                   ),
                   title: Text(
-                    '${item.carBrand} (${preserveBidiOrder(item.carMatricule)}) — ${item.clientName}',
+                    '${item.carBrand} (${preserveBidiOrder(item.carMatricule)})',
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1A2B4A)),
                   ),
                   subtitle: Padding(
                     padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      'Dates: ${item.departureDatetime} -> ${item.expectedReturnDatetime}\nStatut: ${item.status}',
-                      style: TextStyle(color: Colors.grey.shade700, height: 1.3),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.person_outline_rounded, size: 14, color: Color(0xFF64748B)),
+                        const SizedBox(width: 4),
+                        Text(
+                          item.clientName,
+                          style: const TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(width: 12),
+                        const Icon(Icons.calendar_month_outlined, size: 14, color: Color(0xFF64748B)),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${_fmtDate(item.departureDatetime)} → ${_fmtDate(item.expectedReturnDatetime)}',
+                          style: const TextStyle(color: Color(0xFF64748B)),
+                        ),
+                      ],
                     ),
                   ),
-                  isThreeLine: true,
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFECFDF5),
+                      borderRadius: BorderRadius.circular(99),
+                      border: Border.all(color: const Color(0xFFA7F3D0)),
+                    ),
+                    child: const Text(
+                      'Actif',
+                      style: TextStyle(
+                        color: Color(0xFF065F46),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
                 );
               },
             );
@@ -259,24 +307,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Widget _buildFutureReservations(AsyncValue<List<ContractModel>> futureReservations, AsyncValue<List<CarModel>> carsAsync) {
     final cars = carsAsync.value ?? [];
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
         child: futureReservations.when(
           data: (items) {
             if (items.isEmpty) {
               return const Center(
                 child: Text(
                   'Aucune réservation à venir.',
-                  style: TextStyle(color: Colors.black54, fontWeight: FontWeight.w500),
+                  style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500),
                 ),
               );
             }
             return ListView.separated(
+              padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: items.length,
-              separatorBuilder: (_, __) => const Divider(),
+              separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
               itemBuilder: (context, index) {
                 final item = items[index];
 
@@ -299,12 +351,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   } else if (daysLeft == 1) {
                     daysLeftStr = "Demain";
                   } else {
-                    daysLeftStr = "Dans $daysLeft jours";
+                    daysLeftStr = "Dans $daysLeft j.";
                   }
                 }
 
                 return ListTile(
-                  dense: true,
+                  hoverColor: const Color(0xFFF8FAFC),
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
@@ -314,55 +366,70 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       invalidateAllBoushelhaProviders(ref);
                     });
                   },
-                  leading: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: imageUrl.isEmpty
-                        ? Container(
-                            width: 52,
-                            height: 52,
-                            color: const Color(0xFFE8EEF7),
-                            child: const Icon(Icons.directions_car, color: Color(0xFF173A63), size: 24),
-                          )
-                        : Image.network(
-                            toPublicCarImageUrl(imageUrl),
-                            width: 52,
-                            height: 52,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              width: 52,
-                              height: 52,
-                              color: const Color(0xFFE8EEF7),
-                              child: const Icon(Icons.directions_car, color: Color(0xFF173A63), size: 24),
+                  leading: Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(7),
+                      child: imageUrl.isEmpty
+                          ? Container(
+                              color: const Color(0xFFF1F5F9),
+                              child: const Icon(Icons.directions_car_rounded, color: Color(0xFF1A2B4A), size: 24),
+                            )
+                          : Image.network(
+                              toPublicCarImageUrl(imageUrl),
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                color: const Color(0xFFF1F5F9),
+                                child: const Icon(Icons.directions_car_rounded, color: Color(0xFF1A2B4A), size: 24),
+                              ),
                             ),
-                          ),
+                    ),
                   ),
                   title: Text(
-                    '${item.carBrand} (${preserveBidiOrder(item.carMatricule)}) — ${item.clientName}',
+                    '${item.carBrand} (${preserveBidiOrder(item.carMatricule)})',
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1A2B4A)),
                   ),
                   subtitle: Padding(
                     padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      'Départ: ${item.departureDatetime}\nStatut: Réservation',
-                      style: TextStyle(color: Colors.grey.shade700, height: 1.3),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.person_outline_rounded, size: 14, color: Color(0xFF64748B)),
+                        const SizedBox(width: 4),
+                        Text(
+                          item.clientName,
+                          style: const TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(width: 12),
+                        const Icon(Icons.calendar_month_outlined, size: 14, color: Color(0xFF64748B)),
+                        const SizedBox(width: 4),
+                        Text(
+                          _fmtDate(item.departureDatetime),
+                          style: const TextStyle(color: Color(0xFF64748B)),
+                        ),
+                      ],
                     ),
                   ),
                   trailing: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE8EEF7),
-                      borderRadius: BorderRadius.circular(6),
+                      color: const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(99),
+                      border: Border.all(color: const Color(0xFFBFDBFE)),
                     ),
                     child: Text(
                       daysLeftStr,
                       style: const TextStyle(
-                        color: Color(0xFF173A63),
+                        color: Color(0xFF1D4ED8),
                         fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        fontSize: 11,
                       ),
                     ),
                   ),
-                  isThreeLine: true,
                 );
               },
             );
@@ -375,23 +442,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildAlerts(AsyncValue<List<DashboardAlertModel>> alerts) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
         child: alerts.when(
           data: (items) {
             if (items.isEmpty) {
               return const Center(
                 child: Text(
                   'Aucune alerte.',
-                  style: TextStyle(color: Colors.black54, fontWeight: FontWeight.w500),
+                  style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500),
                 ),
               );
             }
 
-            // Trier les alertes par priorité (HIGH en premier) puis par date (dueDate)
             final sortedItems = List<DashboardAlertModel>.from(items);
             sortedItems.sort((a, b) {
               final aHigh = a.severity == 'HIGH';
@@ -402,15 +471,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             });
 
             return ListView.separated(
+              padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: sortedItems.length,
-              separatorBuilder: (_, __) => const Divider(),
+              separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
               itemBuilder: (context, index) {
                 final item = sortedItems[index];
-                final color = item.severity == 'HIGH' ? Colors.red : Colors.orange;
+                final color = item.severity == 'HIGH' ? const Color(0xFFEF4444) : const Color(0xFFF97316);
                 final severityLabel = item.severity == 'HIGH' ? 'HAUTE' : 'MOYENNE';
+                final alertBg = item.severity == 'HIGH' ? const Color(0xFFFEF2F2) : const Color(0xFFFFF7ED);
+                final alertBorder = item.severity == 'HIGH' ? const Color(0xFFFCA5A5) : const Color(0xFFFED7AA);
+                final alertText = item.severity == 'HIGH' ? const Color(0xFF991B1B) : const Color(0xFF9A3412);
 
                 return ListTile(
-                  dense: true,
+                  hoverColor: const Color(0xFFF8FAFC),
                   onTap: (item.type == 'RETURN' && item.contractId != null)
                       ? () {
                           Navigator.of(context).push(
@@ -423,40 +496,36 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         }
                       : null,
                   leading: CircleAvatar(
-                    backgroundColor: color.withValues(alpha: 0.12),
-                    child: Icon(Icons.warning_amber_rounded, color: color, size: 22),
+                    backgroundColor: color.withValues(alpha: 0.1),
+                    child: Icon(Icons.warning_amber_rounded, color: color, size: 20),
                   ),
-                  title: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '${item.carLabel} — ${item.type}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1A2B4A)),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.1),
-                          border: Border.all(color: color),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          severityLabel,
-                          style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
+                  title: Text(
+                    '${item.carLabel} — ${item.type}',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1A2B4A)),
                   ),
                   subtitle: Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
-                      '${item.message}\nÉchéance: ${item.dueDate}',
-                      style: TextStyle(color: Colors.grey.shade700, height: 1.3),
+                      '${item.message}  •  Échéance : ${_fmtDate(item.dueDate)}',
+                      style: const TextStyle(color: Color(0xFF64748B)),
                     ),
                   ),
-                  isThreeLine: true,
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: alertBg,
+                      borderRadius: BorderRadius.circular(99),
+                      border: Border.all(color: alertBorder),
+                    ),
+                    child: Text(
+                      severityLabel,
+                      style: TextStyle(
+                        color: alertText,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
                 );
               },
             );
@@ -469,35 +538,81 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _card(BuildContext context, String title, String value, Color color, {VoidCallback? onTap}) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: SizedBox(
-          width: 200,
+    IconData icon;
+    if (title.contains('voitures')) {
+      icon = Icons.directions_car_rounded;
+    } else if (title.contains('Disponibles')) {
+      icon = Icons.check_circle_outline_rounded;
+    } else if (title.contains('Louées')) {
+      icon = Icons.key_rounded;
+    } else if (title.contains('Maintenance')) {
+      icon = Icons.build_rounded;
+    } else if (title.contains('Revenus')) {
+      icon = Icons.trending_up_rounded;
+    } else if (title.contains('Dépenses')) {
+      icon = Icons.trending_down_rounded;
+    } else {
+      icon = Icons.analytics_rounded;
+    }
+
+    return Container(
+      width: 220,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black54),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
                       ),
+                      child: Icon(icon, color: color, size: 20),
                     ),
                     if (onTap != null)
-                      Icon(Icons.open_in_new, size: 16, color: color.withValues(alpha: 0.7)),
+                      const Icon(Icons.arrow_forward_rounded, size: 14, color: Color(0xFF94A3B8)),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(height: 4),
                 Text(
                   value,
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),

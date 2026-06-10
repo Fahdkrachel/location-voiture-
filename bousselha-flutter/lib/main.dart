@@ -21,24 +21,26 @@ class BousselhaApp extends ConsumerWidget {
         debugShowCheckedModeBanner: false,
         title: 'BOUSSELHA CARS',
         theme: ThemeData(useMaterial3: true, colorSchemeSeed: const Color(0xFF1A2B4A)),
-        home: const Scaffold(
+        home: Scaffold(
+          backgroundColor: Colors.white,
           body: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.directions_car_rounded, size: 64, color: Color(0xFF1A2B4A)),
-                SizedBox(height: 16),
-                Text(
-                  'BOUSSELHA CARS',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                Image.asset(
+                  'assets/branding/bousselha_logo.png',
+                  height: 120,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 40),
+                const SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(
                     color: Color(0xFF1A2B4A),
-                    letterSpacing: 1.5,
+                    strokeWidth: 3,
                   ),
                 ),
-                SizedBox(height: 24),
-                CircularProgressIndicator(color: Color(0xFF1A2B4A)),
               ],
             ),
           ),

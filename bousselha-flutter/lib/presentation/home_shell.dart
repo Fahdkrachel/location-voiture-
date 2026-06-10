@@ -39,9 +39,79 @@ class _HomeShellState extends State<HomeShell> {
     'Paramètres',
   ];
 
+  static const _subtitles = <String>[
+    "Vue d'ensemble de l'activité de location et statistiques de la flotte",
+    "Gestion du parc automobile et état des véhicules",
+    "Répertoire et fiches de renseignements clients",
+    "Création, activation et historique des contrats de location",
+    "Suivi des révisions, vidanges et réparations des véhicules",
+    "Planning et disponibilité des réservations et locations actives",
+    "Configuration de l'application et gestion du compte",
+  ];
+
+  Widget _buildUnifiedHeader(String title, String subtitle) {
+    return Container(
+      height: 70,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        children: [
+          Image.asset(
+            'assets/branding/bousselha_logo.png',
+            height: 36,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => const Icon(
+              Icons.directions_car_rounded,
+              color: Color(0xFF1A2B4A),
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Container(
+            height: 24,
+            width: 1,
+            color: const Color(0xFFE2E8F0),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A2B4A),
+                  ),
+                ),
+                if (subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Contrats & Paramètres n'ont pas d'AppBar (ils gèrent leur propre layout)
+    // Contrats & Paramètres n'ont pas de header global dans le Shell (ils gèrent leur propre layout)
     final hideAppBar = _selected == 3 || _selected == 6;
 
     final bodyRow = Row(
@@ -52,30 +122,23 @@ class _HomeShellState extends State<HomeShell> {
         ),
         const VerticalDivider(width: 1),
         Expanded(
-          child: IndexedStack(
-            index: _selected,
-            children: _pages,
+          child: Column(
+            children: [
+              if (!hideAppBar)
+                _buildUnifiedHeader(_titles[_selected], _subtitles[_selected]),
+              Expanded(
+                child: IndexedStack(
+                  index: _selected,
+                  children: _pages,
+                ),
+              ),
+            ],
           ),
         ),
       ],
     );
 
-    if (hideAppBar) {
-      return Scaffold(body: bodyRow);
-    }
-
     return Scaffold(
-      appBar: AppBar(
-        title: Text('BOUSSELHA CARS — ${_titles[_selected]}'),
-        elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1E293B),
-        surfaceTintColor: Colors.white,
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: Color(0xFFE2E8F0)),
-        ),
-      ),
       body: bodyRow,
     );
   }

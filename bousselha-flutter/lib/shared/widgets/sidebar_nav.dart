@@ -31,23 +31,25 @@ class SidebarNav extends ConsumerWidget {
         children: [
           // ── Logo / App Icon ──────────────────────────────────────────────
           Container(
-            height: 64,
+            height: 72,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             alignment: Alignment.center,
             child: Container(
-              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Center(
-                child: Text(
-                  'BC',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
                   ),
-                ),
+                ],
+              ),
+              padding: const EdgeInsets.all(4),
+              child: Image.asset(
+                'assets/branding/bousselha_logo.png',
+                fit: BoxFit.contain,
               ),
             ),
           ),
@@ -131,14 +133,14 @@ class _NavButton extends StatelessWidget {
                 Icon(
                   icon,
                   size: 22,
-                  color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.55),
+                  color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.65),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   label,
                   style: TextStyle(
                     fontSize: 9,
-                    color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.55),
+                    color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.65),
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                   ),
                   textAlign: TextAlign.center,

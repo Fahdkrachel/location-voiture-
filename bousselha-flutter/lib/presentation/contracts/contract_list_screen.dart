@@ -99,12 +99,59 @@ class ContractListScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Cc.bgGrey,
       appBar: AppBar(
-        backgroundColor: Cc.navy,
-        foregroundColor: Colors.white,
-        elevation: 2,
-        title: const Text(
-          'BOUSSELHA CARS — Contrats',
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 17),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF1E293B),
+        elevation: 0,
+        surfaceTintColor: Colors.white,
+        titleSpacing: 24,
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/branding/bousselha_logo.png',
+              height: 36,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const Icon(
+                Icons.directions_car_rounded,
+                color: Color(0xFF1A2B4A),
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Container(
+              height: 24,
+              width: 1,
+              color: const Color(0xFFE2E8F0),
+            ),
+            const SizedBox(width: 16),
+            const Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Contrats',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1A2B4A),
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Création, activation et historique des contrats de location',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: Color(0xFFE2E8F0)),
         ),
         actions: [
           TextButton.icon(
@@ -121,16 +168,20 @@ class ContractListScreen extends ConsumerWidget {
                 );
               }
             },
-            icon: const Icon(Icons.add_circle_outline),
+            icon: const Icon(Icons.add_circle_outline, color: Color(0xFFFF7A00)),
             label: const Text('Nouveau contrat'),
-            style: TextButton.styleFrom(foregroundColor: Cc.gold, textStyle: const TextStyle(fontWeight: FontWeight.w600)),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF1A2B4A),
+              textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
+            ),
           ),
+          const SizedBox(width: 8),
           IconButton(
             tooltip: 'Rafraîchir',
             onPressed: () => ref.invalidate(contractsProvider),
-            icon: Icon(Icons.refresh, color: Colors.white.withValues(alpha: 0.92)),
+            icon: const Icon(Icons.refresh, color: Color(0xFF64748B)),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 24),
         ],
       ),
       body: contractsAsync.when(

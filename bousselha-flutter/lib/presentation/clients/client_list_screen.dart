@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../core/utils/app_error_handler.dart';
 import '../../data/models/client_model.dart';
@@ -31,51 +30,167 @@ class ClientListScreen extends ConsumerWidget {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Les clients sont ajoutés automatiquement lors de la création d’un contrat.',
-                  style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w500),
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFBFDBFE)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline_rounded, color: Color(0xFF1D4ED8), size: 20),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Les clients sont ajoutés automatiquement lors de la création d’un contrat.',
+                    style: TextStyle(
+                      color: Color(0xFF1E3A8A),
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                    ),
+                  ),
                 ),
-              ),
-              OutlinedButton.icon(
-                onPressed: () => ref.invalidate(clientsProvider),
-                icon: const Icon(Icons.refresh),
-                label: const Text('Rafraichir'),
-              ),
-            ],
+                const SizedBox(width: 16),
+                TextButton.icon(
+                  onPressed: () => ref.invalidate(clientsProvider),
+                  icon: const Icon(Icons.refresh_rounded, size: 16, color: Color(0xFF1D4ED8)),
+                  label: const Text(
+                    'Rafraîchir',
+                    style: TextStyle(
+                      color: Color(0xFF1D4ED8),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    backgroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      side: const BorderSide(color: Color(0xFFBFDBFE)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         Expanded(
           child: clients.when(
             data: (data) {
               if (data.isEmpty) {
-                return const Center(child: Text('Aucun client trouve.'));
+                return const Center(
+                  child: Text(
+                    'Aucun client trouvé.',
+                    style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                  ),
+                );
               }
               return ListView.separated(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
                 itemCount: data.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   final client = data[index];
                   final avatarColor = _colorFromName(client.fullName);
-                  return Card(
+                  
+                  // Calcul des initiales
+                  final parts = client.fullName.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+                  String initials = '?';
+                  if (parts.isNotEmpty) {
+                    final first = parts.first.substring(0, 1).toUpperCase();
+                    final last = parts.length > 1 ? parts.last.substring(0, 1).toUpperCase() : '';
+                    initials = '$first$last';
+                  }
+
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
                     child: ListTile(
+                      hoverColor: const Color(0xFFF8FAFC),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       leading: CircleAvatar(
-                        backgroundColor: const Color(0xFF1A2B4A),
+                        radius: 20,
+                        backgroundColor: avatarColor.withValues(alpha: 0.12),
                         child: Text(
-                          '#${client.id}',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
+                          initials,
+                          style: TextStyle(
+                            color: avatarColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
-                      title: Text(client.fullName, style: const TextStyle(fontWeight: FontWeight.w700)),
-                      subtitle: Text(
-                        client.phone.isEmpty ? '—' : client.phone,
-                        style: const TextStyle(fontSize: 14),
+                      title: Row(
+                        children: [
+                          Text(
+                            client.fullName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14.5,
+                              color: Color(0xFF1A2B4A),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              '#${client.id}',
+                              style: const TextStyle(
+                                fontSize: 9.5,
+                                color: Color(0xFF64748B),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.phone_outlined, size: 13, color: Color(0xFF64748B)),
+                            const SizedBox(width: 4),
+                            Text(
+                              client.phone.isEmpty ? '—' : client.phone,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF475569),
+                              ),
+                            ),
+                            if (client.cinNumber.isNotEmpty) ...[
+                              const SizedBox(width: 16),
+                              const Icon(Icons.credit_card_outlined, size: 13, color: Color(0xFF64748B)),
+                              const SizedBox(width: 4),
+                              Text(
+                                'CIN: ${client.cinNumber}',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF475569),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8), size: 20),
                       onTap: () async {
                         final changed = await Navigator.of(context).push<bool>(
                           MaterialPageRoute(

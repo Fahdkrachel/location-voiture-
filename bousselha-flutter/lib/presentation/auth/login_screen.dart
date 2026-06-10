@@ -70,20 +70,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (!isDesktop) ...[
-              const Icon(Icons.directions_car_rounded,
-                  size: 48, color: Color(0xFF1A2B4A)),
-              const SizedBox(height: 10),
-              const Text(
-                'BOUSSELHA CARS',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A2B4A),
-                  letterSpacing: 1,
+              Center(
+                child: Image.asset(
+                  'assets/branding/bousselha_logo.png',
+                  height: 64,
+                  fit: BoxFit.contain,
                 ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 24),
             ],
             const Text(
               'Connexion',
@@ -311,31 +305,48 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     end: Alignment.bottomRight,
                   ),
                 ),
-                child: const Padding(
-                  padding: EdgeInsets.all(60.0),
+                child: Padding(
+                  padding: const EdgeInsets.all(60.0),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.directions_car_rounded,
-                          size: 72, color: Colors.white),
-                      SizedBox(height: 24),
-                      Text(
-                        'BOUSSELHA CARS',
-                        style: TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        decoration: BoxDecoration(
                           color: Colors.white,
-                          letterSpacing: 2,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: Image.asset(
+                          'assets/branding/bousselha_logo.png',
+                          height: 80,
+                          fit: BoxFit.contain,
                         ),
                       ),
-                      SizedBox(height: 16),
-                      Text(
+                      const SizedBox(height: 36),
+                      const Text(
+                        'Gestion de Flotte & Location',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
                         'Système complet de gestion de flotte et de location de voitures. Connectez-vous pour gérer les véhicules, les contrats, les maintenances, les clients et suivre vos états financiers en temps réel.',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 15,
                           color: Colors.white70,
-                          height: 1.5,
+                          height: 1.6,
                         ),
                       ),
                     ],
