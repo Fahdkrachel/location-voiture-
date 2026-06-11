@@ -128,6 +128,8 @@ public class GlobalExceptionHandler {
                     -> "Impossible : une maintenance est toujours en cours. Terminez-la d'abord dans le module Maintenance.";
             case "CAR_HAS_ACTIVE_CONTRACT"
                     -> "Impossible : ce véhicule est lié à un contrat actif. Clôturez le contrat d'abord.";
+            case "CAR_HAS_RENTAL_HISTORY"
+                    -> "Impossible de supprimer cette voiture, car elle contient un historique de locations ou de maintenance. Cette restriction protège les contrats, les PDF et les données financières. Vous pouvez la retirer de l'utilisation en l'archivant.";
             case "MILEAGE_REQUIRED"
                     -> "Le kilométrage est obligatoire.";
             case "MILEAGE_MUST_BE_POSITIVE"

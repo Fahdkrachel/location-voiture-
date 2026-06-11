@@ -298,3 +298,64 @@ Ne committe jamais les fichiers temporaires de compilation dans Git ! Assure-toi
 ---
 
 *Félicitations ! Tu as désormais toutes les clés en main pour comprendre et faire évoluer le projet **BOUSSELHA CARS**. Bon code !* 🚀
+
+---
+
+## Test final des nouvelles fonctionnalites
+
+Cette partie resume les fonctionnalites recentes a verifier avant une livraison finale. Le guide complet de test se trouve dans `TEST_GENERAL_README.md`.
+
+### 1. Authentification, admins et securite
+*   Connexion admin via `/api/auth/login`, recuperation du profil via `/api/auth/me` et conservation du token JWT cote Flutter.
+*   Gestion des administrateurs via `/api/admins` : creation, modification, activation/desactivation et changement de mot de passe.
+*   Mot de passe oublie via `/api/auth/password-reset/request`, `/verify` et `/confirm`.
+*   Exceptions a tester :
+    *   mauvais identifiants -> `401`;
+    *   compte desactive -> `403`;
+    *   email admin deja utilise -> `400`;
+    *   statut admin different de `ACTIVE` ou `DISABLED` -> `400`;
+    *   mot de passe actuel incorrect -> `400`;
+    *   confirmation de mot de passe differente -> `400`;
+    *   code reset invalide, expire, deja utilise ou bloque -> `400`;
+    *   plus de 3 demandes reset par heure -> `RESET_REQUEST_LIMIT_REACHED`.
+
+### 2. Vehicules, kilometrage et disponibilite par date
+*   Creation/modification voiture avec `brand`, `fuelType`, `matricule` et `mileage` obligatoires.
+*   Upload image voiture accepte seulement `jpg`, `jpeg` ou `png`.
+*   Consultation disponibilite par date :
+    *   `/api/cars/availability?date=YYYY-MM-DD`;
+    *   `/api/cars/availability/available?date=YYYY-MM-DD`.
+*   Historique vehicule via `/api/cars/{id}/history` : locations et maintenances triees de la plus recente a la plus ancienne.
+*   Exceptions a tester :
+    *   nouvelle voiture avec statut autre que `AVAILABLE` -> `NEW_CAR_MUST_BE_AVAILABLE`;
+    *   kilometrage manquant -> `MILEAGE_REQUIRED`;
+    *   kilometrage negatif -> `MILEAGE_MUST_BE_POSITIVE`;
+    *   kilometrage inferieur a l'ancien -> `MILEAGE_CANNOT_DECREASE`;
+    *   image non supportee -> `Unsupported image format`;
+    *   date invalide -> message `Format de date invalide`;
+    *   suppression voiture avec contrat ouvert -> `Impossible : voiture avec contrat en cours`.
+
+### 3. Contrats, reservations futures et PDF
+*   Contrat immediat : si la date de depart est atteinte et que la voiture est disponible, le contrat passe `ACTIVE` et la voiture devient `RENTED`.
+*   Reservation future : le contrat reste `IN_PROGRESS`, apparait dans les reservations futures et s'active automatiquement quand la date de depart arrive.
+*   Chevauchement de reservation bloque pour une meme voiture.
+*   Generation PDF via `/api/contracts/{id}/pdf`, avec nom de fichier dynamique et logo societe si configure.
+*   Exceptions a tester :
+    *   voiture deja reservee/louee sur la periode -> `400`;
+    *   activation d'un contrat qui n'est pas `IN_PROGRESS` -> `400`;
+    *   cloture d'un contrat qui n'est pas `ACTIVE` -> `400`;
+    *   modification d'un contrat `COMPLETED` -> `400`;
+    *   changement de voiture sur contrat `ACTIVE` -> `400`;
+    *   suppression contrat `ACTIVE` -> `400`.
+
+### 4. Maintenance, finance et parametres societe
+*   Creation maintenance : la voiture passe automatiquement `MAINTENANCE` si la maintenance couvre la date du jour.
+*   Bouton `Terminer` maintenance : statut `COMPLETED`, date de fin automatique si vide, voiture remise disponible si aucun blocage.
+*   Depense maintenance creee automatiquement dans le module financier.
+*   Parametres societe et logo via `/api/settings` et `/api/settings/logo`.
+*   Exceptions a tester :
+    *   tentative de terminer une maintenance par modification directe -> `USE_COMPLETE_ENDPOINT`;
+    *   maintenance deja terminee -> `MAINTENANCE_ALREADY_COMPLETED`;
+    *   remise disponible pendant une maintenance en cours -> `MAINTENANCE_NOT_FINISHED`;
+    *   remise disponible d'une voiture louee avec contrat ouvert -> `CAR_HAS_ACTIVE_CONTRACT`;
+    *   logo autre que JPG/PNG -> `Format non supporte`.

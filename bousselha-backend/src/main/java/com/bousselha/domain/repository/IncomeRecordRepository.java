@@ -9,10 +9,11 @@ import org.springframework.data.repository.query.Param;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 public interface IncomeRecordRepository extends JpaRepository<IncomeRecord, Long> {
-    Optional<IncomeRecord> findByContractId(Long contractId);
+    List<IncomeRecord> findAllByContractId(Long contractId);
+
+    boolean existsByContractId(Long contractId);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from IncomeRecord i where i.contractId = :contractId")

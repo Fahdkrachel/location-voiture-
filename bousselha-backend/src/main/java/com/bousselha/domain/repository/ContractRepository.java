@@ -34,6 +34,8 @@ public interface ContractRepository extends JpaRepository<Contract, Long> {
 
     long countByClientId(Long clientId);
 
+    long countByCarId(Long carId);
+
     List<Contract> findByClientId(Long clientId);
 
     @Query("""

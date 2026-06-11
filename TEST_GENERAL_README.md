@@ -1375,3 +1375,237 @@ Avant de considerer une version stable, verifier :
 - Les images sont stockees dans `bousselha-backend/src/main/resources/static/uploads/cars`.
 - Le PDF est genere par le backend avec PDFBox.
 - Les polices Cairo sont utilisees pour mieux supporter l'arabe et Unicode dans les PDF.
+
+---
+
+## 17. Tests finaux des nouvelles fonctionnalites
+
+Cette section complete la checklist de regression avec les fonctionnalites ajoutees ou renforcees dans le code actuel : authentification JWT, mot de passe oublie, gestion admins, parametres societe, disponibilite par date, kilometrage, historique vehicule et nouvelles exceptions metier.
+
+### 17.1 Authentification JWT et session Flutter
+
+| Test | Action | Resultat attendu |
+|---|---|---|
+| Connexion valide | `POST /api/auth/login` avec email/mot de passe corrects | `200`, token JWT, donnees admin, acces a l'application Flutter |
+| Profil courant | `GET /api/auth/me` avec token valide | `200`, informations de l'admin connecte |
+| Token absent ou invalide | Appeler une API protegee sans token | `401` ou redirection vers login cote UI |
+| Mauvais identifiants | Login avec mauvais mot de passe | `401`, message identifiants incorrects |
+| Compte desactive | Login avec admin `DISABLED` | `403`, message compte desactive |
+
+### 17.2 Gestion des administrateurs
+
+Endpoints a verifier :
+
+```text
+GET /api/admins
+POST /api/admins
+PUT /api/admins/{id}
+PATCH /api/admins/{id}/status
+PATCH /api/admins/{id}/password
+```
+
+Cas valides :
+
+- creer un admin actif ;
+- modifier nom, email et telephone ;
+- desactiver puis reactiver un admin ;
+- changer le mot de passe avec le mot de passe actuel correct ;
+- verifier que Flutter rafraichit la liste apres chaque action.
+
+Exceptions a tester :
+
+| Cas | Resultat attendu |
+|---|---|
+| Email deja utilise a la creation | `400`, `Email deja utilise.` |
+| Email deja utilise par un autre compte a la modification | `400` |
+| Statut autre que `ACTIVE` ou `DISABLED` | `400`, statut invalide |
+| Changement mot de passe avec ancien mot de passe faux | `400` |
+| Nouveau mot de passe et confirmation differents | `400` |
+| Admin inexistant | `404` |
+
+### 17.3 Mot de passe oublie
+
+Endpoints a verifier :
+
+```text
+POST /api/auth/password-reset/request
+POST /api/auth/password-reset/verify
+POST /api/auth/password-reset/confirm
+```
+
+Scenario valide :
+
+1. Demander un code pour un email admin actif.
+2. Recuperer le code depuis la boite email ou les logs SMTP de test.
+3. Verifier le code.
+4. Confirmer un nouveau mot de passe fort.
+5. Se connecter avec le nouveau mot de passe.
+
+Exceptions a tester :
+
+| Cas | Code attendu |
+|---|---|
+| Plus de 3 demandes par heure | `RESET_REQUEST_LIMIT_REACHED` |
+| Code invalide | `INVALID_RESET_CODE` |
+| Code expire apres environ 10 minutes | `RESET_CODE_EXPIRED` |
+| Code deja utilise | `RESET_CODE_ALREADY_USED` |
+| 5 tentatives invalides sur le dernier code | `RESET_CODE_BLOCKED` |
+| Confirmation differente | `PASSWORD_CONFIRMATION_MISMATCH` |
+| Mot de passe faible | `WEAK_PASSWORD` |
+| Probleme SMTP | `503`, `MAIL_SEND_FAILED` |
+
+### 17.4 Parametres societe et logo
+
+Endpoints a verifier :
+
+```text
+GET /api/settings
+PUT /api/settings
+POST /api/settings/logo
+```
+
+Cas valides :
+
+- modifier les informations societe ;
+- uploader un logo JPG ;
+- uploader un logo PNG ;
+- verifier que le logo apparait dans les parametres et dans les PDF generes apres upload.
+
+Exceptions a tester :
+
+| Cas | Resultat attendu |
+|---|---|
+| Logo `.gif`, `.pdf`, `.webp` ou autre | `400`, format non supporte |
+| Fichier trop grand | `413`, taille maximale 10 Mo |
+| Dossier upload non accessible | `400` ou `500`, message d'enregistrement fichier |
+
+### 17.5 Kilometrage voiture
+
+Champs obligatoires a la creation/modification voiture :
+
+```text
+brand
+fuelType
+matricule
+mileage
+```
+
+Cas valides :
+
+- creer voiture avec `mileage = 0` ;
+- creer voiture avec `mileage > 0` ;
+- modifier voiture en augmentant le kilometrage ;
+- verifier que `mileageUpdatedAt` change apres modification du kilometrage.
+
+Exceptions a tester :
+
+| Cas | Code attendu |
+|---|---|
+| `mileage` absent | `MILEAGE_REQUIRED` ou validation champ obligatoire |
+| `mileage < 0` | `MILEAGE_MUST_BE_POSITIVE` ou validation positive |
+| nouveau kilometrage inferieur a l'ancien | `MILEAGE_CANNOT_DECREASE` |
+| creation voiture avec statut `RENTED` ou `MAINTENANCE` | `NEW_CAR_MUST_BE_AVAILABLE` |
+
+### 17.6 Disponibilite par date et calendrier
+
+Endpoints a verifier :
+
+```text
+GET /api/cars/availability?date=YYYY-MM-DD
+GET /api/cars/availability/available?date=YYYY-MM-DD
+```
+
+Cas valides :
+
+- date sans contrat ni maintenance : voiture `AVAILABLE` ;
+- date couverte par contrat `IN_PROGRESS`, `ACTIVE` ou `COMPLETED` : voiture `RENTED` sur cette date ;
+- date couverte par maintenance : voiture `MAINTENANCE` ;
+- endpoint `/availability/available` retourne uniquement les voitures disponibles ;
+- calendrier Flutter affiche les memes statuts que Swagger.
+
+Exceptions a tester :
+
+| Cas | Resultat attendu |
+|---|---|
+| Date invalide `2026/99/99` | `400` |
+| Date manquante | `400` |
+| Format non supporte dans creation voiture | `Format de date invalide` |
+
+### 17.7 Historique vehicule
+
+Endpoint :
+
+```text
+GET /api/cars/{id}/history
+```
+
+Cas valides :
+
+- creer une location terminee pour la voiture ;
+- creer une maintenance terminee pour la voiture ;
+- appeler l'historique ;
+- verifier la presence des lignes `RENTAL` et `MAINTENANCE` ;
+- verifier le tri decroissant par date de debut.
+
+Exceptions a tester :
+
+| Cas | Resultat attendu |
+|---|---|
+| Voiture inexistante | `404` |
+| Historique vide | `200`, tableau vide |
+
+### 17.8 Contrats et reservations futures
+
+Cas valides :
+
+- contrat avec date de depart future -> `IN_PROGRESS` ;
+- contrat avec date de depart maintenant/passee -> `ACTIVE` si voiture disponible ;
+- activation automatique par tache planifiee quand la date de depart arrive ;
+- revenu cree une seule fois au passage `ACTIVE` ;
+- retour vehicule -> contrat `COMPLETED`, voiture `AVAILABLE`.
+
+Exceptions a tester :
+
+| Cas | Resultat attendu |
+|---|---|
+| Chevauchement sur meme voiture | `400`, voiture deja reservee ou louee sur cette periode |
+| Location immediate sur voiture non disponible | `400` |
+| Activer un contrat qui n'est pas `IN_PROGRESS` | `400` |
+| Terminer un contrat qui n'est pas `ACTIVE` | `400` |
+| Modifier un contrat `COMPLETED` | `400` |
+| Changer la voiture d'un contrat `ACTIVE` | `400` |
+| Supprimer un contrat `ACTIVE` | `400` |
+
+### 17.9 Maintenance et remise en disponibilite
+
+Cas valides :
+
+- creer une maintenance en cours ;
+- verifier que la voiture passe `MAINTENANCE` ;
+- verifier que la depense est creee ;
+- terminer la maintenance via le bouton/API dedie ;
+- verifier que la voiture redevient `AVAILABLE` si aucun contrat actif ne bloque.
+
+Exceptions a tester :
+
+| Cas | Code attendu |
+|---|---|
+| Modifier une maintenance pour mettre directement `COMPLETED` | `USE_COMPLETE_ENDPOINT` |
+| Terminer une maintenance deja terminee | `MAINTENANCE_ALREADY_COMPLETED` |
+| Remettre disponible une voiture en maintenance non terminee | `MAINTENANCE_NOT_FINISHED` |
+| Remettre disponible une voiture louee avec contrat ouvert | `CAR_HAS_ACTIVE_CONTRACT` |
+| Remettre disponible une voiture deja disponible | `ONLY_RENTED_OR_MAINTENANCE_CAN_BECOME_AVAILABLE` |
+
+### 17.10 Verification finale UI
+
+Avant livraison, verifier dans Flutter Windows :
+
+- [ ] login, logout et retour automatique a l'ecran login ;
+- [ ] erreur lisible dans l'UI pour chaque exception importante ;
+- [ ] les listes se rafraichissent apres creation/modification/suppression ;
+- [ ] les champs obligatoires bloquent avant appel API quand c'est possible ;
+- [ ] les matricules avec lettres arabes restent lisibles dans voitures, contrats, calendrier, dashboard et PDF ;
+- [ ] les images voitures et le logo societe s'affichent apres upload ;
+- [ ] le PDF se telecharge et contient les bonnes informations ;
+- [ ] les montants revenus/depenses du dashboard correspondent aux contrats/maintenances ;
+- [ ] aucune action critique ne laisse la voiture dans un statut incoherent.

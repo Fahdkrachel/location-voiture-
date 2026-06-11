@@ -55,7 +55,8 @@ public class FinancialService {
         if (contract.getTotalGeneral() == null || contract.getTotalGeneral().signum() <= 0) {
             return;
         }
-        IncomeRecord record = incomeRecordRepository.findByContractId(contract.getId())
+        IncomeRecord record = incomeRecordRepository.findAllByContractId(contract.getId()).stream()
+                .findFirst()
                 .orElseGet(IncomeRecord::new);
         record.setAmount(contract.getTotalGeneral());
         record.setRecordedAt(LocalDateTime.now());
@@ -69,7 +70,7 @@ public class FinancialService {
 
     /** Enregistre le revenu une seule fois (activation, clôture ou suppression d’un contrat terminé). */
     public void ensureIncomeForContract(Contract contract) {
-        if (incomeRecordRepository.findByContractId(contract.getId()).isPresent()) {
+        if (incomeRecordRepository.existsByContractId(contract.getId())) {
             return;
         }
         recordIncomeFromContract(contract);

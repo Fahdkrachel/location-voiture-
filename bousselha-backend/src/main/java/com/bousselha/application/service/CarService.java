@@ -117,6 +117,11 @@ public class CarService {
         if (hasOpenContracts) {
             throw new IllegalArgumentException("Impossible : voiture avec contrat en cours");
         }
+        boolean hasHistory = contractRepository.countByCarId(car.getId()) > 0
+                || maintenanceRepository.countByCarId(car.getId()) > 0;
+        if (hasHistory) {
+            throw new IllegalArgumentException("CAR_HAS_RENTAL_HISTORY");
+        }
         carRepository.delete(car);
     }
 
