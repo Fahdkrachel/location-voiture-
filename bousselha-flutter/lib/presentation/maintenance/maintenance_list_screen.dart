@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/utils/app_error_handler.dart';
+import '../../core/utils/date_input_validator.dart';
+import '../../core/utils/responsive.dart';
 import '../../data/models/maintenance_model.dart';
 import '../../shared/providers/app_providers.dart';
 import '../../shared/widgets/matricule_text.dart';
@@ -38,78 +40,129 @@ class MaintenanceListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final maintenance = ref.watch(maintenanceProvider);
+    final isMobile = Responsive.isMobile(context);
+    final hPad = isMobile ? 12.0 : 24.0;
     return Column(
       children: [
-        // Barre d'actions modernisée
+        // Barre d'actions modernisée (adaptative)
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Suivi des Maintenances',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1A2B4A),
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Planifiez et suivez les réparations de votre parc',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: () => _showAddMaintenanceDialog(context, ref),
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text(
-                      'Ajouter maintenance',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1A2B4A),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+          padding: EdgeInsets.fromLTRB(hPad, hPad, hPad, 12),
+          child: isMobile
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Suivi des Maintenances',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1A2B4A),
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Planifiez et suivez les réparations de votre parc',
+                      style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                     ),
-                    child: IconButton(
-                      onPressed: () => invalidateAllBoushelhaProviders(ref),
-                      icon: const Icon(Icons.refresh_rounded, color: Color(0xFF64748B)),
-                      tooltip: 'Rafraîchir',
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _showAddMaintenanceDialog(context, ref),
+                            icon: const Icon(Icons.add_rounded, size: 18),
+                            label: const Text('Ajouter', style: TextStyle(fontWeight: FontWeight.bold)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1A2B4A),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
                         ),
-                        padding: const EdgeInsets.all(10),
-                      ),
+                        const SizedBox(width: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: IconButton(
+                            onPressed: () => invalidateAllBoushelhaProviders(ref),
+                            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF64748B)),
+                            tooltip: 'Rafraîchir',
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              padding: const EdgeInsets.all(10),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+                  ],
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Suivi des Maintenances',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1A2B4A),
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Planifiez et suivez les réparations de votre parc',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () => _showAddMaintenanceDialog(context, ref),
+                          icon: const Icon(Icons.add_rounded, size: 18),
+                          label: const Text(
+                            'Ajouter maintenance',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1A2B4A),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: IconButton(
+                            onPressed: () => invalidateAllBoushelhaProviders(ref),
+                            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF64748B)),
+                            tooltip: 'Rafraîchir',
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              padding: const EdgeInsets.all(10),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
         ),
         
         Expanded(
@@ -485,6 +538,14 @@ class MaintenanceListScreen extends ConsumerWidget {
                   );
                   return;
                 }
+                final dateError = DateInputValidator.firstInvalidIsoDate({
+                  'Date debut': startDate,
+                  'Date fin': endDate,
+                });
+                if (dateError != null) {
+                  AppErrorHandler.showWarning(context, dateError);
+                  return;
+                }
                 try {
                   await ref.read(maintenanceRepositoryProvider).createMaintenance(
                         carId: selectedCarId!,
@@ -748,6 +809,14 @@ class MaintenanceListScreen extends ConsumerWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('La voiture, le type et le coût sont obligatoires.')),
                   );
+                  return;
+                }
+                final dateError = DateInputValidator.firstInvalidIsoDate({
+                  'Date debut': startDate,
+                  'Date fin': endDate,
+                });
+                if (dateError != null) {
+                  AppErrorHandler.showWarning(context, dateError);
                   return;
                 }
                 try {

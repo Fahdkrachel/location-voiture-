@@ -58,7 +58,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final isDesktop = screenSize.width > 800;
+    final isDesktop = screenSize.width > 600;
 
     Widget formWidget = Container(
       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),

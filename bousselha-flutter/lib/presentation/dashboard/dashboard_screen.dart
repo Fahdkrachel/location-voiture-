@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/utils/responsive.dart';
 import '../../data/models/car_model.dart';
 import '../../data/models/contract_model.dart';
 import '../../data/models/dashboard_alert_model.dart';
@@ -44,12 +45,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final expensesAsync = ref.watch(expensesProvider);
     final carsAsync = ref.watch(carsProvider);
 
+    final isMobile = Responsive.isMobile(context);
+    final isTablet = Responsive.isTablet(context);
+    final pagePadding = isMobile ? 10.0 : (isTablet ? 14.0 : 16.0);
+    final sectionHeight = isMobile ? 280.0 : 380.0;
+
     return Scrollbar(
       controller: _scrollController,
       thumbVisibility: true,
       child: SingleChildScrollView(
         controller: _scrollController,
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(pagePadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -83,10 +89,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
             // Cartes d'indicateurs de statistiques globales
             stats.when(
-              data: (data) => Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                children: [
+              data: (data) {
+                final cards = [
                   _card(context, 'Total voitures', data.totalCars.toString(), const Color(0xFF1A2B4A)),
                   _card(context, 'Disponibles', data.available.toString(), const Color(0xFF10B981)),
                   _card(context, 'Louées', data.rented.toString(), const Color(0xFFF97316)),
@@ -109,8 +113,26 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       MaterialPageRoute(builder: (_) => const ExpenseDetailScreen()),
                     ),
                   ),
-                ],
-              ),
+                ];
+                if (isMobile || isTablet) {
+                  // Grille 2 colonnes mobile, 3 tablette
+                  final cols = isMobile ? 2 : 3;
+                  return GridView.count(
+                    crossAxisCount: cols,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: isMobile ? 1.3 : 1.5,
+                    children: cards,
+                  );
+                }
+                return Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: cards,
+                );
+              },
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (err, _) => Center(child: Text('Erreur stats: $err')),
             ),
@@ -128,7 +150,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             const SizedBox(height: 10),
             SizedBox(
-              height: 380, // Hauteur fixe scrollable
+              height: sectionHeight,
               child: _buildCalendar(calendar, carsAsync),
             ),
             const SizedBox(height: 28),
@@ -145,7 +167,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             const SizedBox(height: 10),
             SizedBox(
-              height: 380, // Hauteur fixe scrollable
+              height: sectionHeight,
               child: _buildFutureReservations(futureReservations, carsAsync),
             ),
             const SizedBox(height: 28),
@@ -162,7 +184,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             const SizedBox(height: 10),
             SizedBox(
-              height: 380, // Hauteur fixe scrollable
+              height: sectionHeight,
               child: _buildAlerts(alerts),
             ),
           ],
@@ -556,7 +578,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
 
     return Container(
-      width: 220,
+      // Sur mobile, les cartes s'étendent sur toute la largeur de leur cellule de grille
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),

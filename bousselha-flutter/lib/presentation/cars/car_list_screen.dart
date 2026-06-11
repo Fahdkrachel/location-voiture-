@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 
 import '../../core/utils/app_error_handler.dart';
+import '../../core/utils/date_input_validator.dart';
 import '../../data/models/car_model.dart';
 import '../../data/models/contract_model.dart';
 import '../../shared/providers/app_providers.dart';
@@ -12,20 +13,6 @@ import '../../shared/widgets/matricule_text.dart';
 
 /// Tag Hero stable pour transitions liste → détail.
 String carHeroTag(int carId) => 'car-cover-$carId';
-
-String _carActionErrorMessage(Object e) {
-  final raw = e.toString();
-  if (raw.contains('MAINTENANCE_NOT_FINISHED')) {
-    return 'Terminez la maintenance via le module Maintenance avant de remettre le véhicule disponible.';
-  }
-  if (raw.contains('CAR_HAS_ACTIVE_CONTRACT')) {
-    return 'Impossible : un contrat en cours ou actif est lié à ce véhicule.';
-  }
-  if (raw.contains('ONLY_RENTED_OR_MAINTENANCE')) {
-    return 'Seuls les véhicules loués ou en maintenance peuvent être remis disponibles.';
-  }
-  return 'Erreur : $e';
-}
 
 Future<bool> markCarAvailable(BuildContext context, WidgetRef ref, CarModel car) async {
   final ok = await showDialog<bool>(
@@ -284,6 +271,16 @@ Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? 
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Le kilométrage ne peut pas diminuer.')),
                   );
+                  return;
+                }
+
+                final dateError = DateInputValidator.firstInvalidIsoDate({
+                  'Prochaine visite': nextInspectionDate,
+                  'Dernière vidange': lastOilChangeDate,
+                  'Expiration assurance': insuranceExpiryDate,
+                });
+                if (dateError != null) {
+                  AppErrorHandler.showWarning(context, dateError);
                   return;
                 }
 

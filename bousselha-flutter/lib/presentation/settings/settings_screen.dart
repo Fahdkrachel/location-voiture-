@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/utils/responsive.dart';
 import '../../shared/providers/auth_provider.dart';
 import 'pages/profile_info_page.dart';
 import 'pages/security_page.dart';
@@ -41,143 +42,171 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ? admin!['fullName'].toString().substring(0, 1).toUpperCase()
         : 'A';
     final adminName = admin?['fullName'] ?? 'Administrateur';
+    final isMobile = Responsive.isMobile(context);
 
-    return Scaffold(
-      body: Row(
+    // Contenu du panel gauche (sidebar ou drawer)
+    final sidePanel = Container(
+      width: isMobile ? double.infinity : 240,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        border: isMobile
+            ? null
+            : const Border(right: BorderSide(color: Color(0xFFE2E8F0))),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── LEFT PANEL — Settings Menu ───────────────────────────────────
-          Container(
-            width: 240,
-            decoration: const BoxDecoration(
-              color: Color(0xFFF8FAFC),
-              border: Border(right: BorderSide(color: Color(0xFFE2E8F0))),
+          if (isMobile)
+            AppBar(
+              backgroundColor: const Color(0xFF1A2B4A),
+              foregroundColor: Colors.white,
+              title: const Text('Paramètres', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              automaticallyImplyLeading: false,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          if (!isMobile)
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A2B4A).withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.settings_outlined, color: Color(0xFF1A2B4A), size: 22),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('Paramètres', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+                  const Text('Compte & Configuration', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                ],
+              ),
+            ),
+          const Divider(height: 1, color: Color(0xFFE2E8F0)),
+          const SizedBox(height: 8),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
               children: [
-                // Header
-                Container(
-                  padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: const Color(0xFF1A2B4A),
+                  child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1A2B4A).withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.settings_outlined, color: Color(0xFF1A2B4A), size: 22),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Paramètres',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
-                      ),
-                      const Text(
-                        'Compte & Configuration',
-                        style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                      ),
+                      Text(adminName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      const Text('Administrateur', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
                     ],
-                  ),
-                ),
-
-                const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                const SizedBox(height: 8),
-
-                // Admin Card
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 18,
-                        backgroundColor: const Color(0xFF1A2B4A),
-                        child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(adminName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)), maxLines: 1, overflow: TextOverflow.ellipsis),
-                            const Text('Administrateur', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Text('GÉNÉRAL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8), letterSpacing: 1.2)),
-                ),
-                const SizedBox(height: 4),
-
-                // Menu Items
-                ...List.generate(_items.length, (i) {
-                  final item = _items[i];
-                  final isSelected = _selected == i;
-
-                  // Separator before company items
-                  if (i == 3) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 8),
-                        const Divider(height: 1, indent: 16, endIndent: 16, color: Color(0xFFE2E8F0)),
-                        const SizedBox(height: 8),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('SOCIÉTÉ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8), letterSpacing: 1.2)),
-                        ),
-                        const SizedBox(height: 4),
-                        _buildMenuItem(i, item, isSelected),
-                      ],
-                    );
-                  }
-
-                  return _buildMenuItem(i, item, isSelected);
-                }),
-
-                const Spacer(),
-                const Divider(height: 1, color: Color(0xFFE2E8F0)),
-
-                // Logout
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: InkWell(
-                    onTap: () => _confirmLogout(context),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        color: const Color(0xFFFEF2F2),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.logout_rounded, color: Color(0xFFDC2626), size: 18),
-                          SizedBox(width: 10),
-                          Text('Déconnexion', style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.w600, fontSize: 13)),
-                        ],
-                      ),
-                    ),
                   ),
                 ),
               ],
             ),
           ),
+          const SizedBox(height: 8),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Text('GÉNÉRAL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8), letterSpacing: 1.2)),
+          ),
+          const SizedBox(height: 4),
+          ...List.generate(_items.length, (i) {
+            final item = _items[i];
+            final isSelected = _selected == i;
+            if (i == 3) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+                  const Divider(height: 1, indent: 16, endIndent: 16, color: Color(0xFFE2E8F0)),
+                  const SizedBox(height: 8),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text('SOCIÉTÉ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8), letterSpacing: 1.2)),
+                  ),
+                  const SizedBox(height: 4),
+                  _buildMenuItem(i, item, isSelected, isMobile: isMobile),
+                ],
+              );
+            }
+            return _buildMenuItem(i, item, isSelected, isMobile: isMobile);
+          }),
+          const Spacer(),
+          const Divider(height: 1, color: Color(0xFFE2E8F0)),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: InkWell(
+              onTap: () => _confirmLogout(context),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: const Color(0xFFFEF2F2),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.logout_rounded, color: Color(0xFFDC2626), size: 18),
+                    SizedBox(width: 10),
+                    Text('Déconnexion', style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.w600, fontSize: 13)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
 
-          // ── RIGHT PANEL — Content ────────────────────────────────────────
+    if (isMobile) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          title: const Text('Paramètres', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+          actions: [
+            Builder(
+              builder: (ctx) => IconButton(
+                icon: const Icon(Icons.menu_rounded, color: Color(0xFF1A2B4A)),
+                onPressed: () => Scaffold.of(ctx).openDrawer(),
+              ),
+            ),
+          ],
+        ),
+        drawer: Drawer(
+          width: 280,
+          child: SafeArea(child: sidePanel),
+        ),
+        body: Container(
+          color: Colors.white,
+          child: IndexedStack(
+            index: _selected,
+            children: _pages,
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      body: Row(
+        children: [
+          sidePanel,
+          // ── RIGHT PANEL — Content ─────────────────────────────────────────
           Expanded(
             child: Container(
               color: Colors.white,
@@ -192,11 +221,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildMenuItem(int index, _SettingsItem item, bool isSelected) {
+  Widget _buildMenuItem(int index, _SettingsItem item, bool isSelected, {bool isMobile = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       child: InkWell(
-        onTap: () => setState(() => _selected = index),
+        onTap: () {
+          setState(() => _selected = index);
+          if (isMobile) Navigator.of(context).pop();
+        },
         borderRadius: BorderRadius.circular(8),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),

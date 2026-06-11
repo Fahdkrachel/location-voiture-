@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/utils/app_error_handler.dart';
+import '../../core/utils/date_input_validator.dart';
+import '../../core/utils/responsive.dart';
 import '../../data/models/client_model.dart';
 import '../../data/models/contract_model.dart';
 import '../../shared/providers/app_providers.dart';
@@ -452,28 +454,32 @@ class _ContractDetailScreenState extends ConsumerState<ContractDetailScreen> {
               child: const Icon(Icons.article_rounded, color: Cc.navy, size: 20),
             ),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Contrat #${c.id}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                    color: Cc.navy,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Contrat #${c.id}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      color: Cc.navy,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${_dash(c.clientName)} — ${_dash(c.carBrand)}',
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    color: Cc.textMuted,
-                    fontWeight: FontWeight.w500,
+                  const SizedBox(height: 2),
+                  Text(
+                    '${_dash(c.clientName)} — ${_dash(c.carBrand)}',
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      color: Cc.textMuted,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             const SizedBox(width: 12),
             _contractStatusBadge(c.status),
@@ -985,6 +991,7 @@ class _ContractFooterActions extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final isMobile = Responsive.isMobile(context);
     return Material(
       color: Colors.white,
       elevation: 8,
@@ -994,53 +1001,107 @@ class _ContractFooterActions extends StatelessWidget {
         minimum: EdgeInsets.zero,
         child: Padding(
           padding: EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 14 + MediaQuery.paddingOf(context).bottom),
-          child: Row(
-            children: [
-              Expanded(child: statusActionBtn()),
-              const SizedBox(width: 10),
-              Expanded(
-                child: SizedBox(
-                  height: Cc.actionButtonHeight,
-                  child: FilledButton.icon(
-                    onPressed: (contract.status == 'ACTIVE' || contract.status == 'COMPLETED') ? null : onEdit,
-                    icon: const Icon(Icons.edit_rounded, size: 17),
-                    label: const Text('Modifier', style: TextStyle(fontWeight: FontWeight.w700)),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Cc.navy,
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor: const Color(0xFFE5E8EE),
-                      disabledForegroundColor: Cc.textMuted,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          child: isMobile
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(width: double.infinity, child: statusActionBtn()),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: Cc.actionButtonHeight,
+                            child: FilledButton.icon(
+                              onPressed: (contract.status == 'ACTIVE' || contract.status == 'COMPLETED') ? null : onEdit,
+                              icon: const Icon(Icons.edit_rounded, size: 17),
+                              label: const Text('Modifier', style: TextStyle(fontWeight: FontWeight.w700)),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: Cc.navy,
+                                foregroundColor: Colors.white,
+                                disabledBackgroundColor: const Color(0xFFE5E8EE),
+                                disabledForegroundColor: Cc.textMuted,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: SizedBox(
+                            height: Cc.actionButtonHeight,
+                            child: OutlinedButton.icon(
+                              onPressed: contract.status == 'ACTIVE' ? null : onDelete,
+                              icon: Icon(
+                                contract.status == 'IN_PROGRESS' ? Icons.cancel_outlined : Icons.delete_outline_rounded,
+                                size: 17,
+                              ),
+                              label: Text(
+                                contract.status == 'IN_PROGRESS' ? 'Annuler' : 'Supprimer',
+                                style: const TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Cc.danger,
+                                backgroundColor: Colors.white,
+                                side: const BorderSide(color: Cc.danger, width: 1.25),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                disabledForegroundColor: Cc.textMuted,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(child: statusActionBtn()),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: SizedBox(
+                        height: Cc.actionButtonHeight,
+                        child: FilledButton.icon(
+                          onPressed: (contract.status == 'ACTIVE' || contract.status == 'COMPLETED') ? null : onEdit,
+                          icon: const Icon(Icons.edit_rounded, size: 17),
+                          label: const Text('Modifier', style: TextStyle(fontWeight: FontWeight.w700)),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Cc.navy,
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: const Color(0xFFE5E8EE),
+                            disabledForegroundColor: Cc.textMuted,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: SizedBox(
+                        height: Cc.actionButtonHeight,
+                        child: OutlinedButton.icon(
+                          onPressed: contract.status == 'ACTIVE' ? null : onDelete,
+                          icon: Icon(
+                            contract.status == 'IN_PROGRESS' ? Icons.cancel_outlined : Icons.delete_outline_rounded,
+                            size: 17,
+                          ),
+                          label: Text(
+                            contract.status == 'IN_PROGRESS' ? 'Annuler' : 'Supprimer',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Cc.danger,
+                            backgroundColor: Colors.white,
+                            side: const BorderSide(color: Cc.danger, width: 1.25),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            disabledForegroundColor: Cc.textMuted,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: SizedBox(
-                  height: Cc.actionButtonHeight,
-                  child: OutlinedButton.icon(
-                    onPressed: contract.status == 'ACTIVE' ? null : onDelete,
-                    icon: Icon(
-                      contract.status == 'IN_PROGRESS' ? Icons.cancel_outlined : Icons.delete_outline_rounded,
-                      size: 17,
-                    ),
-                    label: Text(
-                      contract.status == 'IN_PROGRESS' ? 'Annuler' : 'Supprimer',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Cc.danger,
-                      backgroundColor: Colors.white,
-                      side: const BorderSide(color: Cc.danger, width: 1.25),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      disabledForegroundColor: Cc.textMuted,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -1362,13 +1423,22 @@ Future<Object?> _showUnifiedContractSheet(
               final expectedReturnDatetime = _formBuildIsoDateTime(prevJ.text, prevM.text, prevA.text, prevH.text, prevMn.text);
               if (departureDatetime == null || expectedReturnDatetime == null) {
                 setState(() => isSaving = false);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Dates depart/retour prevu invalides.')),
+                AppErrorHandler.showWarning(
+                  context,
+                  'Date de depart ou date de retour prevu invalide. Renseignez ${DateInputValidator.dateTimeGridHint} avec des valeurs correctes. Exemple : 11 | 06 | 2026 | 14 | 30.',
                 );
                 return;
               }
 
               final actualReturnDatetime = _formBuildIsoDateTime(retJ.text, retM.text, retA.text, retH.text, retMn.text);
+              if (_formHasAnyDatePart(retJ.text, retM.text, retA.text, retH.text, retMn.text) && actualReturnDatetime == null) {
+                setState(() => isSaving = false);
+                AppErrorHandler.showWarning(
+                  context,
+                  'Date de retour definitif invalide. Completez tous les champs J, M, A, H et mn ou laissez cette ligne vide.',
+                );
+                return;
+              }
               final lineHour = _formCalcLine(qHour.text, pHour.text);
               final lineDay = _formCalcLine(qDay.text, pDay.text);
               final lineWeek = _formCalcLine(qWeek.text, pWeek.text);
@@ -1625,6 +1695,10 @@ String? _formBuildIsoDateTime(String j, String m, String a, String h, String mn)
   } catch (_) {
     return null;
   }
+}
+
+bool _formHasAnyDatePart(String j, String m, String a, String h, String mn) {
+  return [j, m, a, h, mn].any((value) => value.trim().isNotEmpty);
 }
 
 class _ContractFormHeaderCell extends StatelessWidget {

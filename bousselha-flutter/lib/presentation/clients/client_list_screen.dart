@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/utils/app_error_handler.dart';
+import '../../core/utils/date_input_validator.dart';
+import '../../core/utils/responsive.dart';
 import '../../data/models/client_model.dart';
 import '../../shared/providers/app_providers.dart';
 
@@ -19,7 +21,6 @@ class ClientListScreen extends ConsumerWidget {
     hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
     hash ^= (hash >> 11);
     hash = 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
-
     final hue = (hash % 360).toDouble();
     return HSLColor.fromAHSL(1, hue, 0.55, 0.50).toColor();
   }
@@ -27,74 +28,70 @@ class ClientListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final clients = ref.watch(clientsProvider);
+    final isMobile = Responsive.isMobile(context);
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFBFDBFE)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.info_outline_rounded, color: Color(0xFF1D4ED8), size: 20),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'Les clients sont ajoutés automatiquement lors de la création d’un contrat.',
-                    style: TextStyle(
-                      color: Color(0xFF1E3A8A),
-                      fontWeight: FontWeight.w500,
-                      fontSize: 13,
+        if (!isMobile)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFBFDBFE)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded, color: Color(0xFF1D4ED8), size: 20),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Les clients sont ajout\u00e9s automatiquement lors de la cr\u00e9ation d\u2019un contrat.',
+                      style: TextStyle(
+                        color: Color(0xFF1E3A8A),
+                        fontWeight: FontWeight.w500,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                TextButton.icon(
-                  onPressed: () => ref.invalidate(clientsProvider),
-                  icon: const Icon(Icons.refresh_rounded, size: 16, color: Color(0xFF1D4ED8)),
-                  label: const Text(
-                    'Rafraîchir',
-                    style: TextStyle(
-                      color: Color(0xFF1D4ED8),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                  const SizedBox(width: 16),
+                  TextButton.icon(
+                    onPressed: () => ref.invalidate(clientsProvider),
+                    icon: const Icon(Icons.refresh_rounded, size: 16, color: Color(0xFF1D4ED8)),
+                    label: const Text(
+                      'Rafra\u00eechir',
+                      style: TextStyle(color: Color(0xFF1D4ED8), fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      backgroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        side: const BorderSide(color: Color(0xFFBFDBFE)),
+                      ),
                     ),
                   ),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    backgroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      side: const BorderSide(color: Color(0xFFBFDBFE)),
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
         Expanded(
           child: clients.when(
             data: (data) {
               if (data.isEmpty) {
                 return const Center(
-                  child: Text(
-                    'Aucun client trouvé.',
-                    style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500),
-                  ),
+                  child: Text('Aucun client trouv\u00e9.', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
                 );
               }
               return ListView.separated(
-                padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+                padding: EdgeInsets.fromLTRB(isMobile ? 12 : 24, 12, isMobile ? 12 : 24, 24),
                 itemCount: data.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   final client = data[index];
                   final avatarColor = _colorFromName(client.fullName);
+
                   
                   // Calcul des initiales
                   final parts = client.fullName.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
@@ -307,6 +304,15 @@ Future<ClientFormPayload?> pickClientForNewContract(
         FilledButton(
           onPressed: () {
             if (!(formKey.currentState?.validate() ?? false)) return;
+            final dateError = DateInputValidator.firstInvalidIsoDate({
+              'Date de naissance': birthDateCtrl.text,
+              'Date de delivrance du passeport': passportIssuedAtCtrl.text,
+              'Date du permis conducteur supplementaire': addLicenseIssuedAtCtrl.text,
+            });
+            if (dateError != null) {
+              AppErrorHandler.showWarning(context, dateError);
+              return;
+            }
             result = ClientFormPayload(
               fullName: fullNameCtrl.text.trim(),
               birthDate: birthDateCtrl.text.trim(),
@@ -694,6 +700,15 @@ Future<bool?> _showClientFormDialog({
           FilledButton(
             onPressed: () async {
               if (!(formKey.currentState?.validate() ?? false)) return;
+              final dateError = DateInputValidator.firstInvalidIsoDate({
+                'Date de naissance': birthDateCtrl.text,
+                'Date de delivrance du passeport': passportIssuedAtCtrl.text,
+                'Date du permis conducteur supplementaire': addLicenseIssuedAtCtrl.text,
+              });
+              if (dateError != null) {
+                AppErrorHandler.showWarning(context, dateError);
+                return;
+              }
 
               try {
                 await onSubmit(

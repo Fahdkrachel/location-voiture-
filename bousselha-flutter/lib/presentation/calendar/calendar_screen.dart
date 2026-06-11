@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/utils/app_error_handler.dart';
+import '../../core/utils/responsive.dart';
 import '../../data/models/car_availability_model.dart';
 import '../cars/car_list_screen.dart' show toPublicCarImageUrl;
 import '../../shared/providers/app_providers.dart';
@@ -93,26 +94,46 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = Responsive.isMobile(context);
+    final pad = isMobile ? 10.0 : 16.0;
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(pad),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              FilledButton.icon(
-                onPressed: _pickDate,
-                icon: const Icon(Icons.calendar_month),
-                label: Text(DateFormat('dd/MM/yyyy').format(_selectedDate)),
-              ),
-              const SizedBox(width: 12),
-              OutlinedButton.icon(
-                onPressed: _load,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Actualiser'),
-              ),
-            ],
-          ),
+          if (isMobile)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                FilledButton.icon(
+                  onPressed: _pickDate,
+                  icon: const Icon(Icons.calendar_month),
+                  label: Text(DateFormat('dd/MM/yyyy').format(_selectedDate)),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: _load,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Actualiser'),
+                ),
+              ],
+            )
+          else
+            Row(
+              children: [
+                FilledButton.icon(
+                  onPressed: _pickDate,
+                  icon: const Icon(Icons.calendar_month),
+                  label: Text(DateFormat('dd/MM/yyyy').format(_selectedDate)),
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton.icon(
+                  onPressed: _load,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Actualiser'),
+                ),
+              ],
+            ),
           const SizedBox(height: 12),
           Text(
             'Véhicules disponibles — ${DateFormat('dd/MM/yyyy').format(_selectedDate)}',

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/utils/responsive.dart';
+
 class SidebarNav extends ConsumerWidget {
   final int selected;
   final ValueChanged<int> onSelect;
@@ -16,23 +18,28 @@ class SidebarNav extends ConsumerWidget {
     _NavItem(icon: Icons.calendar_month_outlined, activeIcon: Icons.calendar_month, label: 'Calendrier'),
   ];
 
-  // index 6 = Paramètres
   static const int _settingsIndex = 6;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isTablet = Responsive.isTablet(context);
+    // Sur mobile, la sidebar ne s'affiche pas (elle est remplacée par la BottomNav)
+    // Sur tablette, elle est plus étroite (icônes seulement)
+    final width = isTablet ? 60.0 : 80.0;
+    final showLabels = !isTablet;
+
     return Container(
-      width: 80,
+      width: width,
       decoration: const BoxDecoration(
         color: Color(0xFF1A2B4A),
         boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(2, 0))],
       ),
       child: Column(
         children: [
-          // ── Logo / App Icon ──────────────────────────────────────────────
+          // ── Logo / App Icon ─────────────────────────────────────────────
           Container(
-            height: 72,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            height: isTablet ? 60 : 72,
+            padding: EdgeInsets.symmetric(horizontal: isTablet ? 8 : 10, vertical: 8),
             alignment: Alignment.center,
             child: Container(
               decoration: BoxDecoration(
@@ -65,6 +72,7 @@ class SidebarNav extends ConsumerWidget {
               icon: isSelected ? item.activeIcon : item.icon,
               label: item.label,
               isSelected: isSelected,
+              showLabel: showLabels,
               onTap: () => onSelect(i),
             );
           }),
@@ -82,6 +90,7 @@ class SidebarNav extends ConsumerWidget {
             icon: selected == _settingsIndex ? Icons.settings : Icons.settings_outlined,
             label: 'Paramètres',
             isSelected: selected == _settingsIndex,
+            showLabel: showLabels,
             onTap: () => onSelect(_settingsIndex),
           ),
 
@@ -97,6 +106,7 @@ class _NavButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool isSelected;
+  final bool showLabel;
   final VoidCallback onTap;
 
   const _NavButton({
@@ -104,6 +114,7 @@ class _NavButton extends StatelessWidget {
     required this.label,
     required this.isSelected,
     required this.onTap,
+    this.showLabel = true,
   });
 
   @override
@@ -135,18 +146,20 @@ class _NavButton extends StatelessWidget {
                   size: 22,
                   color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.65),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 9,
-                    color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.65),
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                if (showLabel) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.65),
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                ],
               ],
             ),
           ),
