@@ -1,0 +1,42 @@
+La prochaine étape consiste à **générer l'exécutable d'installation final Windows (`.exe`)** que vous pourrez livrer à votre client.
+
+Voici le guide pas-à-pas pour cette étape :
+
+---
+
+### 1. Compiler l'application Flutter en mode Release
+Dans votre terminal Windows, allez dans le répertoire `bousselha-flutter` et lancez la compilation :
+```powershell
+cd bousselha-flutter
+flutter build windows --release
+```
+*Cela génère tous les fichiers exécutables et les bibliothèques optimisés dans le dossier `bousselha-flutter/build/windows/x64/runner/Release/`.*
+
+---
+
+### 2. Compiler l'installateur avec Inno Setup
+1. Téléchargez et installez l'outil gratuit **Inno Setup** (si vous ne l'avez pas déjà) : [Télécharger Inno Setup](https://jrsoftware.org/isdl.php).
+2. Lancez **Inno Setup Compiler**.
+3. Ouvrez le script d'installation que nous avons créé :
+   `c:\Users\pc\Desktop\BOUSSELHA CARS\bousselha-flutter\windows\inno_setup.iss`
+4. Cliquez sur **Build** (ou le bouton vert **Run/Compile**).
+
+Une fois la compilation terminée, votre installateur final **`BousselhaCarsSetup.exe`** sera disponible dans :
+`bousselha-flutter/build/windows/installer/`
+
+---
+
+### 3. Comment livrer et configurer chez le client
+1. **Sur le serveur du client (ou Cloud VPS) :**
+   Lancez la base de données et le backend en clonant le projet et en lançant `docker compose up -d`.
+2. **Sur l'ordinateur client Windows :**
+   Exécutez l'installateur `BousselhaCarsSetup.exe` pour installer le logiciel.
+3. **Configuration de l'adresse IP :**
+   Allez dans le répertoire d'installation de l'application (par défaut `C:\Program Files (x86)\BOUSSELHA CARS\`), ouvrez le fichier `config.json` et modifiez l'adresse IP pour cibler votre serveur Docker :
+   ```json
+   {
+     "api_url": "http://IP_DE_VOTRE_SERVEUR:8080/api",
+     "image_url_prefix": "http://IP_DE_VOTRE_SERVEUR:8080"
+   }
+   ```
+4. Lancez le logiciel depuis le raccourci sur le Bureau. Tout est prêt !

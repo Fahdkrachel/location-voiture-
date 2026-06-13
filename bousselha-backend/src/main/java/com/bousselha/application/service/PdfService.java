@@ -64,37 +64,17 @@ public class PdfService {
 
             try {
                 java.io.InputStream regularStream = getClass().getResourceAsStream("/static/fonts/Cairo-Regular.ttf");
-                if (regularStream == null) {
-                    java.io.File f = new java.io.File("src/main/resources/static/fonts/Cairo-Regular.ttf");
-                    if (f.exists()) {
-                        regular = org.apache.pdfbox.pdmodel.font.PDType0Font.load(doc, f);
-                    } else {
-                        f = new java.io.File("bousselha-backend/src/main/resources/static/fonts/Cairo-Regular.ttf");
-                        if (f.exists()) {
-                            regular = org.apache.pdfbox.pdmodel.font.PDType0Font.load(doc, f);
-                        } else {
-                            regular = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
-                        }
-                    }
-                } else {
+                if (regularStream != null) {
                     regular = org.apache.pdfbox.pdmodel.font.PDType0Font.load(doc, regularStream);
+                } else {
+                    regular = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
                 }
 
                 java.io.InputStream boldStream = getClass().getResourceAsStream("/static/fonts/Cairo-Bold.ttf");
-                if (boldStream == null) {
-                    java.io.File f = new java.io.File("src/main/resources/static/fonts/Cairo-Bold.ttf");
-                    if (f.exists()) {
-                        bold = org.apache.pdfbox.pdmodel.font.PDType0Font.load(doc, f);
-                    } else {
-                        f = new java.io.File("bousselha-backend/src/main/resources/static/fonts/Cairo-Bold.ttf");
-                        if (f.exists()) {
-                            bold = org.apache.pdfbox.pdmodel.font.PDType0Font.load(doc, f);
-                        } else {
-                            bold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-                        }
-                    }
-                } else {
+                if (boldStream != null) {
                     bold = org.apache.pdfbox.pdmodel.font.PDType0Font.load(doc, boldStream);
+                } else {
+                    bold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
                 }
                 
                 italic = regular;
@@ -112,29 +92,35 @@ public class PdfService {
 
                 // 1. EN-TETE
                 // Logo centré
-                File logoFile = null;
+                boolean logoDrawn = false;
                 if (settings.getLogoPath() != null && !settings.getLogoPath().isBlank()) {
-                    logoFile = new File(settings.getLogoPath());
-                    if (!logoFile.exists()) {
-                        logoFile = new File("bousselha-backend/" + settings.getLogoPath());
+                    File logoFile = new File(settings.getLogoPath());
+                    if (logoFile.exists() && logoFile.isFile()) {
+                        try {
+                            PDImageXObject pdImage = PDImageXObject.createFromFileByExtension(logoFile, doc);
+                            cs.drawImage(pdImage, 237.5f, 755, 120, 45);
+                            logoDrawn = true;
+                        } catch (Exception e) {
+                            // ignore
+                        }
                     }
-                }
-                if (logoFile == null || !logoFile.exists()) {
-                    File staticLogo = new File("src/main/resources/static/images/logo.png");
-                    if (!staticLogo.exists()) {
-                        staticLogo = new File("bousselha-backend/src/main/resources/static/images/logo.png");
-                    }
-                    if (staticLogo.exists()) logoFile = staticLogo;
                 }
 
-                if (logoFile != null && logoFile.exists() && logoFile.isFile()) {
+                if (!logoDrawn) {
                     try {
-                        PDImageXObject pdImage = PDImageXObject.createFromFileByExtension(logoFile, doc);
-                        cs.drawImage(pdImage, 237.5f, 755, 120, 45);
+                        java.io.InputStream logoStream = getClass().getResourceAsStream("/static/images/logo.png");
+                        if (logoStream != null) {
+                            byte[] logoBytes = logoStream.readAllBytes();
+                            PDImageXObject pdImage = PDImageXObject.createFromByteArray(doc, logoBytes, "logo.png");
+                            cs.drawImage(pdImage, 237.5f, 755, 120, 45);
+                            logoDrawn = true;
+                        }
                     } catch (Exception e) {
-                        drawTextAligned(cs, settings.getCompanyName() != null ? settings.getCompanyName() : "BOUSSELHA CARS", 20, 775, bold, 13, Color.BLACK, "center", 555);
+                        // ignore
                     }
-                } else {
+                }
+
+                if (!logoDrawn) {
                     drawTextAligned(cs, settings.getCompanyName() != null ? settings.getCompanyName() : "BOUSSELHA CARS", 20, 775, bold, 13, Color.BLACK, "center", 555);
                 }
 
@@ -319,7 +305,79 @@ public class PdfService {
                 drawTextAligned(cs, "IMMEDIATEMENT L'AGENCE", accidentX + 6, 542, bold, 7.5f, accidentRed, "center", accidentW - 12);
                 drawTextAligned(cs, safe(settings.getGsm()), accidentX + 6, 525, bold, 11f, accidentRed, "center", accidentW - 12);
 
-                // Note: PAIEMENT et FRANCHISE ET ASSURANCE ont été supprimés complètement.
+                /*
+                // 5b. SECTION TARIFICATION & PAIEMENT (cadre)
+                float tableX = 302.5f;
+                float tableY = 374f;
+                float tableW = 272.5f;
+                float tableH = 134f;
+                drawRect(cs, tableX, tableY, tableW, tableH, 0.75f, Color.BLACK);
+                fillRect(cs, tableX, tableY + tableH - 14f, tableW, 14f, new Color(240, 240, 240));
+                drawHorizontalLine(cs, tableX, tableX + tableW, tableY + tableH - 14f, 0.5f, Color.BLACK);
+                drawTextAligned(cs, "TARIFICATION & PAIEMENT", tableX, tableY + tableH - 10f, bold, 8, Color.BLACK, "center", tableW);
+
+                drawVerticalLine(cs, tableX + 135f, tableY, tableY + tableH - 14f, 0.5f, Color.BLACK);
+
+                // Nombre de lignes de données
+                int rowsCount = 8;
+                float rowHeight = 15f;
+                for (int i = 1; i < rowsCount; i++) {
+                    drawHorizontalLine(cs, tableX, tableX + tableW, tableY + tableH - 14f - i * rowHeight, 0.5f, Color.BLACK);
+                }
+
+                // Récupération des données tarifaires
+                String tarifBase = "";
+                BigDecimal baseAmount = BigDecimal.ZERO;
+                if (contract.getPricePerDay() != null && contract.getPricePerDay().compareTo(BigDecimal.ZERO) > 0) {
+                    tarifBase = "Prix / Jour";
+                    baseAmount = contract.getPricePerDay();
+                } else if (contract.getPricePerHour() != null && contract.getPricePerHour().compareTo(BigDecimal.ZERO) > 0) {
+                    tarifBase = "Prix / Heure";
+                    baseAmount = contract.getPricePerHour();
+                } else if (contract.getPricePerWeek() != null && contract.getPricePerWeek().compareTo(BigDecimal.ZERO) > 0) {
+                    tarifBase = "Prix / Semaine";
+                    baseAmount = contract.getPricePerWeek();
+                } else if (contract.getPricePerMonth() != null && contract.getPricePerMonth().compareTo(BigDecimal.ZERO) > 0) {
+                    tarifBase = "Prix / Mois";
+                    baseAmount = contract.getPricePerMonth();
+                } else {
+                    tarifBase = "Tarif de base";
+                    baseAmount = BigDecimal.ZERO;
+                }
+
+                // Row 1: Tarif Base
+                drawText(cs, tarifBase, tableX + 5f, tableY + tableH - 14f - 11f, bold, 7.5f, Color.BLACK);
+                drawText(cs, formatMoney(baseAmount), tableX + 140f, tableY + tableH - 14f - 11f, regular, 7.5f, dataColor);
+
+                // Row 2: Assurance
+                drawText(cs, "Avec Assurance", tableX + 5f, tableY + tableH - 14f - 26f, bold, 7.5f, Color.BLACK);
+                String assuranceStr = Boolean.TRUE.equals(contract.getWithInsurance()) ? "OUI" : "NON";
+                drawText(cs, assuranceStr, tableX + 140f, tableY + tableH - 14f - 26f, regular, 7.5f, dataColor);
+
+                // Row 3: Total HT / Total Voiture
+                drawText(cs, "Total Brut", tableX + 5f, tableY + tableH - 14f - 41f, bold, 7.5f, Color.BLACK);
+                drawText(cs, formatMoney(contract.getTotalPrice()), tableX + 140f, tableY + tableH - 14f - 41f, regular, 7.5f, dataColor);
+
+                // Row 4: Supplément
+                drawText(cs, "Supplément", tableX + 5f, tableY + tableH - 14f - 56f, bold, 7.5f, Color.BLACK);
+                drawText(cs, formatMoney(contract.getSupplement()), tableX + 140f, tableY + tableH - 14f - 56f, regular, 7.5f, dataColor);
+
+                // Row 5: Total Général
+                drawText(cs, "TOTAL GENERAL", tableX + 5f, tableY + tableH - 14f - 71f, bold, 7.5f, Color.BLACK);
+                drawText(cs, formatMoney(contract.getTotalGeneral()), tableX + 140f, tableY + tableH - 14f - 71f, bold, 8f, dataColor);
+
+                // Row 6: Paiement Espèces
+                drawText(cs, "Paiement Espèces", tableX + 5f, tableY + tableH - 14f - 86f, bold, 7.5f, Color.BLACK);
+                drawText(cs, formatMoney(contract.getPaymentCash()), tableX + 140f, tableY + tableH - 14f - 86f, regular, 7.5f, dataColor);
+
+                // Row 7: Paiement Chèque
+                drawText(cs, "Paiement Chèque", tableX + 5f, tableY + tableH - 14f - 101f, bold, 7.5f, Color.BLACK);
+                drawText(cs, formatMoney(contract.getPaymentCheck()), tableX + 140f, tableY + tableH - 14f - 101f, regular, 7.5f, dataColor);
+
+                // Row 8: Caution
+                drawText(cs, "Caution", tableX + 5f, tableY + tableH - 14f - 116f, bold, 7.5f, Color.BLACK);
+                drawText(cs, formatMoney(contract.getPaymentDeposit()), tableX + 140f, tableY + tableH - 14f - 116f, regular, 7.5f, dataColor);
+                */
 
                 // 9. ETAT VEHICULE DEPART ET RETOUR & 10. ZONE SCHEMAS VOITURE
                 boolean depOui = false;
@@ -350,28 +408,15 @@ public class PdfService {
                 drawRect(cs, 20, 250, 120, 120, 0.75f, Color.BLACK);
                 drawTextAligned(cs, "Départ", 20, 355, bold, 8, Color.BLACK, "center", 120);
 
-                File imgDepartFile = new File("src/main/resources/static/images/schema_depart.png");
-                if (!imgDepartFile.exists()) {
-                    imgDepartFile = new File("bousselha-backend/src/main/resources/static/images/schema_depart.png");
-                }
-                if (imgDepartFile.exists() && imgDepartFile.isFile()) {
-                    try {
-                        PDImageXObject pdImage = PDImageXObject.createFromFileByExtension(imgDepartFile, doc);
+                try {
+                    java.io.InputStream is = getClass().getResourceAsStream("/static/images/schema_depart.png");
+                    if (is != null) {
+                        byte[] bytes = is.readAllBytes();
+                        PDImageXObject pdImage = PDImageXObject.createFromByteArray(doc, bytes, "schema_depart.png");
                         cs.drawImage(pdImage, 25, 255, 110, 110);
-                    } catch (Exception e) {
-                        // ignore
                     }
-                } else {
-                    try {
-                        java.io.InputStream is = getClass().getResourceAsStream("/static/images/schema_depart.png");
-                        if (is != null) {
-                            byte[] bytes = is.readAllBytes();
-                            PDImageXObject pdImage = PDImageXObject.createFromByteArray(doc, bytes, "schema_depart.png");
-                            cs.drawImage(pdImage, 25, 255, 110, 110);
-                        }
-                    } catch (Exception e) {
-                        // ignore
-                    }
+                } catch (Exception e) {
+                    // ignore
                 }
 
                 // Col 2 (Etat Départ checklist)
@@ -426,28 +471,15 @@ public class PdfService {
                 drawRect(cs, 455, 250, 120, 120, 0.75f, Color.BLACK);
                 drawTextAligned(cs, "Retour", 455, 355, bold, 8, Color.BLACK, "center", 120);
 
-                File imgRetourFile = new File("src/main/resources/static/images/schema_retour.png");
-                if (!imgRetourFile.exists()) {
-                    imgRetourFile = new File("bousselha-backend/src/main/resources/static/images/schema_retour.png");
-                }
-                if (imgRetourFile.exists() && imgRetourFile.isFile()) {
-                    try {
-                        PDImageXObject pdImage = PDImageXObject.createFromFileByExtension(imgRetourFile, doc);
+                try {
+                    java.io.InputStream is = getClass().getResourceAsStream("/static/images/schema_retour.png");
+                    if (is != null) {
+                        byte[] bytes = is.readAllBytes();
+                        PDImageXObject pdImage = PDImageXObject.createFromByteArray(doc, bytes, "schema_retour.png");
                         cs.drawImage(pdImage, 460, 255, 110, 110);
-                    } catch (Exception e) {
-                        // ignore
                     }
-                } else {
-                    try {
-                        java.io.InputStream is = getClass().getResourceAsStream("/static/images/schema_retour.png");
-                        if (is != null) {
-                            byte[] bytes = is.readAllBytes();
-                            PDImageXObject pdImage = PDImageXObject.createFromByteArray(doc, bytes, "schema_retour.png");
-                            cs.drawImage(pdImage, 460, 255, 110, 110);
-                        }
-                    } catch (Exception e) {
-                        // ignore
-                    }
+                } catch (Exception e) {
+                    // ignore
                 }
 
                 // Phrase Commentaires sous le tableau
@@ -928,5 +960,10 @@ public class PdfService {
         cs.lineTo(x, y + radius);
         cs.curveTo(x, y + radius - c, x + radius - c, y, x + radius, y);
         cs.closePath();
+    }
+
+    private String formatMoney(BigDecimal amount) {
+        if (amount == null) return "0.00 DH";
+        return amount.setScale(2, java.math.RoundingMode.HALF_UP).toString() + " DH";
     }
 }

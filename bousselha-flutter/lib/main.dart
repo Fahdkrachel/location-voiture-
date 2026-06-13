@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/config/app_config.dart';
 import 'presentation/home_shell.dart';
 import 'presentation/auth/login_screen.dart';
 import 'shared/providers/auth_provider.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AppConfig.init();
   runApp(const ProviderScope(child: BousselhaApp()));
 }
 

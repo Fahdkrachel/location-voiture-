@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/utils/app_error_handler.dart';
 import '../../../shared/providers/app_providers.dart';
 import 'settings_section_header.dart';
@@ -93,7 +94,7 @@ class _LogoPageState extends ConsumerState<LogoPage> {
                             color: const Color(0xFFF8FAFC),
                           ),
                           child: Image.network(
-                            'http://localhost:8080$logoUrl',
+                            '${AppConfig.imageUrlPrefix}$logoUrl',
                             fit: BoxFit.contain,
                             errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image_outlined, size: 40, color: Color(0xFFCBD5E1))),
                           ),

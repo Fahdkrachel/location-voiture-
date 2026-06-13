@@ -3,6 +3,7 @@ package com.bousselha.application.service;
 import com.bousselha.domain.repository.AdminRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -13,6 +14,9 @@ public class AdminInitializer implements ApplicationRunner {
 
     private final AdminRepository adminRepository;
     private final AdminService adminService;
+
+    @Value("${app.security.allow-fallback-admin:true}")
+    private boolean allowFallbackAdmin;
 
     public AdminInitializer(AdminRepository adminRepository, AdminService adminService) {
         this.adminRepository = adminRepository;
@@ -36,9 +40,19 @@ public class AdminInitializer implements ApplicationRunner {
                 String n = name != null ? name : "Administrateur";
                 adminService.createAdmin(n, email, "", password);
                 logger.info("Initial admin created for email={}", email);
-            } else {
-                logger.info("No initial admin config found in env. Creating fallback admin: admin@bousselha.ma / Admin@2026");
+            } else if (allowFallbackAdmin) {
+                logger.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                logger.warn("WARNING: Creating fallback admin credentials (admin@bousselha.ma / Admin@2026).");
+                logger.warn("PLEASE CHANGE THESE CREDENTIALS IMMEDIATELY IN PRODUCTION!");
+                logger.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
                 adminService.createAdmin("Administrateur Principal", "admin@bousselha.ma", "0689124889", "Admin@2026");
+            } else {
+                logger.error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                logger.error("ERROR: No admin account exists in database and initial admin environment variables");
+                logger.error("(INITIAL_ADMIN_EMAIL, INITIAL_ADMIN_PASSWORD) are not set.");
+                logger.error("Fallback admin creation is disabled (app.security.allow-fallback-admin=false).");
+                logger.error("No administrator account has been created!");
+                logger.error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
             }
         }
     }

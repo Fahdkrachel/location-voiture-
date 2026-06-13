@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 
+import '../../core/config/app_config.dart';
 import '../../core/utils/app_error_handler.dart';
 import '../../core/utils/date_input_validator.dart';
 import '../../data/models/car_model.dart';
@@ -337,7 +338,7 @@ Future<bool?> showCarFormDialog(BuildContext context, WidgetRef ref, {CarModel? 
 String toPublicCarImageUrl(String imageUrl) {
   if (imageUrl.isEmpty) return '';
   if (imageUrl.startsWith('http')) return imageUrl;
-  return 'http://localhost:8080$imageUrl';
+  return '${AppConfig.imageUrlPrefix}$imageUrl';
 }
 
 void showCarImageFullscreen(BuildContext context, {required String imageUrl, String? heroTag}) {

@@ -4,6 +4,7 @@ import com.bousselha.application.dto.request.SettingsRequest;
 import com.bousselha.application.dto.response.SettingsResponse;
 import com.bousselha.domain.model.CompanySettings;
 import com.bousselha.domain.repository.CompanySettingsRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,9 +22,11 @@ import java.util.UUID;
 @Transactional
 public class SettingsService {
 
-    private static final String UPLOADS_DIR    = "src/main/resources/static/uploads/logo";
     private static final String UPLOADS_PREFIX = "/uploads/logo/";
     private static final Long   SINGLETON_ID   = 1L;
+
+    @Value("${app.uploads.dir}")
+    private String baseUploadsDir;
 
     private final CompanySettingsRepository repository;
 
@@ -70,8 +73,8 @@ public class SettingsService {
         }
 
         String filename = "company_logo" + ext;
+        Path dir = Paths.get(baseUploadsDir).resolve("logo");
         try {
-            Path dir = Paths.get(UPLOADS_DIR);
             Files.createDirectories(dir);
             Files.copy(file.getInputStream(), dir.resolve(filename), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
@@ -79,7 +82,7 @@ public class SettingsService {
         }
 
         CompanySettings s = getRawSettings();
-        s.setLogoPath(UPLOADS_DIR + "/" + filename);
+        s.setLogoPath(dir.resolve(filename).toString());
         return map(repository.save(s));
     }
 

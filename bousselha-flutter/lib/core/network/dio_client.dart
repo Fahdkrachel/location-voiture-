@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../config/app_config.dart';
 
 class ApiException extends DioException {
   final String cleanMessage;
@@ -21,7 +22,7 @@ class DioClient {
   static Dio build() {
     final dio = Dio(
       BaseOptions(
-        baseUrl: 'http://localhost:8080/api',
+        baseUrl: AppConfig.apiUrl,
         connectTimeout: const Duration(seconds: 30),
         sendTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 60),

@@ -1,0 +1,4 @@
+{
+  "api_url": "http://localhost:8080/api",
+  "image_url_prefix": "http://localhost:8080"
+}

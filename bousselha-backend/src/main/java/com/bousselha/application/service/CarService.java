@@ -13,6 +13,7 @@ import com.bousselha.domain.repository.CarRepository;
 import com.bousselha.domain.repository.ContractRepository;
 import com.bousselha.domain.repository.MaintenanceRepository;
 import com.bousselha.infrastructure.exception.ResourceNotFoundException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,8 +32,10 @@ import java.util.UUID;
 @Service
 @Transactional
 public class CarService {
-    private static final String UPLOADS_DIR = "src/main/resources/static/uploads/cars";
     private static final String PUBLIC_UPLOADS_PREFIX = "/uploads/cars/";
+
+    @Value("${app.uploads.dir}")
+    private String baseUploadsDir;
 
     private final CarRepository carRepository;
     private final ContractRepository contractRepository;
@@ -263,7 +266,7 @@ public class CarService {
         }
         String filename = UUID.randomUUID() + ext;
         try {
-            Path dir = Paths.get(UPLOADS_DIR);
+            Path dir = Paths.get(baseUploadsDir).resolve("cars");
             Files.createDirectories(dir);
             Files.copy(image.getInputStream(), dir.resolve(filename), StandardCopyOption.REPLACE_EXISTING);
             return PUBLIC_UPLOADS_PREFIX + filename;

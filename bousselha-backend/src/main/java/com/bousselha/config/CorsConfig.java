@@ -1,5 +1,6 @@
 package com.bousselha.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -7,6 +8,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 public class CorsConfig {
+
+    @Value("${app.uploads.dir}")
+    private String baseUploadsDir;
+
     @Bean
     public WebMvcConfigurer corsConfigurer() {
         return new WebMvcConfigurer() {
@@ -19,14 +24,12 @@ public class CorsConfig {
 
             @Override
             public void addResourceHandlers(org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry registry) {
-                String userDir = System.getProperty("user.dir");
+                String uploadsPath = java.nio.file.Paths.get(baseUploadsDir).toAbsolutePath().toUri().toString();
+                if (!uploadsPath.endsWith("/")) {
+                    uploadsPath += "/";
+                }
                 registry.addResourceHandler("/uploads/**")
-                        .addResourceLocations(
-                                "file:src/main/resources/static/uploads/",
-                                "file:" + userDir + "/src/main/resources/static/uploads/",
-                                "file:uploads/",
-                                "file:target/classes/static/uploads/"
-                        );
+                        .addResourceLocations(uploadsPath);
             }
         };
     }
