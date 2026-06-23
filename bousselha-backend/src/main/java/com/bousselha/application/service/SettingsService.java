@@ -59,6 +59,13 @@ public class SettingsService {
         s.setGsm(req.getGsm());
         s.setEmail(req.getEmail());
         s.setWebsite(req.getWebsite());
+        s.setSmtpHost(req.getSmtpHost());
+        s.setSmtpPort(req.getSmtpPort());
+        s.setSmtpUsername(req.getSmtpUsername());
+        s.setSmtpPassword(req.getSmtpPassword());
+        if (req.getSmtpAuth() != null) s.setSmtpAuth(req.getSmtpAuth());
+        if (req.getSmtpStarttls() != null) s.setSmtpStarttls(req.getSmtpStarttls());
+        if (req.getSmtpActive() != null) s.setSmtpActive(req.getSmtpActive());
         return map(repository.save(s));
     }
 
@@ -110,7 +117,9 @@ public class SettingsService {
         return new SettingsResponse(
                 s.getId(), s.getCompanyName(), s.getAddress(),
                 s.getPhone(), s.getFax(), s.getGsm(), s.getEmail(),
-                s.getWebsite(), logoUrl, s.getUpdatedAt()
+                s.getWebsite(), logoUrl, s.getSmtpHost(), s.getSmtpPort(),
+                s.getSmtpUsername(), s.getSmtpPassword(), s.getSmtpAuth(),
+                s.getSmtpStarttls(), s.getSmtpActive(), s.getUpdatedAt()
         );
     }
 }

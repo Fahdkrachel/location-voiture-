@@ -11,7 +11,7 @@ services:
       MYSQL_PASSWORD: Bousselha@2026
       MYSQL_ROOT_PASSWORD: BousselhaRoot@2026
     ports:
-      - "3307:3306"
+      - "127.0.0.1:3307:3306"
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
@@ -38,6 +38,11 @@ services:
       JWT_SECRET: changeitchangemechangeitchangemechangeitchangeme
       APP_UPLOADS_DIR: /app/uploads
       APP_ALLOW_FALLBACK_ADMIN: "true"
+      SPRING_MAIL_HOST: smtp.gmail.com
+      SPRING_MAIL_PORT: 587
+      SPRING_MAIL_USERNAME: krachelfahd@gmail.com
+      SPRING_MAIL_PASSWORD: qhskeomwpxowwqms
+      APP_MAIL_FROM: krachelfahd@gmail.com
     volumes:
       - uploads_data:/app/uploads
 

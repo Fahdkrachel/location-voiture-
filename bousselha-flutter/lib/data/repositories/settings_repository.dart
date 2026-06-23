@@ -20,6 +20,13 @@ class SettingsRepository {
     String? gsm,
     String? email,
     String? website,
+    String? smtpHost,
+    int? smtpPort,
+    String? smtpUsername,
+    String? smtpPassword,
+    bool? smtpAuth,
+    bool? smtpStarttls,
+    bool? smtpActive,
   }) async {
     final resp = await dio.put(
       '/settings',
@@ -31,6 +38,13 @@ class SettingsRepository {
         'gsm': gsm,
         'email': email,
         'website': website,
+        'smtpHost': smtpHost,
+        'smtpPort': smtpPort,
+        'smtpUsername': smtpUsername,
+        'smtpPassword': smtpPassword,
+        'smtpAuth': smtpAuth,
+        'smtpStarttls': smtpStarttls,
+        'smtpActive': smtpActive,
       },
     );
     return SettingsModel.fromJson(resp.data as Map<String, dynamic>);

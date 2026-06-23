@@ -35,6 +35,27 @@ public class CompanySettings {
     @Column(name = "logo_path", length = 500)
     private String logoPath;
 
+    @Column(name = "smtp_host", length = 200)
+    private String smtpHost;
+
+    @Column(name = "smtp_port")
+    private Integer smtpPort;
+
+    @Column(name = "smtp_username", length = 200)
+    private String smtpUsername;
+
+    @Column(name = "smtp_password", length = 200)
+    private String smtpPassword;
+
+    @Column(name = "smtp_auth", nullable = false)
+    private Boolean smtpAuth = true;
+
+    @Column(name = "smtp_starttls", nullable = false)
+    private Boolean smtpStarttls = true;
+
+    @Column(name = "smtp_active", nullable = false)
+    private Boolean smtpActive = false;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
@@ -72,6 +93,27 @@ public class CompanySettings {
 
     public String getLogoPath() { return logoPath; }
     public void setLogoPath(String logoPath) { this.logoPath = logoPath; }
+
+    public String getSmtpHost() { return smtpHost; }
+    public void setSmtpHost(String smtpHost) { this.smtpHost = smtpHost; }
+
+    public Integer getSmtpPort() { return smtpPort; }
+    public void setSmtpPort(Integer smtpPort) { this.smtpPort = smtpPort; }
+
+    public String getSmtpUsername() { return smtpUsername; }
+    public void setSmtpUsername(String smtpUsername) { this.smtpUsername = smtpUsername; }
+
+    public String getSmtpPassword() { return smtpPassword; }
+    public void setSmtpPassword(String smtpPassword) { this.smtpPassword = smtpPassword; }
+
+    public Boolean getSmtpAuth() { return smtpAuth; }
+    public void setSmtpAuth(Boolean smtpAuth) { this.smtpAuth = smtpAuth; }
+
+    public Boolean getSmtpStarttls() { return smtpStarttls; }
+    public void setSmtpStarttls(Boolean smtpStarttls) { this.smtpStarttls = smtpStarttls; }
+
+    public Boolean getSmtpActive() { return smtpActive; }
+    public void setSmtpActive(Boolean smtpActive) { this.smtpActive = smtpActive; }
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }

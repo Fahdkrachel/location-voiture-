@@ -47,8 +47,17 @@ if ($confirm -ne "OUI") {
 
 Write-Host "Restauration en cours..." -ForegroundColor Cyan
 
-# Restaurer le fichier SQL dans le conteneur Docker
-Get-Content $selectedFile | docker exec -i bousselha-db mysql -u bousselha -pBousselha@2026 bousselha_db
+# Lancer mysql (détecte si standalone ou Docker)
+$MysqlPath = Join-Path $PSScriptRoot "standalone_bundle\mariadb\bin\mysql.exe"
+
+if (Test-Path $MysqlPath) {
+    Write-Host "Mode Standalone détecté. Utilisation de mysql local..." -ForegroundColor Yellow
+    # Exécuter mysql sur le port 3309 (sans mot de passe pour root)
+    Get-Content $selectedFile | & $MysqlPath -u root -P 3309 bousselha_db
+} else {
+    Write-Host "Mode Docker détecté. Utilisation du conteneur..." -ForegroundColor Yellow
+    Get-Content $selectedFile | docker exec -i bousselha-db mysql -u bousselha -pBousselha@2026 bousselha_db
+}
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "Restauration réussie avec succès !" -ForegroundColor Green

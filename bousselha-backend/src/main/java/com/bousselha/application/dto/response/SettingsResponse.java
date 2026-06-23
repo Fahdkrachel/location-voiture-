@@ -13,13 +13,22 @@ public class SettingsResponse {
     private String email;
     private String website;
     private String logoUrl;
+    private String smtpHost;
+    private Integer smtpPort;
+    private String smtpUsername;
+    private String smtpPassword;
+    private Boolean smtpAuth;
+    private Boolean smtpStarttls;
+    private Boolean smtpActive;
     private LocalDateTime updatedAt;
 
     public SettingsResponse() {}
 
     public SettingsResponse(Long id, String companyName, String address, String phone,
                             String fax, String gsm, String email, String website,
-                            String logoUrl, LocalDateTime updatedAt) {
+                            String logoUrl, String smtpHost, Integer smtpPort,
+                            String smtpUsername, String smtpPassword, Boolean smtpAuth,
+                            Boolean smtpStarttls, Boolean smtpActive, LocalDateTime updatedAt) {
         this.id = id;
         this.companyName = companyName;
         this.address = address;
@@ -29,6 +38,13 @@ public class SettingsResponse {
         this.email = email;
         this.website = website;
         this.logoUrl = logoUrl;
+        this.smtpHost = smtpHost;
+        this.smtpPort = smtpPort;
+        this.smtpUsername = smtpUsername;
+        this.smtpPassword = smtpPassword;
+        this.smtpAuth = smtpAuth;
+        this.smtpStarttls = smtpStarttls;
+        this.smtpActive = smtpActive;
         this.updatedAt = updatedAt;
     }
 
@@ -58,6 +74,27 @@ public class SettingsResponse {
 
     public String getLogoUrl() { return logoUrl; }
     public void setLogoUrl(String logoUrl) { this.logoUrl = logoUrl; }
+
+    public String getSmtpHost() { return smtpHost; }
+    public void setSmtpHost(String smtpHost) { this.smtpHost = smtpHost; }
+
+    public Integer getSmtpPort() { return smtpPort; }
+    public void setSmtpPort(Integer smtpPort) { this.smtpPort = smtpPort; }
+
+    public String getSmtpUsername() { return smtpUsername; }
+    public void setSmtpUsername(String smtpUsername) { this.smtpUsername = smtpUsername; }
+
+    public String getSmtpPassword() { return smtpPassword; }
+    public void setSmtpPassword(String smtpPassword) { this.smtpPassword = smtpPassword; }
+
+    public Boolean getSmtpAuth() { return smtpAuth; }
+    public void setSmtpAuth(Boolean smtpAuth) { this.smtpAuth = smtpAuth; }
+
+    public Boolean getSmtpStarttls() { return smtpStarttls; }
+    public void setSmtpStarttls(Boolean smtpStarttls) { this.smtpStarttls = smtpStarttls; }
+
+    public Boolean getSmtpActive() { return smtpActive; }
+    public void setSmtpActive(Boolean smtpActive) { this.smtpActive = smtpActive; }
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }

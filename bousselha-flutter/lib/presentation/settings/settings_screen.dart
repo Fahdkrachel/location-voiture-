@@ -8,6 +8,7 @@ import 'pages/security_page.dart';
 import 'pages/admins_page.dart';
 import 'pages/company_info_page.dart';
 import 'pages/logo_page.dart';
+import 'pages/email_config_page.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -25,6 +26,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _SettingsItem(icon: Icons.manage_accounts_outlined, label: 'Administrateurs'),
     _SettingsItem(icon: Icons.business_outlined, label: 'Informations Société'),
     _SettingsItem(icon: Icons.image_outlined, label: 'Logo'),
+    _SettingsItem(icon: Icons.mail_outline_rounded, label: 'Configuration Email'),
   ];
 
   static const _pages = <Widget>[
@@ -33,6 +35,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     AdminsPage(),
     CompanyInfoPage(),
     LogoPage(),
+    EmailConfigPage(),
   ];
 
   @override

@@ -9,6 +9,13 @@ public class SettingsRequest {
     private String gsm;
     private String email;
     private String website;
+    private String smtpHost;
+    private Integer smtpPort;
+    private String smtpUsername;
+    private String smtpPassword;
+    private Boolean smtpAuth;
+    private Boolean smtpStarttls;
+    private Boolean smtpActive;
 
     public SettingsRequest() {}
 
@@ -32,4 +39,25 @@ public class SettingsRequest {
 
     public String getWebsite() { return website; }
     public void setWebsite(String website) { this.website = website; }
+
+    public String getSmtpHost() { return smtpHost; }
+    public void setSmtpHost(String smtpHost) { this.smtpHost = smtpHost; }
+
+    public Integer getSmtpPort() { return smtpPort; }
+    public void setSmtpPort(Integer smtpPort) { this.smtpPort = smtpPort; }
+
+    public String getSmtpUsername() { return smtpUsername; }
+    public void setSmtpUsername(String smtpUsername) { this.smtpUsername = smtpUsername; }
+
+    public String getSmtpPassword() { return smtpPassword; }
+    public void setSmtpPassword(String smtpPassword) { this.smtpPassword = smtpPassword; }
+
+    public Boolean getSmtpAuth() { return smtpAuth; }
+    public void setSmtpAuth(Boolean smtpAuth) { this.smtpAuth = smtpAuth; }
+
+    public Boolean getSmtpStarttls() { return smtpStarttls; }
+    public void setSmtpStarttls(Boolean smtpStarttls) { this.smtpStarttls = smtpStarttls; }
+
+    public Boolean getSmtpActive() { return smtpActive; }
+    public void setSmtpActive(Boolean smtpActive) { this.smtpActive = smtpActive; }
 }
